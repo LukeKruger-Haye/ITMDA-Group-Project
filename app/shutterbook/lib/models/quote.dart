@@ -19,6 +19,7 @@ class Quote {
             'client_id': clientId,
             'total_price': totalPrice,
             'description': description,
+            'created_at': createdAt?.toString()
         };
     }
 

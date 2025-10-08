@@ -2,9 +2,9 @@ import 'dart:async';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
-import 'booking.dart';
-import 'client.dart';
-import 'quote.dart';
+import '../models/booking.dart';
+import '../models/client.dart';
+import '../models/quote.dart';
 
 class DatabaseHelper {
     static final _databaseName = 'shutterbook.db';
