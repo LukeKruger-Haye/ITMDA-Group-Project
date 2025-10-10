@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shutterbook/quote_screen.dart';
 
 void main() => runApp(MyApp());
 
@@ -31,6 +32,7 @@ class _MyHomePageState extends State<MyHomePage> {
         HomeScreen(),
         BookingsScreen(),
         ManageScreen(),
+        QuoteScreen()
     ];
 
     @override
@@ -96,3 +98,5 @@ class ManageScreen extends StatelessWidget {
         );
     }
 }
+
+

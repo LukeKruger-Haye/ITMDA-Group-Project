@@ -1,20 +1,15 @@
 import 'package:flutter/material.dart';
 
-void main() {
-  runApp(const MaterialApp(
-    home: MyApp(),
-    debugShowCheckedModeBanner: false,
-  ));
-}
 
-class MyApp extends StatefulWidget {
-  const MyApp({super.key});
+
+class QuoteScreen extends StatefulWidget {
+  const QuoteScreen({super.key});
 
   @override
-  State<MyApp> createState() => _MyAppState();
+  State<QuoteScreen> createState() => QuoteScreenState();
 }
 
-class _MyAppState extends State<MyApp> {
+class QuoteScreenState extends State<QuoteScreen> {
   String? _dropdownValue; // holds the selected client value
   String? _dropdownValue2; // holds the selected package value
 
@@ -75,7 +70,7 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    // NOTE: MyApp returns a Scaffold (not a MaterialApp) because MaterialApp
+    // NOTE: QuoteScreen returns a Scaffold (not a MaterialApp) because MaterialApp
     // is already the root in main().
     return Scaffold(
       appBar: AppBar(
