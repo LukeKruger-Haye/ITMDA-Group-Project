@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:shutterbook/data/database_helper.dart';
 import 'package:shutterbook/data/models/booking.dart';
+import 'package:shutterbook/data/tables/booking_table.dart';
 
 class BookingsPage extends StatefulWidget {
   const BookingsPage({super.key});
@@ -10,7 +10,7 @@ class BookingsPage extends StatefulWidget {
 }
 
 class _BookingsPageState extends State<BookingsPage> {
-  final db = DatabaseHelper.instance; 
+  final bookingTable = BookingTable(); 
   List<Booking> bookings = [];
 
   @override
@@ -20,7 +20,7 @@ class _BookingsPageState extends State<BookingsPage> {
   }
 
   Future<void> _loadBookings() async {
-    final data = await db.getAllBookings();
+    final data = await bookingTable.getAllBookings();
     setState(() {
       bookings = data;
     });
