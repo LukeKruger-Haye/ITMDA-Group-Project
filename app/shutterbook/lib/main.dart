@@ -43,12 +43,15 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             body: _tabs[_currentIndex],
             bottomNavigationBar: BottomNavigationBar(
+              selectedItemColor: Colors.blue,
+              unselectedItemColor: Colors.blueGrey,
                 currentIndex: _currentIndex,
                 onTap: (int index) {
                     setState(() {
                         _currentIndex = index;
                     });
                 },
+                
                 items: [
                     BottomNavigationBarItem(
                         icon: Icon(Icons.home),
@@ -61,6 +64,10 @@ class _MyHomePageState extends State<MyHomePage> {
                     BottomNavigationBarItem(
                         icon: Icon(Icons.person),
                         label: 'Manage',
+                    ),
+                     BottomNavigationBarItem(
+                        icon: Icon(Icons.quiz_outlined),
+                        label: 'Quotes',
                     ),
                 ],
             ),
@@ -99,4 +106,9 @@ class ManageScreen extends StatelessWidget {
     }
 }
 
+class QuoteScreen extends StatefulWidget {
+  const QuoteScreen({super.key});
 
+  @override
+  State<QuoteScreen> createState() => QuoteScreenState();
+}

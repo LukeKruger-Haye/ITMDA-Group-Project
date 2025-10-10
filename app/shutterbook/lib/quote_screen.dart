@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:shutterbook/main.dart';
 
 
 
-class QuoteScreen extends StatefulWidget {
-  const QuoteScreen({super.key});
 
-  @override
-  State<QuoteScreen> createState() => QuoteScreenState();
-}
 
 class QuoteScreenState extends State<QuoteScreen> {
   String? _dropdownValue; // holds the selected client value
