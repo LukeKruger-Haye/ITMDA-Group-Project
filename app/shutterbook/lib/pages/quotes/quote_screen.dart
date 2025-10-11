@@ -1,3 +1,4 @@
+/*
 import 'package:flutter/material.dart';
 import 'package:shutterbook/main.dart';
 
@@ -5,7 +6,7 @@ import 'package:shutterbook/main.dart';
 
 
 
-class QuoteScreenState extends State<QuoteScreen> {
+class QuoteScreenState extends State<> {
   String? _dropdownValue; // holds the selected client value
   String? _dropdownValue2; // holds the selected package value
 
@@ -114,3 +115,4 @@ class QuoteScreenState extends State<QuoteScreen> {
     );
   }
 }
+*/
