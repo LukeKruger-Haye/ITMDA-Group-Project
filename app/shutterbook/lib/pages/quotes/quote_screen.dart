@@ -1,6 +1,6 @@
 
 import 'package:flutter/material.dart';
-import 'package:shutterbook/main.dart';
+
 
 
 class QuoteScreen extends StatefulWidget {
