@@ -3,16 +3,16 @@ import 'package:flutter/material.dart';
 
 
 
-class QuoteScreen extends StatefulWidget {
-const QuoteScreen({super.key});
+class QuotePage extends StatefulWidget {
+const QuotePage({super.key});
 
 @override
-State createState() => QuoteScreenState();
+State createState() => QuotePageState();
 
 }
 
 
-class QuoteScreenState extends State<QuoteScreen> {
+class QuotePageState extends State<QuotePage> {
   String? _dropdownValue; // holds the selected client value
   String? _dropdownValue2; // holds the selected package value
 
