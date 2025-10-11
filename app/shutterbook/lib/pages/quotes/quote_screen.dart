@@ -1,18 +1,12 @@
-
+/*
 import 'package:flutter/material.dart';
+import 'package:shutterbook/main.dart';
 
 
 
-class QuoteScreen extends StatefulWidget {
-  const QuoteScreen({super.key});
-
-  @override
-  State<QuoteScreen> createState() => QuoteScreenState();
-}
 
 
-
-class QuoteScreenState extends State<QuoteScreen> {
+class QuoteScreenState extends State<> {
   String? _dropdownValue; // holds the selected client value
   String? _dropdownValue2; // holds the selected package value
 
@@ -121,3 +115,4 @@ class QuoteScreenState extends State<QuoteScreen> {
     );
   }
 }
+*/
