@@ -112,6 +112,7 @@ class PackagePickerState extends State<PackagePicker> {
         ElevatedButton(
           onPressed: () {
             widget.onSelectionChanged(_selectedPackages);
+            Navigator.pushNamed(context, '/quotes/create/quote_overview_screen.dart');
           },
           child: const Text('Confirm Selection'),
         ),
