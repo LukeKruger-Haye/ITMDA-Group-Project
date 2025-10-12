@@ -48,9 +48,23 @@ class _CreateQuotePageState extends State<CreateQuotePage> {
         child: Column(
           children: [
             TextField(
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Search Client',
-                border: OutlineInputBorder(),
+                border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.check),
+                  onPressed: () {
+                    // Confirm selection logic
+                    if (suggestions.isNotEmpty) {
+                      final selectedClient = suggestions.first;
+                      debugPrint('Confirmed: ${selectedClient.firstName} ${selectedClient.lastName}');
+                      // You can store the selected client in a variable if needed
+                      
+                    } else {
+                      debugPrint('No client selected');
+                    }
+                  },
+                ),
               ),
               onChanged: _onSearchChanged,
             ),
@@ -68,7 +82,7 @@ class _CreateQuotePageState extends State<CreateQuotePage> {
                         debugPrint('Selected: ${client.firstName} ${client.lastName}');
                         setState(() {
                           searchText = '${client.firstName} ${client.lastName}';
-                          suggestions = [];
+                          suggestions = [client];
                         });
                       },
                     );
