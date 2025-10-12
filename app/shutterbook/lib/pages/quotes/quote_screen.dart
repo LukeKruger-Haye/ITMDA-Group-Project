@@ -33,11 +33,11 @@ class Buttons extends StatefulWidget{
 
 class ButtonsState extends State<Buttons>{
   void onPressedCreate(){
-    Navigator.pushNamed(context, '/quotes/create_quote.dart');
+    Navigator.pushNamed(context, '/quotes/create/create_quote.dart');
   }
 
   void onPressedManage(){
-    Navigator.pushNamed(context, '/quotes/manage_quote.dart');
+    Navigator.pushNamed(context, '/quotes/manage/manage_quote.dart');
   }
 
 
