@@ -3,18 +3,9 @@ import 'package:flutter/material.dart';
 
 
 
-class QuotePage extends StatefulWidget {
-const QuotePage({super.key});
-
-@override
-State createState() => QuotePageState();
-
-}
-
-
-class QuotePageState extends State<QuotePage> {
-
-
+class QuotePage extends StatelessWidget{
+const QuotePage({super.key}); 
+  
   @override
   Widget build(BuildContext context) {
     // NOTE: QuoteScreen returns a Scaffold (not a MaterialApp) because MaterialApp
@@ -22,10 +13,43 @@ class QuotePageState extends State<QuotePage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.pinkAccent,
-        title: const Text('Quote Generator'),
-        ),
-      );
+        title: const Text('Quotes'),
+      ),
+        body:const Buttons()
+        
+
+        );
     
     
   }
+}
+
+class Buttons extends StatefulWidget{
+  const Buttons({super.key});
+
+@override
+  State createState() => ButtonsState();
+}
+
+class ButtonsState extends State<Buttons>{
+  void onPressed(){}
+
+
+  @override
+  Widget build(BuildContext context){
+    final ButtonStyle style = ElevatedButton.styleFrom(textStyle : const TextStyle(fontSize: 30));
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        ElevatedButton(style:style, onPressed: onPressed, child: const Text("Create")),
+        const SizedBox(height :60),
+        ElevatedButton(style:style, onPressed: onPressed, child: const Text("Manage"))
+      ],
+
+
+      ),
+    );
+  }
+
 }
