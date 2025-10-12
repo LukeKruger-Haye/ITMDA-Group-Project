@@ -32,7 +32,13 @@ class Buttons extends StatefulWidget{
 }
 
 class ButtonsState extends State<Buttons>{
-  void onPressed(){}
+  void onPressedCreate(){
+    
+  }
+
+  void onPressedManage(){
+
+  }
 
 
   @override
@@ -42,9 +48,9 @@ class ButtonsState extends State<Buttons>{
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        ElevatedButton(style:style, onPressed: onPressed, child: const Text("Create")),
+        ElevatedButton(style:style, onPressed: onPressedCreate, child: const Text("Create")),
         const SizedBox(height :60),
-        ElevatedButton(style:style, onPressed: onPressed, child: const Text("Manage"))
+        ElevatedButton(style:style, onPressed: onPressedManage, child: const Text("Manage"))
       ],
 
 
