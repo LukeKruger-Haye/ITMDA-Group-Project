@@ -59,7 +59,7 @@ class _CreateQuotePageState extends State<CreateQuotePage> {
                       final selectedClient = suggestions.first;
                       debugPrint('Confirmed: ${selectedClient.firstName} ${selectedClient.lastName}');
                       // You can store the selected client in a variable if needed
-                      
+                      Navigator.pushNamed(context, '/quotes/create/package_picker_screen.dart');
                     } else {
                       debugPrint('No client selected');
                     }
