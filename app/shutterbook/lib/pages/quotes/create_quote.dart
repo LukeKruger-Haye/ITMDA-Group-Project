@@ -11,43 +11,31 @@ class CreateQuotePage extends StatefulWidget{
 }
 
 class _CreateQuotePageState extends State<CreateQuotePage> {
+  List<Client> allClients = [];
+  List<Client> suggestions = [];
+  String searchText = '';
+
   @override
   void initState() {
     super.initState();
-    _insertClients();
+    _loadClients();
   }
 
-  Future<void> _insertClients() async {
-    final clients =[
-    Client(
-      id : 1,
-      firstName: 'James',
-      lastName: 'Baxtor',
-      email: 'james.baxtor@example.com',
-      phone: '555-123-4567',
-    ),
-      Client(
-      id : 2,
-      firstName: 'Mary',
-      lastName: 'Jane',
-      email: 'mary.jane@example.com',
-      phone: '654-321-7654',
-    ),
-    ];
-    for (var client in clients) {
-      await ClientTable().insertClient(client);
-    }
-    final fetchedClient = await ClientTable().getAllClients();
-    
-    for (var client in fetchedClient) {
-      debugPrint('Id: ${client.id}, Client: ${client.firstName} ${client.lastName}, Email: ${client.email}, Phone: ${client.phone}');
-    }
+  Future<void> _loadClients() async {
+    allClients = await ClientTable().getAllClients();
+    setState(() {});
   }
 
-
-
-
-
+  void _onSearchChanged(String value) {
+    setState(() {
+      searchText = value;
+      suggestions = allClients
+          .where((client) =>
+              client.firstName.toLowerCase().contains(value.toLowerCase()) ||
+              client.lastName.toLowerCase().contains(value.toLowerCase()))
+          .toList();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,22 +43,38 @@ class _CreateQuotePageState extends State<CreateQuotePage> {
       appBar: AppBar(
         title: const Text('Create Quote'),
       ),
-      body: const Center(
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('Please search client'),
-            SizedBox(height: 20),
-            SearchBar(
-              hintText: 'Search Client',
-              onTap: null,
-
+            TextField(
+              decoration: const InputDecoration(
+                labelText: 'Search Client',
+                border: OutlineInputBorder(),
+              ),
+              onChanged: _onSearchChanged,
             ),
-            SizedBox(height: 30),
-            ElevatedButton(
-              onPressed: null, // Implement search functionality
-              child: Text('Confirm Client'),
-            ),
+            if (searchText.isNotEmpty && suggestions.isNotEmpty)
+              Expanded(
+                child: ListView.builder(
+                  itemCount: suggestions.length,
+                  itemBuilder: (context, index) {
+                    final client = suggestions[index];
+                    return ListTile(
+                      title: Text('${client.firstName} ${client.lastName}'),
+                      subtitle: Text(client.email),
+                      onTap: () {
+                        // Handle client selection
+                        debugPrint('Selected: ${client.firstName} ${client.lastName}');
+                        setState(() {
+                          searchText = '${client.firstName} ${client.lastName}';
+                          suggestions = [];
+                        });
+                      },
+                    );
+                  },
+                ),
+              ),
           ],
         ),
       ),
