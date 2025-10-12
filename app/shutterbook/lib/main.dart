@@ -6,7 +6,10 @@ import 'package:shutterbook/pages/authentication/setup.dart';
 import 'package:shutterbook/pages/authentication/login.dart';
 
 import 'package:shutterbook/pages/bookings/bookings.dart';
+
 import 'package:shutterbook/pages/quotes/quote_screen.dart';
+import 'package:shutterbook/pages/quotes/create_quote.dart';
+import 'package:shutterbook/pages/quotes/manage_quote.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -59,7 +62,9 @@ class _ShutterBookAppState extends State<ShutterBookApp> {
       routes: {
         '/home': (context) => const HomePage(),
         '/bookings': (context) => const BookingsPage(),
-        '/quotes/quote_screen.dart':(context) => const QuotePage()
+        '/quotes/quote_screen.dart':(context) => const QuotePage(),
+        '/quotes/create_quote.dart':(context) => const CreateQuotePage(),
+        '/quotes/manage_quote.dart':(context) => const ManageQuotePage(),
       },
     );
   }

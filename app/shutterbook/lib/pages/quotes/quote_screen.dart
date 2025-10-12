@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 
 
-
 class QuotePage extends StatelessWidget{
 const QuotePage({super.key}); 
   
@@ -10,6 +9,7 @@ const QuotePage({super.key});
   Widget build(BuildContext context) {
     // NOTE: QuoteScreen returns a Scaffold (not a MaterialApp) because MaterialApp
     // is already the root in main().
+    
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.pinkAccent,
@@ -18,7 +18,7 @@ const QuotePage({super.key});
         body:const Buttons()
         
 
-        );
+      );
     
     
   }
@@ -33,11 +33,11 @@ class Buttons extends StatefulWidget{
 
 class ButtonsState extends State<Buttons>{
   void onPressedCreate(){
-    
+    Navigator.pushNamed(context, '/quotes/create_quote.dart');
   }
 
   void onPressedManage(){
-
+    Navigator.pushNamed(context, '/quotes/manage_quote.dart');
   }
 
 
@@ -52,10 +52,9 @@ class ButtonsState extends State<Buttons>{
         const SizedBox(height :60),
         ElevatedButton(style:style, onPressed: onPressedManage, child: const Text("Manage"))
       ],
-
-
       ),
     );
+  
   }
 
 }
