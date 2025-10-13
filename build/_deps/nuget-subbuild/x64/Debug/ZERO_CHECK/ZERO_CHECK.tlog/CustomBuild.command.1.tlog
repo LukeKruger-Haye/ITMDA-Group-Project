@@ -1,0 +1,10 @@
+^C:\USERS\DILLON\GITH\ITMDA-GROUP-PROJECT\BUILD\_DEPS\NUGET-SUBBUILD\CMAKEFILES\E824E9C76F9CE406369A6E905AD37370\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SC:/Users/Dillon/GITH/ITMDA-Group-Project/build/_deps/nuget-subbuild -BC:/Users/Dillon/GITH/ITMDA-Group-Project/build/_deps/nuget-subbuild --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/Users/Dillon/GITH/ITMDA-Group-Project/build/_deps/nuget-subbuild/nuget-populate.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

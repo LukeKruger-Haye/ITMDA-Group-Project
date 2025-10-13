@@ -1,5 +1,6 @@
 class Booking {
   int? bookingId;
+  int quoteId;
   int clientId;
   DateTime bookingDate;
   String status;
@@ -7,6 +8,7 @@ class Booking {
 
   Booking({
     this.bookingId,
+    required this.quoteId,
     required this.clientId,
     required this.bookingDate,
     this.status = 'Scheduled',
@@ -16,6 +18,7 @@ class Booking {
   Map<String, dynamic> toMap() {
     return {
       'booking_id': bookingId,
+      'quote_id': quoteId,
       'client_id': clientId,
       'booking_date': bookingDate.toString(),
       'status': status,
@@ -26,6 +29,7 @@ class Booking {
   factory Booking.fromMap(Map<String, dynamic> map) {
     return Booking(
       bookingId: map['booking_id'],
+      quoteId: map['quote_id'],
       clientId: map['client_id'],
       bookingDate: DateTime.parse(map['booking_date']),
       status: map['status'] ?? 'Scheduled',

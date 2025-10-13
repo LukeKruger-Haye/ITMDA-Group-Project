@@ -1,0 +1,49 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "C:/Users/Dillon/GITH/ITMDA-Group-Project/build/_deps/nuget-subbuild/CMakeFiles/nuget-populate"
+		},
+		{
+			"file" : "C:/Users/Dillon/GITH/ITMDA-Group-Project/build/_deps/nuget-subbuild/CMakeFiles/e824e9c76f9ce406369a6e905ad37370/nuget-populate.rule"
+		},
+		{
+			"file" : "C:/Users/Dillon/GITH/ITMDA-Group-Project/build/_deps/nuget-subbuild/CMakeFiles/b955d72e95e9a04bcda63cfad87fda9d/nuget-populate-complete.rule"
+		},
+		{
+			"file" : "C:/Users/Dillon/GITH/ITMDA-Group-Project/build/_deps/nuget-subbuild/CMakeFiles/bf20274619712fdfb7d98cb2b23505e6/nuget-populate-build.rule"
+		},
+		{
+			"file" : "C:/Users/Dillon/GITH/ITMDA-Group-Project/build/_deps/nuget-subbuild/CMakeFiles/bf20274619712fdfb7d98cb2b23505e6/nuget-populate-configure.rule"
+		},
+		{
+			"file" : "C:/Users/Dillon/GITH/ITMDA-Group-Project/build/_deps/nuget-subbuild/CMakeFiles/bf20274619712fdfb7d98cb2b23505e6/nuget-populate-copyfile.rule"
+		},
+		{
+			"file" : "C:/Users/Dillon/GITH/ITMDA-Group-Project/build/_deps/nuget-subbuild/CMakeFiles/bf20274619712fdfb7d98cb2b23505e6/nuget-populate-download.rule"
+		},
+		{
+			"file" : "C:/Users/Dillon/GITH/ITMDA-Group-Project/build/_deps/nuget-subbuild/CMakeFiles/bf20274619712fdfb7d98cb2b23505e6/nuget-populate-install.rule"
+		},
+		{
+			"file" : "C:/Users/Dillon/GITH/ITMDA-Group-Project/build/_deps/nuget-subbuild/CMakeFiles/bf20274619712fdfb7d98cb2b23505e6/nuget-populate-mkdir.rule"
+		},
+		{
+			"file" : "C:/Users/Dillon/GITH/ITMDA-Group-Project/build/_deps/nuget-subbuild/CMakeFiles/bf20274619712fdfb7d98cb2b23505e6/nuget-populate-patch.rule"
+		},
+		{
+			"file" : "C:/Users/Dillon/GITH/ITMDA-Group-Project/build/_deps/nuget-subbuild/CMakeFiles/bf20274619712fdfb7d98cb2b23505e6/nuget-populate-test.rule"
+		},
+		{
+			"file" : "C:/Users/Dillon/GITH/ITMDA-Group-Project/build/_deps/nuget-subbuild/CMakeFiles/bf20274619712fdfb7d98cb2b23505e6/nuget-populate-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"nuget-populate"
+		],
+		"name" : "nuget-populate"
+	}
+}
