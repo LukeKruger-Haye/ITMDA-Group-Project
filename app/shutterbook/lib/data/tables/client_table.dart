@@ -23,8 +23,8 @@ class ClientTable{
     );
 
     if (maps.isNotEmpty) {
-            return Client.fromMap(maps.first);
-        }
+      return Client.fromMap(maps.first);
+    }
 
     return null;
   }
@@ -46,7 +46,7 @@ class ClientTable{
 
   Future<List<Client>> getAllClients() async {
     Database db = await dbHelper.database;
-    final maps = await db.query('clients');
+    final maps = await db.query('Clients');
     return maps.map((m) => Client.fromMap(m)).toList();
   }
 
