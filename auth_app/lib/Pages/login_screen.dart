@@ -1,122 +1,142 @@
 import 'package:flutter/material.dart';
-import 'package:local_auth/local_auth.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../Models/auth_model.dart';
 import 'home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final AuthModel authModel;
+
+  const LoginScreen({super.key, required this.authModel});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _passwordController = TextEditingController();
-  final LocalAuthentication _auth = LocalAuthentication();
+  final TextEditingController _passwordController = TextEditingController();
+  bool _isLoading = false;
+  bool _biometricTried = false;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _tryBiometric();
-    });
+    _tryBiometricLogin();
+  }
+
+  @override
+  void dispose() {
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _tryBiometricLogin() async {
+    if (widget.authModel.biometricEnabled && widget.authModel.hasPassword) {
+      setState(() => _isLoading = true);
+      final success = await widget.authModel.authenticate();
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _biometricTried = true;
+      });
+
+      if (success) {
+        _goToHome();
+      }
+    } else {
+      _biometricTried = true;
+    }
   }
 
   Future<void> _loginWithPassword() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedPassword = prefs.getString('app_password');
+    final password = _passwordController.text.trim();
+    if (password.isEmpty) return;
 
-    if (_passwordController.text == savedPassword) {
-      _navigateHome();
-    } else {
-      _showMessage("Incorrect password");
-    }
-  }
-
-  Future<void> _tryBiometric() async {
-    try {
-      final canCheck = await _auth.canCheckBiometrics;
-      final isSupported = await _auth.isDeviceSupported();
-
-      if (!canCheck || !isSupported) return;
-
-      final didAuthenticate = await _auth.authenticate(
-        localizedReason: 'Unlock the app with your biometrics',
-        options: const AuthenticationOptions(
-          biometricOnly: true,
-          stickyAuth: true,
-        ),
-      );
-
-      if (didAuthenticate) _navigateHome();
-    } catch (e) {
-      // Silent fail if biometrics not available
-      debugPrint("Biometric error: $e");
-    }
-  }
-
-  void _navigateHome() {
+    setState(() => _isLoading = true);
+    final valid = await widget.authModel.verifyPassword(password);
     if (!mounted) return;
-    Navigator.pushReplacement(
-        context, MaterialPageRoute(builder: (_) => const HomeScreen()));
+    setState(() => _isLoading = false);
+
+    if (valid) {
+      _goToHome();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Incorrect password')),
+      );
+    }
   }
 
-  void _showMessage(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  void _goToHome() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => HomeScreen(authModel: widget.authModel),
+      ),
+    );
+  }
+
+  Future<void> _loginWithBiometric() async {
+    setState(() => _isLoading = true);
+    final success = await widget.authModel.authenticate();
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (success) {
+      _goToHome();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Biometric authentication failed')),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-  return Scaffold(
-    body: Padding(
-      padding: const EdgeInsets.all(24),
-      child: Center(
+    final biometricsOn =
+        widget.authModel.hasPassword && widget.authModel.biometricEnabled;
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Login')),
+      body: Center(
         child: SingleChildScrollView(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text(
-                "Login",
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 32),
-              TextField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  labelText: 'Password',
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                  'Welcome Back!',
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
                 ),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _loginWithPassword,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(255, 255, 255, 255),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                const SizedBox(height: 32),
+                TextField(
+                  controller: _passwordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Enter password',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-                child: const Text("Login"),
-              ),
-              const SizedBox(height: 16),
-              // Fingerprint icon button
-              IconButton(
-                iconSize: 48,
-                onPressed: _tryBiometric,
-                icon: const Icon(Icons.fingerprint, color: Colors.indigo),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                "Or use biometrics",
-                style: TextStyle(color: Colors.grey[600]),
-              ),
-            ],
+                const SizedBox(height: 16),
+                if (_isLoading)
+                  const CircularProgressIndicator()
+                else ...[
+                  ElevatedButton(
+                    onPressed: _loginWithPassword,
+                    child: const Text('Login'),
+                  ),
+                  const SizedBox(height: 16),
+                  if (biometricsOn && _biometricTried)
+                    IconButton(
+                      onPressed: _loginWithBiometric,
+                      icon: const Icon(Icons.fingerprint, size: 40),
+                      tooltip: 'Use biometrics',
+                    ),
+                ],
+              ],
+            ),
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 }

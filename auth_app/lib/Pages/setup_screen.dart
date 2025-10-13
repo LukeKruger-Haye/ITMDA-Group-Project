@@ -1,62 +1,90 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'login_screen.dart';
+import '../Models/auth_model.dart';
+import 'home_screen.dart';
 
 class SetupScreen extends StatefulWidget {
-  const SetupScreen({super.key});
+  final AuthModel authModel;
+
+  const SetupScreen({super.key, required this.authModel});
 
   @override
   State<SetupScreen> createState() => _SetupScreenState();
 }
 
 class _SetupScreenState extends State<SetupScreen> {
-  final _controller = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  bool _usePassword = true;
 
-  Future<void> _savePassword() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('app_password', _controller.text);
-    if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-      );
+  @override
+  void dispose() {
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _continue() async {
+    if (_usePassword) {
+      final pw = _passwordController.text.trim();
+      if (pw.length < 4) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Password must be at least 4 characters long')),
+        );
+        return;
+      }
+      await widget.authModel.setPassword(pw);
+
+      // Prompt to enable biometrics if available
+      final canUseBiometric = await widget.authModel.authenticate();
+      if (canUseBiometric) {
+        await widget.authModel.setBiometricEnabled(true);
+      }
+    } else {
+      await widget.authModel.removePassword();
+      await widget.authModel.setBiometricEnabled(false);
     }
+
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => HomeScreen(authModel: widget.authModel),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text("Set App Password",
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 24),
-              TextField(
-                controller: _controller,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  labelText: 'Password',
+      appBar: AppBar(title: const Text('Initial Setup')),
+      body: Center(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SwitchListTile(
+                  title: const Text('Enable Password Lock'),
+                  value: _usePassword,
+                  onChanged: (v) => setState(() => _usePassword = v),
                 ),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _savePassword,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(255, 255, 255, 255),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                if (_usePassword) ...[
+                  TextField(
+                    controller: _passwordController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Set a password',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                ElevatedButton(
+                  onPressed: _continue,
+                  child: const Text('Continue'),
                 ),
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  child: Text("Save Password"),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

@@ -1,34 +1,39 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'Models/auth_model.dart';
 import 'Pages/login_screen.dart';
 import 'Pages/setup_screen.dart';
+import 'Pages/home_screen.dart';
 
-void main() {
-  runApp(MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final authModel = AuthModel();
+  await authModel.loadSettings();
+
+  final firstLaunch = await authModel.isFirstLaunch();
+
+  runApp(MyApp(authModel: authModel, firstLaunch: firstLaunch));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final AuthModel authModel;
+  final bool firstLaunch;
 
-  Future<bool> hasPasswordSet() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.containsKey('app_password');
-  }
+  const MyApp({super.key, required this.authModel, required this.firstLaunch});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Local Auth Demo',
-      theme: ThemeData(
-        primarySwatch: Colors.indigo,
-      ),
-      home: FutureBuilder<bool>(
-        future: hasPasswordSet(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) return const SizedBox();
-          return snapshot.data! ? const LoginScreen() : const SetupScreen();
-        },
-      ),
+      title: 'Local Auth App',
+      theme: ThemeData(primarySwatch: Colors.blue),
+      home: Builder(builder: (context) {
+        if (firstLaunch) {
+          return SetupScreen(authModel: authModel);
+        } else if (authModel.hasPassword) {
+          return LoginScreen(authModel: authModel);
+        } else {
+          return HomeScreen(authModel: authModel);
+        }
+      }),
     );
   }
 }
