@@ -76,8 +76,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _useBiometric = false;
       });
     } else {
-      Navigator.push(
-        context,
+      Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => SetupScreen(authModel: widget.authModel)),
       );
     }

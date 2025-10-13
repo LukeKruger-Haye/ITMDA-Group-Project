@@ -65,13 +65,13 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _goToHome() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => HomeScreen(authModel: widget.authModel),
-      ),
-    );
-  }
+  Navigator.of(context).pushAndRemoveUntil(
+    MaterialPageRoute(
+      builder: (_) => HomeScreen(authModel: widget.authModel),
+    ),
+    (route) => false,
+  );
+}
 
   Future<void> _loginWithBiometric() async {
     setState(() => _isLoading = true);

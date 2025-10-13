@@ -44,11 +44,11 @@ class _SetupScreenState extends State<SetupScreen> {
     }
 
     if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
+    Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(
         builder: (_) => HomeScreen(authModel: widget.authModel),
       ),
+      (route) => false, // ✅ Clears back stack
     );
   }
 
