@@ -20,10 +20,10 @@ class PackagePicker extends StatefulWidget {
 class PackagePickerState extends State<PackagePicker> {
   // Hardcoded package list
   final List<Package> _packages = [
-    Package(name: 'Camera', price: 500.0),
-    Package(name: 'Tripod', price: 100.0),
-    Package(name: 'Lens', price: 250.0),
-    Package(name: 'Lighting Kit', price: 150.0),
+    Package(name: 'Birthday', price: 250.0),
+    Package(name: 'Wedding', price: 100.0),
+    Package(name: 'Anniversary', price: 250.0),
+    Package(name: 'Family', price: 300.0),
   ];
 
   // Map to track selected packages and their quantities
@@ -69,7 +69,7 @@ class PackagePickerState extends State<PackagePicker> {
               final quantity = _selectedPackages[package] ?? 1;
               return Card(
                 child: ListTile(
-                  title: Text('${package.name} (\$${package.price})'),
+                  title: Text('${package.name} (R${package.price})'),
                   trailing: isSelected
                       ? Row(
                           mainAxisSize: MainAxisSize.min,
