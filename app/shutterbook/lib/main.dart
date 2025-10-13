@@ -1,90 +1,64 @@
 import 'package:flutter/material.dart';
+import 'package:shutterbook/pages/home.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-void main() => runApp(MyApp());
+import 'package:shutterbook/pages/authentication/setup.dart';
+import 'package:shutterbook/pages/authentication/login.dart';
 
-class MyApp extends StatelessWidget {
-    @override
-    Widget build(BuildContext context) {
-        return MaterialApp(
-            title: 'Shutterbook',
-            theme: ThemeData(
-                primarySwatch: Colors.blue,
-            ),
-            home: MyHomePage(),
-        );
-    }
+import 'package:shutterbook/pages/bookings/bookings.dart';
+
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const ShutterBookApp());
 }
 
-class MyHomePage extends StatefulWidget {
-    @override
-    _MyHomePageState createState() => _MyHomePageState();
+class ShutterBookApp extends StatefulWidget {
+  const ShutterBookApp({super.key});
+
+  @override
+  State<ShutterBookApp> createState() => _ShutterBookAppState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-    int _currentIndex = 0;
+class _ShutterBookAppState extends State<ShutterBookApp> {
+  Widget? _startScreen;
 
-    final List<Widget> _tabs = [
-        HomeScreen(),
-        BookingsScreen(),
-        ManageScreen(),
-    ];
+  @override
+  void initState() {
+    super.initState();
+    _checkPasswordStatus();
+  }
 
-    @override
-    Widget build(BuildContext context) {
-        return Scaffold(
-            appBar: AppBar(
-                title: Text('Shutterbook'),
-            ),
-            body: _tabs[_currentIndex],
-            bottomNavigationBar: BottomNavigationBar(
-                currentIndex: _currentIndex,
-                onTap: (int index) {
-                    setState(() {
-                        _currentIndex = index;
-                    });
-                },
-                items: [
-                    BottomNavigationBarItem(
-                        icon: Icon(Icons.home),
-                        label: 'Home',
-                    ),
-                    BottomNavigationBarItem(
-                        icon: Icon(Icons.favorite),
-                        label: 'Bookings',
-                    ),
-                    BottomNavigationBarItem(
-                        icon: Icon(Icons.person),
-                        label: 'Manage',
-                    ),
-                ],
-            ),
-        );
+  Future<void> _checkPasswordStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedPassword = prefs.getString('app_password');
+
+    setState(() {
+      if (savedPassword == null || savedPassword.isEmpty) {
+        _startScreen = const SetupScreen();
+      } else {
+        _startScreen = const LoginScreen();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_startScreen == null) {
+      return const MaterialApp(
+        home: Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        ),
+      );
     }
-}
 
-class HomeScreen extends StatelessWidget {
-    @override
-    Widget build(BuildContext context) {
-        return Center(
-            child: Text('Home Screen'),
-        );
-    }
-}
-
-class BookingsScreen extends StatelessWidget {
-    @override
-    Widget build(BuildContext context) {
-        return Center(
-            child: Text('Bookings Screen'),
-        );
-    }
-}
-
-class ManageScreen extends StatelessWidget {
-    @override
-    Widget build(BuildContext context) {
-        return Center(
-            child: Text('Manage Screen'),
-        );
-    }
+    return MaterialApp(
+      title: 'ShutterBook',
+      theme: ThemeData(primarySwatch: Colors.indigo),
+      home: _startScreen,
+      routes: {
+        '/home': (context) => const HomePage(),
+        '/bookings': (context) => const BookingsPage(),
+      },
+    );
+  }
 }
