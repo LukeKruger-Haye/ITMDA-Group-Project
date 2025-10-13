@@ -1,64 +1,39 @@
 import 'package:flutter/material.dart';
-import 'package:shutterbook/pages/home.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'pages/authentication/models/auth_model.dart';
+import 'pages/authentication/login.dart';
+import 'pages/authentication/auth_setup.dart';
+import 'pages/home.dart';
 
-import 'package:shutterbook/pages/authentication/setup.dart';
-import 'package:shutterbook/pages/authentication/login.dart';
-
-import 'package:shutterbook/pages/bookings/bookings.dart';
-
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const ShutterBookApp());
+  final authModel = AuthModel();
+  await authModel.loadSettings();
+
+  final firstLaunch = await authModel.isFirstLaunch();
+
+  runApp(MyApp(authModel: authModel, firstLaunch: firstLaunch));
 }
 
-class ShutterBookApp extends StatefulWidget {
-  const ShutterBookApp({super.key});
+class MyApp extends StatelessWidget {
+  final AuthModel authModel;
+  final bool firstLaunch;
 
-  @override
-  State<ShutterBookApp> createState() => _ShutterBookAppState();
-}
-
-class _ShutterBookAppState extends State<ShutterBookApp> {
-  Widget? _startScreen;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkPasswordStatus();
-  }
-
-  Future<void> _checkPasswordStatus() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedPassword = prefs.getString('app_password');
-
-    setState(() {
-      if (savedPassword == null || savedPassword.isEmpty) {
-        _startScreen = const SetupScreen();
-      } else {
-        _startScreen = const LoginScreen();
-      }
-    });
-  }
+  const MyApp({super.key, required this.authModel, required this.firstLaunch});
 
   @override
   Widget build(BuildContext context) {
-    if (_startScreen == null) {
-      return const MaterialApp(
-        home: Scaffold(
-          body: Center(child: CircularProgressIndicator()),
-        ),
-      );
-    }
-
     return MaterialApp(
-      title: 'ShutterBook',
-      theme: ThemeData(primarySwatch: Colors.indigo),
-      home: _startScreen,
-      routes: {
-        '/home': (context) => const HomePage(),
-        '/bookings': (context) => const BookingsPage(),
-      },
+      title: 'Local Auth App',
+      theme: ThemeData(primarySwatch: Colors.amber),
+      home: Builder(builder: (context) {
+        if (firstLaunch) {
+          return SetupScreen(authModel: authModel);
+        } else if (authModel.hasPassword) {
+          return LoginScreen(authModel: authModel);
+        } else {
+          return HomeScreen(authModel: authModel);
+        }
+      }),
     );
   }
 }
