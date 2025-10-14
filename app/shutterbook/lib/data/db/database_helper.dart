@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 class DatabaseHelper {
   static final _databaseName = 'shutterbook.db';
@@ -12,6 +14,13 @@ class DatabaseHelper {
 
   Future<Database> get database async {
     if (_database != null) return _database!;
+    if (!kIsWeb && (defaultTargetPlatform == TargetPlatform.linux || 
+                    defaultTargetPlatform == TargetPlatform.macOS || 
+                    defaultTargetPlatform == TargetPlatform.windows)) {
+      sqfliteFfiInit();
+      databaseFactory = databaseFactoryFfi;
+    }
+
     _database = await _initDatabase();
     return _database!;
   }
@@ -20,6 +29,8 @@ class DatabaseHelper {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, _databaseName);
 
+    debugPrint('Opening database at: $path');
+    
     return await openDatabase(path, version: _databaseVersion, onCreate: _onCreate);
   }
 
