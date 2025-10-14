@@ -55,7 +55,7 @@ class DatabaseHelper {
         booking_date DATE NOT NULL,
         status TEXT DEFAULT 'Scheduled',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (client_id) REFERENCES Clients(client_id) ON DELETE CASCADE
+        FOREIGN KEY (client_id) REFERENCES Clients(client_id) ON DELETE CASCADE,
         FOREIGN KEY (quote_id) REFERENCES Quotes(quote_id) ON DELETE CASCADE
       )
       '''

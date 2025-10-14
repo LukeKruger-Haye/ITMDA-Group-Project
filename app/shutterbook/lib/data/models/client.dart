@@ -15,7 +15,7 @@ class Client {
 
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
+      'client_id': id,
       'first_name': firstName,
       'last_name': lastName,
       'email': email,
@@ -25,7 +25,7 @@ class Client {
 
   factory Client.fromMap(Map<String, dynamic> map) {
     return Client(
-      id: map['id'],
+      id: map['client_id'],
       firstName: map['first_name'],
       lastName: map['last_name'],
       email: map['email'],

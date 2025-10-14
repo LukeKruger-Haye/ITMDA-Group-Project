@@ -8,12 +8,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:shutterbook/pages/authentication/models/auth_model.dart';
 import 'package:shutterbook/main.dart';
 
 void main() {
+  
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {
+<<<<<<< HEAD
     // Build our app and trigger a frame.
     await tester.pumpWidget(ShutterBookApp());
+=======
+    
+    WidgetsFlutterBinding.ensureInitialized();// Build our app and trigger a frame.
+    final authModel = AuthModel();
+    await authModel.loadSettings();
+
+  final firstLaunch = await authModel.isFirstLaunch();
+    await tester.pumpWidget(MyApp(authModel: authModel, firstLaunch: firstLaunch));
+>>>>>>> origin/conroy
 
     // Verify that our counter starts at 0.
     expect(find.text('0'), findsOneWidget);
