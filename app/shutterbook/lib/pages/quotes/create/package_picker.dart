@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shutterbook/data/models/client.dart';
 
 
 import 'package:shutterbook/pages/quotes/create/quote_overview_screen.dart';
@@ -14,7 +15,7 @@ class Package {
 
 class PackagePicker extends StatefulWidget {
   final Function(Map<Package, int>) onSelectionChanged;
-  final String client;
+  final Client client;
   
 
   const PackagePicker({super.key, required this.onSelectionChanged, required this.client});
@@ -66,7 +67,7 @@ class PackagePickerState extends State<PackagePicker> {
     return Column(
       children: [
         Center(
-          child: Text(widget.client) ,
+          child: Text('${widget.client.firstName} ${widget.client.lastName}') ,
         ),
         const Text('Pick Packages:', style: TextStyle(fontWeight: FontWeight.bold)),
         Expanded(
@@ -126,7 +127,7 @@ class PackagePickerState extends State<PackagePicker> {
               MaterialPageRoute(builder: (context) => QuoteOverviewScreen(
                 client: widget.client,
                 total: totalPrice.toStringAsFixed(2),
-                packages: [_packages],
+                packages: _selectedPackages,
               )),
             );
           },

@@ -96,7 +96,7 @@ class _CreateQuotePageState extends State<CreateQuotePage> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(builder: (context)=> PackagePickerScreen(
-                            client: searchText,
+                            client: Client.fromMap(suggestions[0].toMap()),
 
                             )));
                           // Add your onPressed logic here
