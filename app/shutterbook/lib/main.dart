@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'inventory.dart';
 void main() => runApp(MyApp());
 
 class MyApp extends StatelessWidget {
@@ -63,12 +63,29 @@ class _MyHomePageState extends State<MyHomePage> {
 }
 
 class HomeScreen extends StatelessWidget {
-    @override
-    Widget build(BuildContext context) {
-        return Center(
-            child: Text('Home Screen'),
-        );
-    }
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: ElevatedButton.icon(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const InventoryPage()),
+          );
+        },
+        icon: const Icon(Icons.inventory),
+        label: const Text('Go to Inventory'),
+        style: ElevatedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          backgroundColor: Colors.teal,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class BookingsScreen extends StatelessWidget {
