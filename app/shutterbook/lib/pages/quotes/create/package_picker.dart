@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+
 import 'package:shutterbook/pages/quotes/create/quote_overview_screen.dart';
 
 
@@ -122,7 +123,11 @@ class PackagePickerState extends State<PackagePicker> {
             widget.onSelectionChanged(_selectedPackages);
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const QuoteOverviewScreen()),
+              MaterialPageRoute(builder: (context) => QuoteOverviewScreen(
+                client: widget.client,
+                total: totalPrice.toStringAsFixed(2),
+                packages: [_packages],
+              )),
             );
           },
           child: const Text('Confirm Selection'),

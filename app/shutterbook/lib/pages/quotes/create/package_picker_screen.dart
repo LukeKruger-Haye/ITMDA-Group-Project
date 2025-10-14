@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shutterbook/pages/quotes/create/package_picker.dart';
 
 class PackagePickerScreen extends StatelessWidget {
-  
+  final String client;
 
   const PackagePickerScreen({super.key, required this.client});
 
@@ -10,7 +10,7 @@ class PackagePickerScreen extends StatelessWidget {
     // You can handle the selected packages here (e.g., save, show dialog, etc.)
     debugPrint('Selected packages: ${selectedPackages.keys.map((p) => p.name).join(', ')}');
   }
-  final String client;
+
 
   @override
   Widget build(BuildContext context) {
