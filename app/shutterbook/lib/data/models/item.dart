@@ -17,19 +17,19 @@ class Item {
     return {
       'item_id': id,
       'name': name,
-      'total_price': totalPrice,
-      'description': description,
-      'created_at': createdAt?.toString()
+      'category': category,
+      'quantity': quantity,
+      'condition': condition,
     };
   }
 
   factory Item.fromMap(Map<String, dynamic> map) {
     return Item(
-      id: map['id'],
-      clientId: map['client_id'],
-      totalPrice: map['total_price'],
-      description: map['description'],
-      createdAt: map['created_at'] != null ? DateTime.tryParse(map['created_at']) : null
+      id: map['item_id'],
+      name: map['name'],
+      category: map['category'],
+      quantity: map['quantity'],
+      condition: map['condition'],
     );
   }
 }
