@@ -1,12 +1,31 @@
 import 'package:flutter/material.dart';
+import 'authentication/models/auth_model.dart';
+import 'settings/settings.dart';
 
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
+class HomeScreen extends StatelessWidget {
+  final AuthModel authModel;
+
+  const HomeScreen({super.key, required this.authModel});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('ShutterBook Dashboard')),
+      appBar: AppBar(
+        title: const Text('Home'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => SettingsScreen(authModel: authModel),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
       body: ListView(
         children: [
           ListTile(

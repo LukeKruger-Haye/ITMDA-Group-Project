@@ -22,28 +22,34 @@ class _CreateQuotePageState extends State<CreateQuotePage> {
   }
 
   Future<void> _loadClients() async {
+    final table = ClientTable();
 
-    await ClientTable().insertClient(
-      Client(id: 1,firstName: 'James', lastName: 'Baxtor', email: 'james.baxtor@example.com', phone: '123-456-7890' ),
+    final james = Client(firstName: 'James', lastName: 'Baxtor', email: 'james.baxtor@example.com', phone: '123-456-7890' );
+
+    await table.insertClient(
+      james
     );
-    await ClientTable().insertClient(
-      Client(id: 2,firstName: 'Mary', lastName: 'Jane', email: 'mary.jane@example.com', phone: '987-654-3210'),
+
+    debugPrint(james.toString());
+
+    await table.insertClient(
+      Client(firstName: 'Mary', lastName: 'Jane', email: 'mary.jane@example.com', phone: '987-654-3210'),
     );
 
-
-
-    allClients = await ClientTable().getAllClients();
-    setState(() {});
+    final data = await table.getAllClients();
+    setState(() {
+      allClients = data;
+    });
   }
 
   void _onSearchChanged(String value) {
     setState(() {
       searchText = value;
       suggestions = allClients
-          .where((client) =>
-              client.firstName.toLowerCase().contains(value.toLowerCase()) ||
-              client.lastName.toLowerCase().contains(value.toLowerCase()))
-          .toList();
+      .where((client) =>
+        client.firstName.toLowerCase().contains(value.toLowerCase()) ||
+        client.lastName.toLowerCase().contains(value.toLowerCase()))
+      .toList();
     });
   }
 
@@ -79,26 +85,26 @@ class _CreateQuotePageState extends State<CreateQuotePage> {
               onChanged: _onSearchChanged,
             ),
             if (searchText.isNotEmpty && suggestions.isNotEmpty)
-              Expanded(
-                child: ListView.builder(
-                  itemCount: suggestions.length,
-                  itemBuilder: (context, index) {
-                    final client = suggestions[index];
-                    return ListTile(
-                      title: Text('${client.firstName} ${client.lastName}'),
-                      subtitle: Text(client.email),
-                      onTap: () {
-                        // Handle client selection
-                        debugPrint('Selected: ${client.firstName} ${client.lastName}');
-                        setState(() {
-                          searchText = '${client.firstName} ${client.lastName}';
-                          suggestions = [client];
-                        });
-                      },
-                    );
-                  },
-                ),
+            Expanded(
+              child: ListView.builder(
+                itemCount: suggestions.length,
+                itemBuilder: (context, index) {
+                  final client = suggestions[index];
+                  return ListTile(
+                    title: Text('${client.firstName} ${client.lastName}'),
+                    subtitle: Text(client.email),
+                    onTap: () {
+                      // Handle client selection
+                      debugPrint('Selected: ${client.firstName} ${client.lastName}');
+                      setState(() {
+                        searchText = '${client.firstName} ${client.lastName}';
+                        suggestions = [client];
+                      });
+                    },
+                  );
+                },
               ),
+            ),
           ],
         ),
       ),
