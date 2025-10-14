@@ -15,7 +15,7 @@ class Quote {
 
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
+      'quote_id': id,
       'client_id': clientId,
       'total_price': totalPrice,
       'description': description,
@@ -25,7 +25,7 @@ class Quote {
 
   factory Quote.fromMap(Map<String, dynamic> map) {
     return Quote(
-      id: map['id'],
+      id: map['quote_id'],
       clientId: map['client_id'],
       totalPrice: map['total_price'],
       description: map['description'],
