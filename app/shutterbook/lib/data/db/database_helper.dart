@@ -60,5 +60,16 @@ class DatabaseHelper {
       )
       '''
     );
+
+    await db.execute('''
+      CREATE TABLE Inventory (
+        item_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        category TEXT NOT NULL,
+        quantity INTEGER NOT NULL,
+        condition TEXT NOT NULL DEFAULT 'New'
+      )
+      '''
+    );
   }
 } 

@@ -1,31 +1,31 @@
-class Quote {
+class Item {
   int? id;
-  int clientId;
-  double totalPrice;
-  String description;
-  DateTime? createdAt;
+  String name;
+  String category;
+  int quantity;
+  String condition;
 
-  Quote({
+  Item({
     this.id,
-    required this.clientId,
-    required this.totalPrice,
-    required this.description,
-    this.createdAt,
+    required this.name,
+    required this.category,
+    required this.quantity,
+    required this.condition,
   });
 
   Map<String, dynamic> toMap() {
     return {
-      'quote_id': id,
-      'client_id': clientId,
+      'item_id': id,
+      'name': name,
       'total_price': totalPrice,
       'description': description,
       'created_at': createdAt?.toString()
     };
   }
 
-  factory Quote.fromMap(Map<String, dynamic> map) {
-    return Quote(
-      id: map['quote_id'],
+  factory Item.fromMap(Map<String, dynamic> map) {
+    return Item(
+      id: map['id'],
       clientId: map['client_id'],
       totalPrice: map['total_price'],
       description: map['description'],
