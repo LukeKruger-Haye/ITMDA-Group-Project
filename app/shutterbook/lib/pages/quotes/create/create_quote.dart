@@ -1,20 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:sqflite/sqflite.dart';
 import 'package:shutterbook/data/models/client.dart';
 import 'package:shutterbook/data/tables/client_table.dart';
 import 'package:shutterbook/pages/quotes/create/package_picker_screen.dart';
 import 'package:sqflite/sqflite.dart';
+
 
 class CreateQuotePage extends StatefulWidget{
   const CreateQuotePage({super.key});
 
   @override
   State<CreateQuotePage> createState() => _CreateQuotePageState();
-}
-
-Future<void> _getDatabasePathAndLoadClients() async {
-  final dbPath = await getDatabasesPath();
-  debugPrint('Database path: $dbPath');
 }
 
 class _CreateQuotePageState extends State<CreateQuotePage> {
@@ -41,7 +36,6 @@ class _CreateQuotePageState extends State<CreateQuotePage> {
   }
 
   Future<void> _loadClients() async {
-<<<<<<< HEAD
     final table = ClientTable();
 
     final james = Client(id: 1, firstName: 'James', lastName: 'Baxtor', email: 'james.baxtor@example.com', phone: '123-456-7890');
@@ -57,9 +51,6 @@ class _CreateQuotePageState extends State<CreateQuotePage> {
     );
 
     final data = await table.getAllClients();
-=======
-    final data = await ClientTable().getAllClients();
->>>>>>> origin/main
     setState(() {
       allClients = data;
     });
@@ -95,7 +86,7 @@ class _CreateQuotePageState extends State<CreateQuotePage> {
                   onPressed: () {
                     // Confirm selection logic
                     if (suggestions.isNotEmpty) {
-                      final selectedClient = suggestions.first;
+                      final selectedClient = suggestions.first;              
                       debugPrint('Confirmed: ${selectedClient.firstName} ${selectedClient.lastName}');
                       // You can store the selected client in a variable if needed
                       Navigator.push(
