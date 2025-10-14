@@ -9,7 +9,7 @@ import 'package:shutterbook/pages/quotes/create/package_picker_screen.dart';
 
 
 class CreateQuotePage extends StatefulWidget{
-  const CreateQuotePage({super.key});
+  const CreateQuotePage({super.key,});
 
   @override
   State<CreateQuotePage> createState() => _CreateQuotePageState();
@@ -95,7 +95,10 @@ class _CreateQuotePageState extends State<CreateQuotePage> {
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context)=> PackagePickerScreen()));
+                            MaterialPageRoute(builder: (context)=> PackagePickerScreen(
+                            client: searchText,
+
+                            )));
                           // Add your onPressed logic here
                         },
                       ),
