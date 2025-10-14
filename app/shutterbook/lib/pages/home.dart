@@ -7,6 +7,7 @@ class HomeScreen extends StatelessWidget {
 
   const HomeScreen({super.key, required this.authModel});
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

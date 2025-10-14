@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shutterbook/data/models/client.dart';
 import 'package:shutterbook/data/tables/client_table.dart';
+import 'package:shutterbook/pages/quotes/create/package_picker_screen.dart';
+import 'package:sqflite/sqflite.dart';
 
 
 class CreateQuotePage extends StatefulWidget{
@@ -18,29 +20,45 @@ class _CreateQuotePageState extends State<CreateQuotePage> {
   @override
   void initState() {
     super.initState();
-    _loadClients();
+    _getDatabasePathAndLoadClients();
   }
 
-  Future<void> _loadClients() async {
+  Future<void> _getDatabasePathAndLoadClients() async {
+    // Import sqflite if not already imported
+    // import 'package:sqflite/sqflite.dart';
+    final dbPath = await getDatabasesPath();
+    debugPrint('Database path: $dbPath');
+
     final table = ClientTable();
-
-    final james = Client(firstName: 'James', lastName: 'Baxtor', email: 'james.baxtor@example.com', phone: '123-456-7890' );
-
-    await table.insertClient(
-      james
-    );
-
-    debugPrint(james.toString());
-
-    await table.insertClient(
-      Client(firstName: 'Mary', lastName: 'Jane', email: 'mary.jane@example.com', phone: '987-654-3210'),
-    );
-
     final data = await table.getAllClients();
     setState(() {
       allClients = data;
     });
+
+
+
   }
+
+  // Future<void> _loadClients() async {
+  //   final table = ClientTable();
+
+  //   final james = Client(firstName: 'James', lastName: 'Baxtor', email: 'james.baxtor@example.com', phone: '123-456-7890' );
+
+  //   await table.insertClient(
+  //     james
+  //   );
+
+  //   debugPrint(james.toString());
+
+  //   await table.insertClient(
+  //     Client(firstName: 'Mary', lastName: 'Jane', email: 'mary.jane@example.com', phone: '987-654-3210'),
+  //   );
+
+  //   final data = await table.getAllClients();
+  //   setState(() {
+  //     allClients = data;
+  //   });
+  // }
 
   void _onSearchChanged(String value) {
     setState(() {
@@ -75,7 +93,10 @@ class _CreateQuotePageState extends State<CreateQuotePage> {
                       final selectedClient = suggestions.first;
                       debugPrint('Confirmed: ${selectedClient.firstName} ${selectedClient.lastName}');
                       // You can store the selected client in a variable if needed
-                      Navigator.pushNamed(context, '/quotes/create/package_picker_screen.dart');
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const PackagePickerScreen()),
+                      );
                     } else {
                       debugPrint('No client selected');
                     }
