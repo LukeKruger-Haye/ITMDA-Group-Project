@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shutterbook/data/models/client.dart';
-import 'package:shutterbook/pages/quotes/create/package_picker.dart';
+import 'package:shutterbook/pages/quotes/create/package_picker/package_picker.dart';
 
 class PackagePickerScreen extends StatelessWidget {
   final Client client;

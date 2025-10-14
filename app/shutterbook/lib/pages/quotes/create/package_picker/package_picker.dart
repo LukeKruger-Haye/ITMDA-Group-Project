@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shutterbook/data/models/client.dart';
 
 
-import 'package:shutterbook/pages/quotes/create/quote_overview_screen.dart';
+import 'package:shutterbook/pages/quotes/create/overview/quote_overview_screen.dart';
 
 
 // Simple Package model

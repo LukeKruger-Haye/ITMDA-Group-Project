@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shutterbook/data/models/client.dart';
 import 'package:shutterbook/data/tables/client_table.dart';
-import 'package:shutterbook/pages/quotes/create/package_picker_screen.dart';
+import 'package:shutterbook/pages/quotes/create/package_picker/package_picker_screen.dart';
 
 
 
