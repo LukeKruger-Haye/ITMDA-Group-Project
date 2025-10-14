@@ -28,20 +28,7 @@ class _CreateQuotePageState extends State<CreateQuotePage> {
   }
 
   Future<void> _loadClients() async {
-    final table = ClientTable();
-    final james = Client(firstName: 'James', lastName: 'Baxtor', email: 'james.baxtor@example.com', phone: '123-456-7890' );
-
-    await table.insertClient(
-      james
-    );
-
-    debugPrint(james.toString());
-
-    await table.insertClient(
-      Client(firstName: 'Mary', lastName: 'Jane', email: 'mary.jane@example.com', phone: '987-654-3210'),
-    );
-
-    final data = await table.getAllClients();
+    final data = await ClientTable().getAllClients();
     setState(() {
       allClients = data;
     });
