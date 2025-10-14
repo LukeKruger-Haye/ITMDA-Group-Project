@@ -21,6 +21,7 @@ class _CreateQuotePageState extends State<CreateQuotePage> {
   void initState() {
     super.initState();
     _getDatabasePathAndLoadClients();
+    _loadClients();
   }
 
   Future<void> _getDatabasePathAndLoadClients() async {
@@ -29,36 +30,31 @@ class _CreateQuotePageState extends State<CreateQuotePage> {
     final dbPath = await getDatabasesPath();
     debugPrint('Database path: $dbPath');
 
-    final table = ClientTable();
-    final data = await table.getAllClients();
-    setState(() {
-      allClients = data;
-    });
-
+  
 
 
   }
 
-  // Future<void> _loadClients() async {
-  //   final table = ClientTable();
+  Future<void> _loadClients() async {
+    final table = ClientTable();
 
-  //   final james = Client(firstName: 'James', lastName: 'Baxtor', email: 'james.baxtor@example.com', phone: '123-456-7890' );
+    final james = Client(id: 1, firstName: 'James', lastName: 'Baxtor', email: 'james.baxtor@example.com', phone: '123-456-7890');
 
-  //   await table.insertClient(
-  //     james
-  //   );
+    await table.insertClient(
+      james
+    );
 
-  //   debugPrint(james.toString());
+    debugPrint(james.toString());
 
-  //   await table.insertClient(
-  //     Client(firstName: 'Mary', lastName: 'Jane', email: 'mary.jane@example.com', phone: '987-654-3210'),
-  //   );
+    await table.insertClient(
+      Client(id:2 ,firstName: 'Mary', lastName: 'Jane', email: 'mary.jane@example.com', phone: '987-654-3210'),
+    );
 
-  //   final data = await table.getAllClients();
-  //   setState(() {
-  //     allClients = data;
-  //   });
-  // }
+    final data = await table.getAllClients();
+    setState(() {
+      allClients = data;
+    });
+  }
 
   void _onSearchChanged(String value) {
     setState(() {
