@@ -34,8 +34,15 @@ class _CreateQuotePageState extends State<CreateQuotePage> {
     final table = ClientTable();
     final james = Client(id: 1, firstName: 'James', lastName: 'Baxtor', email: 'james.baxtor@example.com', phone: '123-456-7890');
     final mary =Client(id:2 ,firstName: 'Mary', lastName: 'Jane', email: 'mary.jane@example.com', phone: '987-654-3210');
+    final ham=Client(id:3,firstName: 'Ham', lastName: 'Burger', email: 'ham.burger@example.com', phone: '555-129-3245');
+    final micheal=Client(id:4,firstName: 'Micheal', lastName: 'Myers', email: 'micheal.meyers@example.com', phone: '+27 354 8412');
+
     await table.insertClient(james);
     await table.insertClient(mary);
+    await table.insertClient(ham);
+    await table.insertClient(micheal);
+
+    
 
     debugPrint('${james.toMap()} \n ${mary.toMap()}');
 
@@ -43,16 +50,19 @@ class _CreateQuotePageState extends State<CreateQuotePage> {
     setState(() {
       allClients = data;
     });
+    suggestions=data;
   }
 
   void _onSearchChanged(String value) {
     setState(() {
+      
       searchText = value;
       suggestions = allClients
       .where((client) =>
         client.firstName.toLowerCase().contains(value.toLowerCase()) ||
         client.lastName.toLowerCase().contains(value.toLowerCase()))
       .toList();
+    
       if (suggestions.isEmpty)
       {
         showIcon=false;
@@ -119,7 +129,7 @@ class _CreateQuotePageState extends State<CreateQuotePage> {
               ),
               onChanged: _onSearchChanged,
             ),
-            if (searchText.isNotEmpty && suggestions.isNotEmpty)
+            
             Expanded(
               child: ListView.builder(
                 itemCount: suggestions.length,

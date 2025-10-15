@@ -9,8 +9,6 @@ final double total;
 final Client client;
 final Map<Package, int> packages;
 
- 
-
   const QuoteOverviewScreen({super.key, required this.client, required this.total, required this.packages});
 
 
