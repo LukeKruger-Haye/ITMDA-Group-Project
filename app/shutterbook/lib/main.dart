@@ -1,100 +1,50 @@
 import 'package:flutter/material.dart';
+import 'pages/authentication/models/auth_model.dart';
+import 'pages/authentication/login.dart';
+import 'pages/authentication/auth_setup.dart';
+import 'pages/home.dart';
+import 'pages/quotes/quotes.dart';
+import 'pages/bookings/bookings.dart';
+import 'pages/quotes/create/create_quote.dart';
+import 'pages/quotes/manage/manage_quote.dart';
 
-void main() => runApp(MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final authModel = AuthModel();
+  await authModel.loadSettings();
+
+  final firstLaunch = await authModel.isFirstLaunch();
+
+  runApp(MyApp(authModel: authModel, firstLaunch: firstLaunch));
+}
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final AuthModel authModel;
+  final bool firstLaunch;
 
-    @override
-    Widget build(BuildContext context) {
-        return MaterialApp(
-            title: 'Shutterbook',
-            theme: ThemeData(
-                primarySwatch: Colors.blue,
-            ),
-            home: MyHomePage(),
-        );
-    }
-}
+  const MyApp({super.key, required this.authModel, required this.firstLaunch});
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key});
-
-    @override
-    _MyHomePageState createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-    int _currentIndex = 0;
-
-    final List<Widget> _tabs = [
-        HomeScreen(),
-        BookingsScreen(),
-        ManageScreen(),
-    ];
-
-    @override
-    Widget build(BuildContext context) {
-        return Scaffold(
-            appBar: AppBar(
-                title: Text('Shutterbook'),
-            ),
-            body: _tabs[_currentIndex],
-            bottomNavigationBar: BottomNavigationBar(
-                currentIndex: _currentIndex,
-                onTap: (int index) {
-                    setState(() {
-                        _currentIndex = index;
-                    });
-                },
-                items: [
-                    BottomNavigationBarItem(
-                        icon: Icon(Icons.home),
-                        label: 'Home',
-                    ),
-                    BottomNavigationBarItem(
-                        icon: Icon(Icons.favorite),
-                        label: 'Bookings',
-                    ),
-                    BottomNavigationBarItem(
-                        icon: Icon(Icons.person),
-                        label: 'Manage',
-                    ),
-                ],
-            ),
-        );
-    }
-}
-
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
-
-    @override
-    Widget build(BuildContext context) {
-        return Center(
-            child: Text('Home Screen'),
-        );
-    }
-}
-
-class BookingsScreen extends StatelessWidget {
-  const BookingsScreen({super.key});
-
-    @override
-    Widget build(BuildContext context) {
-        return Center(
-            child: Text('Bookings Screen'),
-        );
-    }
-}
-
-class ManageScreen extends StatelessWidget {
-  const ManageScreen({super.key});
-
-    @override
-    Widget build(BuildContext context) {
-        return Center(
-            child: Text('Manage Screen'),
-        );
-    }
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Local Auth App',
+      theme: ThemeData(primarySwatch: Colors.amber),
+      routes: {
+      '/quotes': (context) => const QuotePage(),
+      // '/clients': (context) => const ClientsPage(),
+      '/bookings': (context) => const BookingsPage(),
+      '/quotes/create/create_quote.dart': (context) => const CreateQuotePage(),
+      '/quotes/manage/manage_quote.dart': (context) => const ManageQuotePage(),
+    },
+      home: Builder(builder: (context) {
+        if (firstLaunch) {
+          return SetupScreen(authModel: authModel);
+        } else if (authModel.hasPassword) {
+          return LoginScreen(authModel: authModel);
+        } else {
+          return HomeScreen(authModel: authModel);
+        }
+      }),
+    );
+  }
 }
