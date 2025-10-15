@@ -126,7 +126,7 @@ class PackagePickerState extends State<PackagePicker> {
               context,
               MaterialPageRoute(builder: (context) => QuoteOverviewScreen(
                 client: widget.client,
-                total: totalPrice.toStringAsFixed(2),
+                total: totalPrice,
                 packages: _selectedPackages,
               )),
             );
