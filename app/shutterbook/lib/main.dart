@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 void main() => runApp(MyApp());
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
     @override
     Widget build(BuildContext context) {
         return MaterialApp(
@@ -16,6 +18,8 @@ class MyApp extends StatelessWidget {
 }
 
 class MyHomePage extends StatefulWidget {
+  const MyHomePage({super.key});
+
     @override
     _MyHomePageState createState() => _MyHomePageState();
 }
@@ -63,6 +67,8 @@ class _MyHomePageState extends State<MyHomePage> {
 }
 
 class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key});
+
     @override
     Widget build(BuildContext context) {
         return Center(
@@ -72,6 +78,8 @@ class HomeScreen extends StatelessWidget {
 }
 
 class BookingsScreen extends StatelessWidget {
+  const BookingsScreen({super.key});
+
     @override
     Widget build(BuildContext context) {
         return Center(
@@ -81,6 +89,8 @@ class BookingsScreen extends StatelessWidget {
 }
 
 class ManageScreen extends StatelessWidget {
+  const ManageScreen({super.key});
+
     @override
     Widget build(BuildContext context) {
         return Center(
