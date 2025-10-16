@@ -28,7 +28,7 @@ class ButtonsState extends State<Buttons>{
   }
 
   void onPressedManage(){
-    Navigator.pushNamed(context, '/quotes/manage/manage_quote.dart');
+    Navigator.pushNamed(context, '/quotes/manage/manage_quote_screen.dart');
   }
 
   @override
