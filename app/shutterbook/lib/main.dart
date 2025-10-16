@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:shutterbook/pages/quotes/quote_screen.dart';
 import 'pages/authentication/models/auth_model.dart';
 import 'pages/authentication/login.dart';
 import 'pages/authentication/auth_setup.dart';
 import 'pages/home.dart';
-import 'pages/quotes/quotes.dart';
 import 'pages/bookings/bookings.dart';
 import 'pages/clients/clients.dart';
 import 'pages/quotes/create/create_quote.dart';

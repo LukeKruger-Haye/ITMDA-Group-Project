@@ -84,4 +84,26 @@ class QuoteTable {
     final count = await db.rawQuery('SELECT COUNT(*) FROM Quotes');
     return Sqflite.firstIntValue(count) ?? 0;
   }
+ 
+  Future<List<Map<String, dynamic>>> searchQuotesByClientName(String query) async {
+  final db = await dbHelper.database;
+
+  final results = await db.rawQuery('''
+    SELECT Quotes.*, Clients.name AS client_name
+    FROM Quotes
+    JOIN Clients ON Quotes.clientId = Clients.id
+    WHERE Clients.name LIKE ?
+    ORDER BY Quotes.created_at DESC
+  ''', ['%$query%']);
+
+  return results;
 }
+
+
+
+
+
+
+}
+
+
