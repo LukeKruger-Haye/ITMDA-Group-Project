@@ -3,6 +3,8 @@ import 'package:shutterbook/data/models/booking.dart';
 import 'package:shutterbook/data/tables/booking_table.dart';
 import 'package:shutterbook/data/models/quote.dart';
 import 'package:shutterbook/data/tables/quote_table.dart';
+import 'package:shutterbook/data/models/client.dart';
+import 'package:shutterbook/data/tables/client_table.dart';
 
 class BookingsPage extends StatefulWidget {
   const BookingsPage({super.key});
@@ -14,7 +16,9 @@ class BookingsPage extends StatefulWidget {
 class _BookingsPageState extends State<BookingsPage> {
   final bookingTable = BookingTable();
   final quoteTable = QuoteTable();
+  final clientTable = ClientTable();
   List<Booking> bookings = [];
+  List<Client> allClients = [];
   late DateTime weekStart;
 
   @override
@@ -23,12 +27,20 @@ class _BookingsPageState extends State<BookingsPage> {
     final now = DateTime.now();
     weekStart = now.subtract(Duration(days: now.weekday - 1));
     _loadBookings();
+    _loadClients();
   }
 
   Future<void> _loadBookings() async {
     final data = await bookingTable.getAllBookings();
     setState(() {
       bookings = data;
+    });
+  }
+
+  Future<void> _loadClients() async {
+    final data = await clientTable.getAllClients();
+    setState(() {
+      allClients = data;
     });
   }
 
@@ -47,21 +59,27 @@ class _BookingsPageState extends State<BookingsPage> {
   }
 
   Future<void> _editBooking(DateTime slot, [Booking? existing]) async {
-    final customerController =
-        TextEditingController(text: existing?.clientId.toString() ?? '');
-    final statusController =
-        TextEditingController(text: existing?.status ?? '');
-
+    Client? selectedClient;
     int? selectedQuoteId = existing?.quoteId;
     List<Quote> clientQuotes = [];
+    String status = existing?.status ?? '';
 
-    // If editing, load quotes for the existing client
+    // If editing, preselect client and load quotes
     if (existing != null) {
-      clientQuotes = await quoteTable.getQuotesByClient(existing.clientId);
-      if (clientQuotes.isNotEmpty &&
-          (selectedQuoteId == null ||
-              !clientQuotes.any((q) => q.clientId == selectedQuoteId))) {
-        selectedQuoteId = clientQuotes.first.clientId;
+      if (allClients.isNotEmpty) {
+        selectedClient = allClients.firstWhere(
+          (c) => c.id == existing.clientId,
+          orElse: () => allClients.first,
+        );
+        // selectedClient guaranteed non-null here because allClients is not empty
+  clientQuotes = await quoteTable.getQuotesByClient(selectedClient.id!);
+        if (clientQuotes.isNotEmpty &&
+            (selectedQuoteId == null ||
+                !clientQuotes.any((q) => q.id == selectedQuoteId))) {
+          selectedQuoteId = clientQuotes.first.id;
+        }
+      } else {
+        selectedClient = null;
       }
     }
 
@@ -69,64 +87,90 @@ class _BookingsPageState extends State<BookingsPage> {
       context: context,
       builder: (_) => StatefulBuilder(
         builder: (context, setStateDialog) {
-          Future<void> onClientChanged(String value) async {
-            int clientId = int.tryParse(value.trim()) ?? 0;
-            if (clientId > 0) {
-              final quotes = await quoteTable.getQuotesByClient(clientId);
-              setStateDialog(() {
-                clientQuotes = quotes;
-                selectedQuoteId =
-                    clientQuotes.isNotEmpty ? clientQuotes.first.clientId : null;
-              });
-            } else {
-              setStateDialog(() {
-                clientQuotes = [];
-                selectedQuoteId = null;
-              });
-            }
+          List<Client> filteredClients = allClients;
+          TextEditingController searchController = TextEditingController();
+
+          void filterClients(String value) {
+            setStateDialog(() {
+              filteredClients = allClients
+                  .where((c) =>
+                      c.firstName.toLowerCase().contains(value.toLowerCase()) ||
+                      c.lastName.toLowerCase().contains(value.toLowerCase()))
+                  .toList();
+            });
           }
 
           return AlertDialog(
             title: Text(existing == null ? 'New Booking' : 'Edit Booking'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: customerController,
-                  decoration: const InputDecoration(labelText: 'Client ID'),
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
-                    onClientChanged(value);
-                  },
-                ),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<int>(
-                  value: selectedQuoteId,
-                  items: clientQuotes
-                      .map((q) => DropdownMenuItem<int>(
-                            value: q.clientId,
-                            child: Text(q.description),
-                          ))
-                      .toList(),
-                  onChanged: clientQuotes.isEmpty
-                      ? null
-                      : (val) {
-                          setStateDialog(() {
-                            selectedQuoteId = val;
-                          });
-                        },
-                  decoration: const InputDecoration(labelText: 'Quote'),
-                  hint: const Text('Select Quote'),
-                  isExpanded: true,
-                  disabledHint: const Text('Enter Client ID first'),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: statusController,
-                  decoration:
-                      const InputDecoration(labelText: 'Status (Optional)'),
-                ),
-              ],
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Search bar for clients
+                  TextField(
+                    controller: searchController,
+                    decoration: const InputDecoration(
+                      labelText: 'Search Client by Name',
+                      prefixIcon: Icon(Icons.search),
+                    ),
+                    onChanged: filterClients,
+                  ),
+                  const SizedBox(height: 8),
+                  // Dropdown for clients
+                  DropdownButtonFormField<Client>(
+                    value: selectedClient,
+                    items: filteredClients
+                        .map((c) => DropdownMenuItem<Client>(
+                              value: c,
+                              child: Text(
+                                  '${c.firstName} ${c.lastName} (${c.email})'),
+                            ))
+                        .toList(),
+                    onChanged: (client) async {
+                      if (client == null) return;
+            final quotes =
+              await quoteTable.getQuotesByClient(client.id!);
+                      setStateDialog(() {
+                        selectedClient = client;
+                        clientQuotes = quotes;
+                        selectedQuoteId =
+                            clientQuotes.isNotEmpty ? clientQuotes.first.id! : null;
+                      });
+                    },
+                    decoration: const InputDecoration(labelText: 'Client'),
+                    isExpanded: true,
+                  ),
+                  const SizedBox(height: 8),
+                  // Dropdown for quotes
+                  DropdownButtonFormField<int>(
+                    value: selectedQuoteId,
+                    items: clientQuotes
+                        .map((q) => DropdownMenuItem<int>(
+                              value: q.id!,
+                              child: Text(q.description),
+                            ))
+                        .toList(),
+                    onChanged: clientQuotes.isEmpty
+                        ? null
+                        : (val) {
+                            setStateDialog(() {
+                              selectedQuoteId = val;
+                            });
+                          },
+                    decoration: const InputDecoration(labelText: 'Quote'),
+                    hint: const Text('Select Quote'),
+                    isExpanded: true,
+                    disabledHint: const Text('Select a client first'),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: TextEditingController(text: status),
+                    decoration:
+                        const InputDecoration(labelText: 'Status (Optional)'),
+                    onChanged: (val) => status = val,
+                  ),
+                ],
+              ),
             ),
             actions: [
               TextButton(
@@ -147,12 +191,13 @@ class _BookingsPageState extends State<BookingsPage> {
                 ),
               TextButton(
                 onPressed: () async {
-                  int clientId =
-                      int.tryParse(customerController.text.trim()) ?? 1;
-                  String status = statusController.text.trim().isEmpty
-                      ? "Scheduled"
-                      : statusController.text.trim();
-
+                  if (selectedClient == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Please select a client.')),
+                    );
+                    return;
+                  }
                   if (selectedQuoteId == null) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -162,22 +207,22 @@ class _BookingsPageState extends State<BookingsPage> {
                     return;
                   }
 
-                  if (existing != null) {
+                    if (existing != null) {
                     Booking updated = Booking(
                       bookingId: existing.bookingId,
                       quoteId: selectedQuoteId!,
-                      clientId: clientId,
+                      clientId: selectedClient!.id!,
                       bookingDate: slot,
-                      status: status,
+                      status: status.isEmpty ? "Scheduled" : status,
                       createdAt: existing.createdAt,
                     );
                     await bookingTable.updateBooking(updated);
                   } else {
                     Booking newBooking = Booking(
                       quoteId: selectedQuoteId!,
-                      clientId: clientId,
+                      clientId: selectedClient!.id!,
                       bookingDate: slot,
-                      status: status,
+                      status: status.isEmpty ? "Scheduled" : status,
                     );
                     await bookingTable.insertBooking(newBooking);
                   }
@@ -215,10 +260,9 @@ class _BookingsPageState extends State<BookingsPage> {
     final hours = List.generate(10, (i) => 8 + i);
     final days = List.generate(7, (i) => weekStart.add(Duration(days: i)));
 
-    
     const double timeColumnWidth = 60;
-    const double blockColumnWidth = 44; 
-    const double whiteSpaceWidth = 40; 
+    const double blockColumnWidth = 44;
+    const double whiteSpaceWidth = 40;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Booking Calendar')),
