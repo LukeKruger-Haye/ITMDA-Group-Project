@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:shutterbook/data/models/client.dart';
+
+
+import 'package:shutterbook/pages/quotes/create/overview/quote_overview_screen.dart';
+
 
 // Simple Package model
 class Package {
@@ -10,8 +15,10 @@ class Package {
 
 class PackagePicker extends StatefulWidget {
   final Function(Map<Package, int>) onSelectionChanged;
+  final Client client;
+  
 
-  const PackagePicker({super.key, required this.onSelectionChanged});
+  const PackagePicker({super.key, required this.onSelectionChanged, required this.client});
 
   @override
   PackagePickerState createState() => PackagePickerState();
@@ -59,6 +66,9 @@ class PackagePickerState extends State<PackagePicker> {
   Widget build(BuildContext context) {
     return Column(
       children: [
+        Center(
+          child: Text('${widget.client.firstName} ${widget.client.lastName}') ,
+        ),
         const Text('Pick Packages:', style: TextStyle(fontWeight: FontWeight.bold)),
         Expanded(
           child: ListView.builder(
@@ -107,12 +117,19 @@ class PackagePickerState extends State<PackagePicker> {
           ),
         ),
         const SizedBox(height: 10),
-        Text('Selected: $totalItems items, Total: \$${totalPrice.toStringAsFixed(2)}'),
+        Text('Selected: $totalItems items, Total: R${totalPrice.toStringAsFixed(2)}'),
         const SizedBox(height: 10),
         ElevatedButton(
           onPressed: () {
             widget.onSelectionChanged(_selectedPackages);
-            Navigator.pushNamed(context, '/quotes/create/quote_overview_screen.dart');
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => QuoteOverviewScreen(
+                client: widget.client,
+                total: totalPrice,
+                packages: _selectedPackages,
+              )),
+            );
           },
           child: const Text('Confirm Selection'),
         ),
