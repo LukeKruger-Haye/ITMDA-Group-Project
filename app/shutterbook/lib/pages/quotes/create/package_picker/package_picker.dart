@@ -67,8 +67,19 @@ class PackagePickerState extends State<PackagePicker> {
     return Column(
       children: [
         Center(
-          child: Text('${widget.client.firstName} ${widget.client.lastName}') ,
+          child: Text(
+            
+            '${widget.client.firstName} ${widget.client.lastName}',
+
+              style: TextStyle(
+                fontSize: 20
+              ),
+
+
+
+          ) ,
         ),
+        
         const Text('Pick Packages:', style: TextStyle(fontWeight: FontWeight.bold)),
         Expanded(
           child: ListView.builder(
