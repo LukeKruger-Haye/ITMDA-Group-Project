@@ -1,90 +1,51 @@
 import 'package:flutter/material.dart';
 import 'package:shutterbook/dashboard.dart';
+import 'pages/authentication/models/auth_model.dart';
+import 'pages/authentication/login.dart';
+import 'pages/authentication/auth_setup.dart';
+import 'pages/home.dart';
+import 'pages/quotes/quotes.dart';
+import 'pages/bookings/bookings.dart';
+import 'pages/quotes/create/create_quote.dart';
+import 'pages/quotes/manage/manage_quote.dart';
 
-void main() => runApp(const MyApp());
+void main() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    final authModel = AuthModel();
+    await authModel.loadSettings();
+
+    final firstLaunch = await authModel.isFirstLaunch();
+
+    runApp(MyApp(authModel: authModel, firstLaunch: firstLaunch));
+}
 
 class MyApp extends StatelessWidget {
-    const MyApp({super.key});
+    final AuthModel authModel;
+    final bool firstLaunch;
+
+    const MyApp({super.key, required this.authModel, required this.firstLaunch});
 
     @override
     Widget build(BuildContext context) {
         return MaterialApp(
             title: 'Shutterbook',
-            theme: ThemeData(
-                primarySwatch: Colors.blue,
-            ),
-            home: const MyHomePage(),
-        );
-    }
-}
-
-class MyHomePage extends StatefulWidget {
-    const MyHomePage({super.key});
-
-    @override
-    State<MyHomePage> createState() => MyHomePageState();
-}
-
-class MyHomePageState extends State<MyHomePage> {
-    int _currentIndex = 0;
-
-    final List<Widget> _tabs = const [
-        DashboardPage(),
-        BookingsScreen(),
-        ManageScreen(),
-    ];
-
-    @override
-    Widget build(BuildContext context) {
-        return Scaffold(
-            appBar: AppBar(
-                title: const Text('Shutterbook'),
-            ),
-            body: _tabs[_currentIndex],
-            bottomNavigationBar: BottomNavigationBar(
-                currentIndex: _currentIndex,
-                onTap: (int index) {
-                    setState(() {
-                        _currentIndex = index;
-                    });
-                },
-                items: const [
-                    BottomNavigationBarItem(
-                        icon: Icon(Icons.dashboard),
-                        label: 'Dashboard',
-                    ),
-                    BottomNavigationBarItem(
-                        icon: Icon(Icons.favorite),
-                        label: 'Bookings',
-                    ),
-                    BottomNavigationBarItem(
-                        icon: Icon(Icons.person),
-                        label: 'Manage',
-                    ),
-                ],
-            ),
-        );
-    }
-}
-
-class BookingsScreen extends StatelessWidget {
-    const BookingsScreen({super.key});
-
-    @override
-    Widget build(BuildContext context) {
-        return const Center(
-            child: Text('Bookings Screen'),
-        );
-    }
-}
-
-class ManageScreen extends StatelessWidget {
-    const ManageScreen({super.key});
-
-    @override
-    Widget build(BuildContext context) {
-        return const Center(
-            child: Text('Manage Screen'),
+            theme: ThemeData(primarySwatch: Colors.amber),
+            routes: {
+                '/quotes': (context) => const QuotePage(),
+                '/bookings': (context) => const BookingsPage(),
+                '/quotes/create/create_quote.dart': (context) => const CreateQuotePage(),
+                '/quotes/manage/manage_quote.dart': (context) => const ManageQuotePage(),
+                '/dashboard': (context) => const DashboardPage(),
+            },
+            home: Builder(builder: (context) {
+                if (firstLaunch) {
+                    return SetupScreen(authModel: authModel);
+                } else if (authModel.hasPassword) {
+                    return LoginScreen(authModel: authModel);
+                } else {
+                    return HomeScreen(authModel: authModel);
+                }
+            }),
         );
     }
 }
