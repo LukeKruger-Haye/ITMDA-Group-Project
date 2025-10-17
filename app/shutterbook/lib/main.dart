@@ -5,9 +5,14 @@ import 'pages/authentication/auth_setup.dart';
 import 'pages/home.dart';
 import 'pages/quotes/quotes.dart';
 import 'pages/bookings/bookings.dart';
+import 'pages/clients/clients.dart';
 import 'pages/quotes/create/create_quote.dart';
+<<<<<<< HEAD
 import 'pages/quotes/manage/manage_quote.dart';
 import 'pages/inventory/inventory.dart';
+=======
+import 'pages/quotes/manage/manage_quote_screen.dart';
+>>>>>>> main
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,13 +36,13 @@ class MyApp extends StatelessWidget {
       title: 'Local Auth App',
       theme: ThemeData(primarySwatch: Colors.amber),
       routes: {
-      '/quotes': (context) => const QuotePage(),
-      // '/clients': (context) => const ClientsPage(),
-      '/bookings': (context) => const BookingsPage(),
-      '/quotes/create/create_quote.dart': (context) => const CreateQuotePage(),
-      '/quotes/manage/manage_quote.dart': (context) => const ManageQuotePage(),
-      '/inventory': (context) => const InventoryPage(),
-    },
+        '/quotes/quote_screen.dart': (context) => const QuotePage(),
+        '/clients': (context) => const ClientsPage(),
+        '/bookings': (context) => const BookingsPage(),
+        '/quotes/create/create_quote.dart': (context) => const CreateQuotePage(),
+        '/quotes/manage/manage_quote_screen.dart': (context) => const ManageQuotePage(),
+        '/inventory': (context) => const InventoryPage(),
+      },
       home: Builder(builder: (context) {
         if (firstLaunch) {
           return SetupScreen(authModel: authModel);
