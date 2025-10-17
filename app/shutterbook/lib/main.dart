@@ -7,6 +7,7 @@ import 'pages/quotes/quotes.dart';
 import 'pages/bookings/bookings.dart';
 import 'pages/quotes/create/create_quote.dart';
 import 'pages/quotes/manage/manage_quote.dart';
+import 'inventory.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
