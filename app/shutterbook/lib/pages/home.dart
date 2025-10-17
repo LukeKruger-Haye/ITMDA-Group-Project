@@ -29,6 +29,12 @@ class HomeScreen extends StatelessWidget {
       body: ListView(
         children: [
           ListTile(
+            title: const Text('Dashboard'),
+            subtitle: const Text('View bookings dashboard'),
+            trailing: const Icon(Icons.dashboard),
+            onTap: () => Navigator.pushNamed(context, '/dashboard'),
+          ),
+          ListTile(
             title: const Text('Clients'),
             subtitle: const Text('Manage clients and their details'),
             trailing: const Icon(Icons.people),
