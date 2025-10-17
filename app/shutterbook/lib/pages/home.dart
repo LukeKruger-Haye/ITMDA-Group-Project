@@ -46,6 +46,12 @@ class HomeScreen extends StatelessWidget {
             trailing: const Icon(Icons.calendar_today),
             onTap: () => Navigator.pushNamed(context, '/bookings'),
           ),
+          ListTile(
+            title: const Text('Inventory'),
+            subtitle: const Text('View the items in your inventory'),
+            trailing: const Icon(Icons.inventory),
+            onTap: () => Navigator.pushNamed(context, '/inventory'),
+          ),
         ],
       ),
     );
