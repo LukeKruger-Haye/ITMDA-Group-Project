@@ -59,16 +59,6 @@ class QuoteTable {
     return maps.map((m) => Quote.fromMap(m)).toList();
   }
 
-  Future<List<Quote>> getQuotesByClient(int clientId) async {
-    final db = await dbHelper.database;
-    final maps = await db.query(
-      'Quotes',
-      where: 'client_id = ?',
-      whereArgs: [clientId],
-      orderBy: 'created_at DESC',
-    );
-    return maps.map((m) => Quote.fromMap(m)).toList();
-  }
 
   Future<int> updateQuote(Quote quote) async {
     final db = await dbHelper.database;
