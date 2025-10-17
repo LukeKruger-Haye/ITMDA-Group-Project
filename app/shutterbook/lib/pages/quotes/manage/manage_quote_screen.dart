@@ -8,13 +8,20 @@ class ManageQuotePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Manage Quotes'),
+        title: const Text('Manage Quotes')
+        ,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Center(
           child: ManageQuote()
           ),
+        ),
+        floatingActionButton: FloatingActionButton(onPressed: (){
+          Navigator.pushNamed(context, '/quotes/create/create_quote.dart');
+        },
+        tooltip: 'Add',
+        child: const Icon(Icons.add),
         ),
       );
     

@@ -72,6 +72,14 @@ class _CreateQuotePageState extends State<CreateQuotePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Create Quote'),
+        actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+            },
+            icon: const Icon(Icons.home),
+            ),
+        ]
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

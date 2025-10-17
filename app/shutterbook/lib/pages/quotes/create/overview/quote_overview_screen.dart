@@ -36,7 +36,9 @@ final Map<Package, int> packages;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Quote Overview')),
+      appBar: AppBar(
+        title: const Text('Quote Overview')),
+      
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -50,9 +52,13 @@ final Map<Package, int> packages;
            ElevatedButton(onPressed: (){
              
              _insertQuote();
+             Navigator.pushNamed(context, '/quotes/manage/manage_quote_screen.dart');
                       
-           }, child: const Text("Save"))
-
+           }, child: const Text("Save")),
+           const SizedBox(height: 10),
+           ElevatedButton(onPressed: (){
+             Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);     
+           }, child: const Text("Cancel"))
 
           ],
         ),

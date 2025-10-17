@@ -31,6 +31,7 @@ class MyApp extends StatelessWidget {
       title: 'Local Auth App',
       theme: ThemeData(primarySwatch: Colors.amber),
       routes: {
+        '/home': (context) => HomeScreen(authModel: authModel),
         '/quotes/quote_screen.dart': (context) => const QuotePage(),
         '/clients': (context) => const ClientsPage(),
         '/bookings': (context) => const BookingsPage(),

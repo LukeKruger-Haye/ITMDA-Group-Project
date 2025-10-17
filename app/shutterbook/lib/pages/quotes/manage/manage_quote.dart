@@ -96,9 +96,6 @@ Widget build(BuildContext context){
                    )
 
                 ],
-
-
-
               ),
               onTap: () {
                 

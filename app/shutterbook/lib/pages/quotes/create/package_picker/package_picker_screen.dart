@@ -16,7 +16,16 @@ class PackagePickerScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Pick Packages')),
+      appBar: AppBar(title: const Text('Pick Packages'),
+        actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+            },
+            icon: const Icon(Icons.home),
+          ),
+        ],
+        ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: PackagePicker(
