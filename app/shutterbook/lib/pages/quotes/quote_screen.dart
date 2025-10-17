@@ -16,8 +16,6 @@ const QuotePage({super.key});
         title: const Text('Quotes'),
       ),
         body:const Buttons()
-        
-
       );
     
     

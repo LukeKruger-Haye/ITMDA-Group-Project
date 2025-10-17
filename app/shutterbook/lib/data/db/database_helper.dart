@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 class DatabaseHelper {
   static final _databaseName = 'shutterbook.db';
@@ -12,6 +14,13 @@ class DatabaseHelper {
 
   Future<Database> get database async {
     if (_database != null) return _database!;
+    if (!kIsWeb && (defaultTargetPlatform == TargetPlatform.linux || 
+                    defaultTargetPlatform == TargetPlatform.macOS || 
+                    defaultTargetPlatform == TargetPlatform.windows)) {
+      sqfliteFfiInit();
+      databaseFactory = databaseFactoryFfi;
+    }
+
     _database = await _initDatabase();
     return _database!;
   }
@@ -20,6 +29,8 @@ class DatabaseHelper {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, _databaseName);
 
+    debugPrint('Opening database at: $path');
+    
     return await openDatabase(path, version: _databaseVersion, onCreate: _onCreate);
   }
 
@@ -57,6 +68,27 @@ class DatabaseHelper {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (client_id) REFERENCES Clients(client_id) ON DELETE CASCADE,
         FOREIGN KEY (quote_id) REFERENCES Quotes(quote_id) ON DELETE CASCADE
+      )
+      '''
+    );
+
+    await db.execute('''
+      CREATE TABLE Inventory (
+        item_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        category TEXT NOT NULL,
+        quantity INTEGER NOT NULL,
+        condition TEXT NOT NULL DEFAULT 'New'
+      )
+      '''
+    );
+
+    await db.execute('''
+      CREATE TABLE Packages (
+        package_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        details TEXT NOT NULL,
+        price REAL NOT NULL
       )
       '''
     );

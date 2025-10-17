@@ -2,6 +2,7 @@ class Booking {
   int? bookingId;
   int quoteId;
   int clientId;
+  int quoteId;
   DateTime bookingDate;
   String status;
   DateTime? createdAt;
@@ -11,6 +12,7 @@ class Booking {
     required this.quoteId,
     required this.clientId,
     required this.bookingDate,
+    required this.quoteId,
     this.status = 'Scheduled',
     this.createdAt,
   });
@@ -20,6 +22,7 @@ class Booking {
       'booking_id': bookingId,
       'quote_id': quoteId,
       'client_id': clientId,
+      'quote_id': quoteId,
       'booking_date': bookingDate.toString(),
       'status': status,
       'created_at': createdAt?.toString(),
@@ -31,6 +34,7 @@ class Booking {
       bookingId: map['booking_id'],
       quoteId: map['quote_id'],
       clientId: map['client_id'],
+      quoteId: map['quote_id'],
       bookingDate: DateTime.parse(map['booking_date']),
       status: map['status'] ?? 'Scheduled',
       createdAt: map['created_at'] != null ? DateTime.tryParse(map['created_at']) : null,

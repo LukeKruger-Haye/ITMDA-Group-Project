@@ -17,9 +17,17 @@ class _BookingsPageState extends State<BookingsPage> {
   final bookingTable = BookingTable();
   final quoteTable = QuoteTable();
   final clientTable = ClientTable();
+<<<<<<< HEAD
   List<Booking> bookings = [];
   List<Client> allClients = [];
   Map<String, Client> clientByEmail = {};
+=======
+
+  List<Booking> bookings = [];
+  List<Client> allClients = [];
+  Map<String, Client> clientByEmail = {};
+
+>>>>>>> 2756a47eedf2d66f2a755a6af11341d1727a9727
   late DateTime weekStart;
 
   @override
@@ -42,9 +50,17 @@ class _BookingsPageState extends State<BookingsPage> {
     final data = await clientTable.getAllClients();
     // build email -> client cache for fast lookup in autocomplete
     final map = <String, Client>{};
+<<<<<<< HEAD
     for (final c in data) {
       if (c.email.isNotEmpty) map[c.email] = c;
     }
+=======
+
+    for (final c in data) {
+      if (c.email.isNotEmpty) map[c.email] = c;
+    }
+
+>>>>>>> 2756a47eedf2d66f2a755a6af11341d1727a9727
     setState(() {
       allClients = data;
       clientByEmail = map;
@@ -490,4 +506,8 @@ class _BookingsPageState extends State<BookingsPage> {
       ),
     );
   }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 2756a47eedf2d66f2a755a6af11341d1727a9727
