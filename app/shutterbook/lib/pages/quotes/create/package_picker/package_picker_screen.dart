@@ -20,6 +20,7 @@ class PackagePickerScreen extends StatelessWidget {
         actions: [
           IconButton(
             onPressed: () {
+
               Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
             },
             icon: const Icon(Icons.home),

@@ -135,7 +135,7 @@ class PackagePickerState extends State<PackagePicker> {
             widget.onSelectionChanged(_selectedPackages);
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => QuoteOverviewScreen(
+              MaterialPageRoute(builder: (context) =>  QuoteOverviewScreen(
                 client: widget.client,
                 total: totalPrice,
                 packages: _selectedPackages,

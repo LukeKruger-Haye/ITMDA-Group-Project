@@ -14,21 +14,26 @@ final Map<Package, int> packages;
 
   Future<void> _insertQuote() async
   {
-   final String packageDescription=packages.entries
-                    .map((entry) => '${entry.key.name} x${entry.value}').join(', ');
+    final String packageDescription = packages.entries
+        .map((entry) => '${entry.key.name} x${entry.value}')
+        .join(', ');
 
-    final table= QuoteTable();
-    final quote=Quote(clientId: client.id!, totalPrice: total, description: packageDescription, createdAt: DateTime.now() );
-   
-    await table.insertQuote(
-      quote
-      );
+    final table = QuoteTable();
+
+    // trim milliseconds/microseconds by constructing a DateTime with seconds precision
+    
+    
+
+    final quote = Quote(
+      clientId: client.id!,
+      totalPrice: total,
+      description: packageDescription,
+      createdAt: DateTime.now(),
+    );
+
+    await table.insertQuote(quote);
 
     debugPrint('Inserted quote:${quote.toMap()}');
-
-
-
-
   }
 
 
@@ -52,12 +57,16 @@ final Map<Package, int> packages;
            ElevatedButton(onPressed: (){
              
              _insertQuote();
-             Navigator.pushNamed(context, '/quotes/manage/manage_quote_screen.dart');
+              Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => true);                
+             
                       
            }, child: const Text("Save")),
            const SizedBox(height: 10),
            ElevatedButton(onPressed: (){
+
              Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);     
+
+
            }, child: const Text("Cancel"))
 
           ],
