@@ -1,11 +1,8 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shutterbook/data/models/booking.dart';
 import 'package:shutterbook/data/tables/booking_table.dart';
 import 'package:shutterbook/data/models/quote.dart';
 import 'package:shutterbook/data/tables/quote_table.dart';
-import 'package:shutterbook/data/models/client.dart';
-import 'package:shutterbook/data/tables/client_table.dart';
 
 class BookingsPage extends StatefulWidget {
   const BookingsPage({super.key});
@@ -17,12 +14,7 @@ class BookingsPage extends StatefulWidget {
 class _BookingsPageState extends State<BookingsPage> {
   final bookingTable = BookingTable();
   final quoteTable = QuoteTable();
-  final clientTable = ClientTable();
   List<Booking> bookings = [];
-  List<Client> allClients = [];
-  Map<String, Client> clientByEmail = {};
-  Map<int, Client> clientById = {};
-  Map<int, Quote> quoteById = {};
   late DateTime weekStart;
 
   @override
@@ -30,44 +22,13 @@ class _BookingsPageState extends State<BookingsPage> {
     super.initState();
     final now = DateTime.now();
     weekStart = now.subtract(Duration(days: now.weekday - 1));
-    // Load clients first so clientById is available when bookings are displayed
-    _loadClients().then((_) => _loadBookings());
+    _loadBookings();
   }
 
   Future<void> _loadBookings() async {
     final data = await bookingTable.getAllBookings();
-
-    // Preload quotes referenced by bookings to avoid DB calls in the build loop
-    final quoteIds = data.map((b) => b.quoteId).toSet().toList();
-    final qMap = <int, Quote>{};
-    for (final id in quoteIds) {
-      try {
-        final q = await quoteTable.getQuoteById(id);
-        if (q != null && q.id != null) qMap[q.id!] = q;
-      } catch (_) {}
-    }
-
     setState(() {
       bookings = data;
-      quoteById = qMap;
-    });
-  }
-
-  Future<void> _loadClients() async {
-    final data = await clientTable.getAllClients();
-
-    final emailMap = <String, Client>{};
-    final idMap = <int, Client>{};
-
-    for (final c in data) {
-      if (c.email.isNotEmpty) emailMap[c.email] = c;
-      if (c.id != null) idMap[c.id!] = c;
-    }
-
-    setState(() {
-      allClients = data;
-      clientByEmail = emailMap;
-      clientById = idMap;
     });
   }
 
@@ -86,31 +47,21 @@ class _BookingsPageState extends State<BookingsPage> {
   }
 
   Future<void> _editBooking(DateTime slot, [Booking? existing]) async {
-    Client? selectedClient;
+    final customerController =
+        TextEditingController(text: existing?.clientId.toString() ?? '');
+    final statusController =
+        TextEditingController(text: existing?.status ?? '');
+
     int? selectedQuoteId = existing?.quoteId;
     List<Quote> clientQuotes = [];
-    String status = existing?.status ?? '';
 
-    // If editing, preselect client and load quotes
+    // If editing, load quotes for the existing client
     if (existing != null) {
-      if (allClients.isNotEmpty) {
-        selectedClient = allClients.firstWhere(
-          (c) => c.id == existing.clientId,
-          orElse: () => allClients.first,
-        );
-        // load quotes defensively
-        try {
-          clientQuotes = await quoteTable.getQuotesByClient(selectedClient.id!);
-          if (clientQuotes.isNotEmpty &&
-              (selectedQuoteId == null ||
-                  !clientQuotes.any((q) => q.id == selectedQuoteId))) {
-            selectedQuoteId = clientQuotes.first.id;
-          }
-        } catch (e) {
-          clientQuotes = [];
-        }
-      } else {
-        selectedClient = null;
+      clientQuotes = await quoteTable.getQuotesByClient(existing.clientId);
+      if (clientQuotes.isNotEmpty &&
+          (selectedQuoteId == null ||
+              !clientQuotes.any((q) => q.id == selectedQuoteId))) {
+        selectedQuoteId = clientQuotes.first.id;
       }
     }
 
@@ -118,158 +69,64 @@ class _BookingsPageState extends State<BookingsPage> {
       context: context,
       builder: (_) => StatefulBuilder(
         builder: (context, setStateDialog) {
+          Future<void> onClientChanged(String value) async {
+            int clientId = int.tryParse(value.trim()) ?? 0;
+            if (clientId > 0) {
+              final quotes = await quoteTable.getQuotesByClient(clientId);
+              setStateDialog(() {
+                clientQuotes = quotes;
+                selectedQuoteId =
+                    clientQuotes.isNotEmpty ? clientQuotes.first.id : null;
+              });
+            } else {
+              setStateDialog(() {
+                clientQuotes = [];
+                selectedQuoteId = null;
+              });
+            }
+          }
+
           return AlertDialog(
             title: Text(existing == null ? 'New Booking' : 'Edit Booking'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Autocomplete<String>(
-                    optionsBuilder: (TextEditingValue textEditingValue) {
-                      final query = textEditingValue.text.toLowerCase().trim();
-                      if (query.isEmpty) return const Iterable<String>.empty();
-                      final matches = allClients.where((c) {
-                        final full = '${c.firstName} ${c.lastName}'.toLowerCase();
-                        return c.firstName.toLowerCase().contains(query) ||
-                            c.lastName.toLowerCase().contains(query) ||
-                            full.contains(query) ||
-                            c.email.toLowerCase().contains(query);
-                      }).map((c) => '${c.firstName} ${c.lastName} (${c.email})').toList();
-                      return matches;
-                    },
-                    fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-                      return TextField(
-                        controller: controller,
-                        focusNode: focusNode,
-                        decoration: const InputDecoration(
-                          labelText: 'Search client by name or email',
-                          prefixIcon: Icon(Icons.search),
-                        ),
-                      );
-                    },
-                    onSelected: (String selection) async {
-                      final start = selection.lastIndexOf('(');
-                      final end = selection.lastIndexOf(')');
-                      String? email;
-                      if (start != -1 && end != -1 && end > start) {
-                        email = selection.substring(start + 1, end);
-                      }
-
-                      Client? client;
-                      if (email != null) client = clientByEmail[email];
-
-                      if (client == null) {
-                        for (final c in allClients) {
-                          final display = '${c.firstName} ${c.lastName} (${c.email})';
-                          if (display == selection) {
-                            client = c;
-                            break;
-                          }
-                        }
-                      }
-
-                      if (client == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Selected client not found')));
-                        return;
-                      }
-
-                      try {
-                        if (client.id == null) {
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: customerController,
+                  decoration: const InputDecoration(labelText: 'Client ID'),
+                  keyboardType: TextInputType.number,
+                  onChanged: (value) {
+                    onClientChanged(value);
+                  },
+                ),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<int>(
+                //initialValue: selectedQuoteId,
+                  items: clientQuotes
+                      .map((q) => DropdownMenuItem<int>(
+                            value: q.clientId,
+                            child: Text(q.description),
+                          ))
+                      .toList(),
+                  onChanged: clientQuotes.isEmpty
+                      ? null
+                      : (val) {
                           setStateDialog(() {
-                            selectedClient = client;
-                            clientQuotes = [];
-                            selectedQuoteId = null;
+                            selectedQuoteId = val;
                           });
-                          ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Selected client is not saved (no id)')));
-                          return;
-                        }
-                        final quotes = await quoteTable.getQuotesByClient(client.id!);
-                        setStateDialog(() {
-                          selectedClient = client;
-                          clientQuotes = quotes;
-                          selectedQuoteId = clientQuotes.isNotEmpty ? clientQuotes.first.id : null;
-                        });
-                      } catch (e) {
-                        setStateDialog(() {
-                          selectedClient = client;
-                          clientQuotes = [];
-                          selectedQuoteId = null;
-                        });
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Failed loading quotes: $e')),
-                          );
-                        });
-                      }
-                    },
-                    optionsViewBuilder: (context, onSelected, options) {
-                      final opts = options.toList();
-                      return Align(
-                        alignment: Alignment.topLeft,
-                        child: Material(
-                          elevation: 4.0,
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxHeight: 200),
-                            child: ListView.builder(
-                              padding: EdgeInsets.zero,
-                              itemCount: opts.length,
-                              itemBuilder: (BuildContext context, int index) {
-                                final String display = opts[index];
-                                final emailStart = display.lastIndexOf('(');
-                                final namePart = emailStart > 0 ? display.substring(0, emailStart).trim() : display;
-                                final emailPart = (emailStart > 0 && display.endsWith(')')) ? display.substring(emailStart + 1, display.length - 1) : '';
-                                return ListTile(
-                                  title: Text(namePart),
-                                  subtitle: emailPart.isNotEmpty ? Text(emailPart) : null,
-                                  onTap: () => onSelected(display),
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<int>(
-                    value: selectedQuoteId,
-                    items: clientQuotes
-                        .map((q) => DropdownMenuItem<int>(
-                              value: q.id!,
-                              child: Text(q.description),
-                            ))
-                        .toList(),
-                    onChanged: clientQuotes.isEmpty
-                        ? null
-                        : (val) {
-                            setStateDialog(() {
-                              selectedQuoteId = val;
-                            });
-                          },
-                    decoration: const InputDecoration(labelText: 'Quote'),
-                    hint: const Text('Select Quote'),
-                    isExpanded: true,
-                    disabledHint: const Text('Select a client first'),
-                  ),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    value: status.isEmpty ? 'Scheduled' : status,
-                    items: const [
-                      DropdownMenuItem(value: 'Scheduled', child: Text('Scheduled')),
-                      DropdownMenuItem(value: 'Finished', child: Text('Finished')),
-                    ],
-                    onChanged: (val) {
-                      setStateDialog(() {
-                        status = val ?? 'Scheduled';
-                      });
-                    },
-                    decoration: const InputDecoration(labelText: 'Status'),
-                    isExpanded: true,
-                  ),
-                ],
-              ),
+                        },
+                  decoration: const InputDecoration(labelText: 'Quote'),
+                  hint: const Text('Select Quote'),
+                  isExpanded: true,
+                  disabledHint: const Text('Enter Client ID first'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: statusController,
+                  decoration:
+                      const InputDecoration(labelText: 'Status (Optional)'),
+                ),
+              ],
             ),
             actions: [
               TextButton(
@@ -282,22 +139,26 @@ class _BookingsPageState extends State<BookingsPage> {
                 TextButton(
                   onPressed: () async {
                     await bookingTable.deleteBooking(existing.bookingId!);
+                    if (!mounted) return;
                     Navigator.pop(context);
                     _loadBookings();
                   },
-                  child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                  child:
+                      const Text('Delete', style: TextStyle(color: Colors.red)),
                 ),
               TextButton(
                 onPressed: () async {
-                  if (selectedClient == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Please select a client.')),
-                    );
-                    return;
-                  }
+                  int clientId =
+                      int.tryParse(customerController.text.trim()) ?? 1;
+                  String status = statusController.text.trim().isEmpty
+                      ? "Scheduled"
+                      : statusController.text.trim();
+
                   if (selectedQuoteId == null) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Please select a quote for this client.')),
+                      const SnackBar(
+                          content:
+                              Text('Please select a quote for this client.')),
                     );
                     return;
                   }
@@ -306,22 +167,23 @@ class _BookingsPageState extends State<BookingsPage> {
                     Booking updated = Booking(
                       bookingId: existing.bookingId,
                       quoteId: selectedQuoteId!,
-                      clientId: selectedClient!.id!,
+                      clientId: clientId,
                       bookingDate: slot,
-                      status: status.isEmpty ? "Scheduled" : status,
+                      status: status,
                       createdAt: existing.createdAt,
                     );
                     await bookingTable.updateBooking(updated);
                   } else {
                     Booking newBooking = Booking(
                       quoteId: selectedQuoteId!,
-                      clientId: selectedClient!.id!,
+                      clientId: clientId,
                       bookingDate: slot,
-                      status: status.isEmpty ? "Scheduled" : status,
+                      status: status,
                     );
                     await bookingTable.insertBooking(newBooking);
                   }
 
+                  if (!mounted) return;
                   Navigator.pop(context);
                   _loadBookings();
                 },
@@ -355,28 +217,16 @@ class _BookingsPageState extends State<BookingsPage> {
     final hours = List.generate(10, (i) => 8 + i);
     final days = List.generate(7, (i) => weekStart.add(Duration(days: i)));
 
-    // Responsive sizing using MediaQuery
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
-
-    final timeColumnWidth = (screenWidth * 0.13).clamp(56.0, 120.0);
-    final whiteSpaceWidth = (screenWidth * 0.06).clamp(32.0, 80.0);
-    final remaining = screenWidth - timeColumnWidth - whiteSpaceWidth;
-    double blockColumnWidth = (remaining / 7).clamp(36.0, 120.0);
-
-    final cellHeight = (screenHeight * 0.07).clamp(40.0, 90.0);
-
-    // font sizes relative to block width
-    final dayNumberFont = (blockColumnWidth * 0.42).clamp(10.0, 20.0);
-    final weekdayFont = (blockColumnWidth * 0.26).clamp(8.0, 14.0);
-    final cellPrimaryFont = (blockColumnWidth * 0.22).clamp(8.0, 14.0);
-    final cellSecondaryFont = (blockColumnWidth * 0.18).clamp(7.0, 12.0);
+    
+    const double timeColumnWidth = 60;
+    const double blockColumnWidth = 44; 
+    const double whiteSpaceWidth = 40; 
 
     return Scaffold(
       appBar: AppBar(title: const Text('Booking Calendar')),
       body: Column(
         children: [
-          // Date row with arrows (kept at the top)
+          // Date row with arrows
           Row(
             children: [
               SizedBox(
@@ -387,29 +237,14 @@ class _BookingsPageState extends State<BookingsPage> {
                   tooltip: 'Previous Week',
                 ),
               ),
-              // Dates (stacked Day / Weekday) - widths match the column blocks
               for (int i = 0; i < days.length; i++)
                 SizedBox(
                   width: blockColumnWidth,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SizedBox(height: 6),
-                      Text(
-                        days[i].day.toString().padLeft(2, '0'),
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: dayNumberFont,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      Text(
-                        getWeekdayName(days[i]),
-                        style: TextStyle(fontSize: weekdayFont, color: Colors.grey[600]),
-                        textAlign: TextAlign.center,
-                      ),
-                      SizedBox(height: 6),
-                    ],
+                  child: Center(
+                    child: Text(
+                      "${days[i].day.toString().padLeft(2, '0')}/${days[i].month.toString().padLeft(2, '0')}",
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
               SizedBox(
@@ -422,31 +257,42 @@ class _BookingsPageState extends State<BookingsPage> {
               ),
             ],
           ),
+          // Days row
+          Row(
+            children: [
+              SizedBox(width: timeColumnWidth),
+              for (final d in days)
+                SizedBox(
+                  width: blockColumnWidth,
+                  child: Center(
+                    child: Text(
+                      getWeekdayName(d),
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ),
+                ),
+              SizedBox(width: whiteSpaceWidth),
+            ],
+          ),
           const Divider(),
-          // Hours + grid
           Expanded(
             child: ListView.builder(
               itemCount: hours.length,
               itemBuilder: (_, row) {
                 final hour = hours[row];
                 return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SizedBox(
                       width: timeColumnWidth,
-                      height: cellHeight,
-                      child: Center(
-                        child: Text(
-                          "${hour.toString().padLeft(2, '0')}:00",
-                          style: TextStyle(fontSize: cellPrimaryFont),
-                          textAlign: TextAlign.center,
-                        ),
+                      child: Text(
+                        "$hour:00",
+                        style: const TextStyle(fontSize: 12),
+                        textAlign: TextAlign.center,
                       ),
                     ),
                     for (final d in days)
                       SizedBox(
                         width: blockColumnWidth,
-                        height: cellHeight,
                         child: GestureDetector(
                           onTap: () {
                             final slot = DateTime(
@@ -459,8 +305,8 @@ class _BookingsPageState extends State<BookingsPage> {
                             _editBooking(slot, booking);
                           },
                           child: Container(
-                            margin: const EdgeInsets.all(4),
-                            padding: const EdgeInsets.symmetric(horizontal: 2),
+                            margin: const EdgeInsets.all(2),
+                            height: 50,
                             decoration: BoxDecoration(
                               color: (() {
                                 final slot = DateTime(
@@ -475,7 +321,7 @@ class _BookingsPageState extends State<BookingsPage> {
                                 }
                                 return Colors.grey[200];
                               })(),
-                              borderRadius: BorderRadius.circular(6),
+                              borderRadius: BorderRadius.circular(4),
                             ),
                             child: Builder(
                               builder: (context) {
@@ -487,44 +333,14 @@ class _BookingsPageState extends State<BookingsPage> {
                                 );
                                 final booking = getBookingForSlot(slot);
                                 if (booking != null) {
-                                  // attempt to resolve client and quote from preloaded maps
-                                  final client = clientById[booking.clientId];
-                                  final quote = quoteById[booking.quoteId];
-                                  final clientName = client != null ? '${client.firstName} ${client.lastName}' : '#${booking.clientId}';
-                                  final quoteLabel = quote != null ? quote.description : '#${booking.quoteId}';
-
                                   return Center(
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      crossAxisAlignment: CrossAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          clientName,
-                                          textAlign: TextAlign.center,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            fontSize: cellPrimaryFont,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          quoteLabel,
-                                          textAlign: TextAlign.center,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(fontSize: cellSecondaryFont),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          booking.status,
-                                          textAlign: TextAlign.center,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(fontSize: cellSecondaryFont, fontStyle: FontStyle.italic),
-                                        ),
-                                      ],
+                                    child: Text(
+                                      "Client: ${booking.clientId}\nQuote: ${booking.quoteId}\n${booking.status}",
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   );
                                 }
@@ -534,6 +350,7 @@ class _BookingsPageState extends State<BookingsPage> {
                           ),
                         ),
                       ),
+                    // White space column at the end
                     SizedBox(width: whiteSpaceWidth),
                   ],
                 );

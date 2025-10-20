@@ -7,7 +7,6 @@ class HomeScreen extends StatelessWidget {
 
   const HomeScreen({super.key, required this.authModel});
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -30,6 +29,12 @@ class HomeScreen extends StatelessWidget {
       body: ListView(
         children: [
           ListTile(
+            title: const Text('Dashboard'),
+            subtitle: const Text('View bookings dashboard'),
+            trailing: const Icon(Icons.dashboard),
+            onTap: () => Navigator.pushNamed(context, '/dashboard'),
+          ),
+          ListTile(
             title: const Text('Clients'),
             subtitle: const Text('Manage clients and their details'),
             trailing: const Icon(Icons.people),
@@ -39,7 +44,7 @@ class HomeScreen extends StatelessWidget {
             title: const Text('Quotes'),
             subtitle: const Text('Create and view quotes'),
             trailing: const Icon(Icons.request_quote),
-            onTap: () => Navigator.pushNamed(context, '/quotes/quote_screen.dart'),
+            onTap: () => Navigator.pushNamed(context, '/quotes'),
           ),
           ListTile(
             title: const Text('Bookings'),
