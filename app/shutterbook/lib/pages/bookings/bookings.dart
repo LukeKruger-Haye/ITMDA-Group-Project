@@ -140,6 +140,7 @@ class _BookingsPageState extends State<BookingsPage> {
                   onPressed: () async {
                     await bookingTable.deleteBooking(existing.bookingId!);
                     if (!mounted) return;
+                    if (!mounted) return;
                     Navigator.pop(context);
                     _loadBookings();
                   },
@@ -183,6 +184,7 @@ class _BookingsPageState extends State<BookingsPage> {
                     await bookingTable.insertBooking(newBooking);
                   }
 
+                  if (!mounted) return;
                   if (!mounted) return;
                   Navigator.pop(context);
                   _loadBookings();

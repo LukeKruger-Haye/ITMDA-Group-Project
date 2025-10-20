@@ -22,7 +22,7 @@ void main() {
     final firstLaunch = await auth.isFirstLaunch();
 
     // Build our app and trigger a frame.
-    await tester.pumpWidget(MyApp(authModel: auth, firstLaunch: firstLaunch,));
+    await tester.pumpWidget(MyApp(authModel: auth, firstLaunch: firstLaunch));
 
     // Verify that our counter starts at 0.
     expect(find.text('0'), findsOneWidget);
