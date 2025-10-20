@@ -34,6 +34,7 @@ class MyApp extends StatelessWidget {
             routes: {
                 '/quotes': (context) => const QuotePage(),
                 '/bookings': (context) => const BookingsPage(),
+                'clients': (context) => const ClientsPage(),
                 '/quotes/create/create_quote.dart': (context) => const CreateQuotePage(),
                 '/quotes/manage/manage_quote_screen.dart': (context) => const ManageQuotePage(),
                 '/dashboard': (context) => const DashboardPage(),
