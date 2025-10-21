@@ -276,7 +276,8 @@ class _BookingsPageState extends State<BookingsPage> {
                     value: status.isEmpty ? 'Scheduled' : status,
                     items: const [
                       DropdownMenuItem(value: 'Scheduled', child: Text('Scheduled')),
-                      DropdownMenuItem(value: 'Finished', child: Text('Finished')),
+                      DropdownMenuItem(value: 'Completed', child: Text('Completed')),
+                      DropdownMenuItem(value: 'Cancelled', child: Text('Cancelled')),
                     ],
                     onChanged: (val) {
                       setStateDialog(() {
@@ -391,8 +392,10 @@ class _BookingsPageState extends State<BookingsPage> {
     final cellSecondaryFont = (blockColumnWidth * 0.18).clamp(7.0, 12.0);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Booking Calendar')),
-      body: Column(
+appBar: AppBar(
+  centerTitle: true,
+  title: const Text('Booking Calendar'),
+),      body: Column(
         children: [
           // Date row with arrows
           Row(
@@ -511,33 +514,45 @@ class _BookingsPageState extends State<BookingsPage> {
                                   final clientName = client != null ? '${client.firstName} ${client.lastName}' : '#${booking.clientId}';
                                   final quoteLabel = quote != null ? quote.description : '#${booking.quoteId}';
 
-                                  return Center(
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      crossAxisAlignment: CrossAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          clientName,
-                                          textAlign: TextAlign.center,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            fontSize: cellPrimaryFont,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          quoteLabel,
-                                          textAlign: TextAlign.center,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(fontSize: cellSecondaryFont),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                }
+                                    
+  final firstName = client?.firstName ?? 'Unknown';
+  final lastName = client?.lastName ?? '';
+
+return Center(
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(
+              firstName,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: cellPrimaryFont,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+                height: 1.1,
+              ),
+            ),
+            Text(
+              lastName,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: cellPrimaryFont,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+                height: 1.1,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
                                 return const SizedBox.shrink();
                               },
                             ),
