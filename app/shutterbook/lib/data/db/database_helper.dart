@@ -77,7 +77,6 @@ class DatabaseHelper {
         item_id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         category TEXT NOT NULL,
-        quantity INTEGER NOT NULL,
         condition TEXT NOT NULL DEFAULT 'New'
       )
       '''

@@ -12,6 +12,8 @@ class InventoryPage extends StatefulWidget {
 class _InventoryPageState extends State<InventoryPage> {
   final InventoryTable _inventoryTable = InventoryTable();
   List<Item> _inventory = [];
+  List<Item> _filteredInventory = [];
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -19,33 +21,27 @@ class _InventoryPageState extends State<InventoryPage> {
     _loadItems();
   }
 
-Future<void> _loadItems() async {
-  // Temporarily add a test item if database is empty
-  final dbItems = await _inventoryTable.getAllItems();
-  if (dbItems.isEmpty) {
-    final testItem = Item(
-      name: 'Camera Lens',
-      category: 'Equipment',
-      quantity: 5,
-      condition: 'Excellent',
-    );
-    await _inventoryTable.insertItem(testItem);
-    debugPrint('Inserted test item into Inventory!');
+  Future<void> _loadItems() async {
+    final items = await _inventoryTable.getAllItems();
+    setState(() {
+      _inventory = items;
+      _filteredInventory = items;
+    });
   }
 
-  // Reload all items
-  final items = await _inventoryTable.getAllItems();
-  setState(() {
-    _inventory = items;
-  });
-
-  debugPrint('Loaded ${_inventory.length} items from database.');
-}
+  void _filterInventory(String query) {
+    setState(() {
+      _searchQuery = query.toLowerCase();
+      _filteredInventory = _inventory.where((item) {
+        return item.name.toLowerCase().contains(_searchQuery) ||
+               item.condition.toLowerCase().contains(_searchQuery);
+      }).toList();
+    });
+  }
 
   Future<void> _addItem() async {
     String name = '';
     String category = '';
-    int quantity = 1;
     String condition = 'Good';
 
     await showDialog(
@@ -63,12 +59,6 @@ Future<void> _loadItems() async {
                 TextField(
                   decoration: const InputDecoration(labelText: 'Category'),
                   onChanged: (val) => category = val,
-                ),
-                TextField(
-                  decoration: const InputDecoration(labelText: 'Quantity'),
-                  keyboardType: TextInputType.number,
-                  onChanged: (val) =>
-                      quantity = int.tryParse(val) ?? 1,
                 ),
                 DropdownButtonFormField<String>(
                   decoration: const InputDecoration(labelText: 'Condition'),
@@ -91,12 +81,11 @@ Future<void> _loadItems() async {
                 final newItem = Item(
                   name: name,
                   category: category,
-                  quantity: quantity,
                   condition: condition,
                 );
                 await _inventoryTable.insertItem(newItem);
                 Navigator.pop(context);
-                _loadItems(); // refresh list
+                _loadItems();
               },
               child: const Text('Add'),
             ),
@@ -109,7 +98,6 @@ Future<void> _loadItems() async {
   Future<void> _editItem(Item item) async {
     String name = item.name;
     String category = item.category;
-    int quantity = item.quantity;
     String condition = item.condition;
 
     await showDialog(
@@ -121,21 +109,14 @@ Future<void> _loadItems() async {
             child: Column(
               children: [
                 TextField(
-                  decoration: const InputDecoration(labelText: 'Item Name'),
                   controller: TextEditingController(text: name),
+                  decoration: const InputDecoration(labelText: 'Item Name'),
                   onChanged: (val) => name = val,
                 ),
                 TextField(
-                  decoration: const InputDecoration(labelText: 'Category'),
                   controller: TextEditingController(text: category),
+                  decoration: const InputDecoration(labelText: 'Category'),
                   onChanged: (val) => category = val,
-                ),
-                TextField(
-                  decoration: const InputDecoration(labelText: 'Quantity'),
-                  keyboardType: TextInputType.number,
-                  controller: TextEditingController(text: quantity.toString()),
-                  onChanged: (val) =>
-                      quantity = int.tryParse(val) ?? item.quantity,
                 ),
                 DropdownButtonFormField<String>(
                   decoration: const InputDecoration(labelText: 'Condition'),
@@ -159,12 +140,11 @@ Future<void> _loadItems() async {
                   id: item.id,
                   name: name,
                   category: category,
-                  quantity: quantity,
                   condition: condition,
                 );
                 await _inventoryTable.updateItem(updatedItem);
                 Navigator.pop(context);
-                _loadItems(); // refresh list
+                _loadItems();
               },
               child: const Text('Save'),
             ),
@@ -185,70 +165,81 @@ Future<void> _loadItems() async {
       appBar: AppBar(
         title: const Text('Inventory'),
         backgroundColor: Colors.teal,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: _addItem,
-            tooltip: 'Add Item',
-          ),
-        ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: GridView.builder(
-          itemCount: _inventory.length,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            childAspectRatio: 3 / 4,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
-          ),
-          itemBuilder: (context, index) {
-            final item = _inventory[index];
-            return Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(10),
+            child: TextField(
+              decoration: const InputDecoration(
+                labelText: 'Search by name or condition',
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(),
               ),
-              elevation: 3,
-              child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(item.name,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 16)),
-                    const SizedBox(height: 6),
-                    Text('Category: ${item.category}'),
-                    Text('Quantity: ${item.quantity}'),
-                    Text(
-                      'Condition: ${item.condition}',
-                      style: TextStyle(
-                        color: item.condition == 'Needs Repair'
-                            ? Colors.red
-                            : Colors.green,
+              onChanged: _filterInventory,
+            ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: GridView.builder(
+                itemCount: _filteredInventory.length,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 3 / 4,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                ),
+                itemBuilder: (context, index) {
+                  final item = _filteredInventory[index];
+                  return Card(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 3,
+                    child: Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(item.name,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 16)),
+                          const SizedBox(height: 6),
+                          Text('Category: ${item.category}'),
+                          Text(
+                            'Condition: ${item.condition}',
+                            style: TextStyle(
+                              color: item.condition == 'Needs Repair'
+                                  ? Colors.red
+                                  : Colors.green,
+                            ),
+                          ),
+                          const Spacer(),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit,
+                                    color: Colors.blueAccent),
+                                onPressed: () => _editItem(item),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete,
+                                    color: Colors.redAccent),
+                                onPressed: () => _deleteItem(item.id!),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
-                    const Spacer(),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit, color: Colors.blueAccent),
-                          onPressed: () => _editItem(item),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.redAccent),
-                          onPressed: () => _deleteItem(item.id!),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                  );
+                },
               ),
-            );
-          },
-        ),
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _addItem,
