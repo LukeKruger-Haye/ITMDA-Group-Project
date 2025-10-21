@@ -74,8 +74,10 @@ final result = await showDialog(
             ),
              TextFormField(
               controller: packagePriceController,
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              keyboardType: TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: <TextInputFormatter>[
+              FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*$')), // Allows digits and at most one decimal point
+                     ],
               decoration: const InputDecoration(labelText: 'Price'),
               validator: (value) => value==null || value.trim().isEmpty? 'Package Price required': null,
               textCapitalization: TextCapitalization.words,
@@ -98,10 +100,10 @@ final result = await showDialog(
             onPressed: () async {
               if (formKey.currentState?.validate() ?? false) {
                 final confirmed = await _showConfirmationDialog(
-                  package == null ? 'Add Client' : 'Save Changes',
+                  package == null ? 'Add Package' : 'Save Changes',
                   package == null
-                      ? 'Are you sure you want to add this client?'
-                      : 'Are you sure you want to save changes to this client?',
+                      ? 'Are you sure you want to add this package?'
+                      : 'Are you sure you want to save changes to this package?',
                 );
                 if (!confirmed) return;
                 final newPackage = Package(
@@ -136,7 +138,7 @@ Future<void> _deletePackage(Package package) async{
 
 
  final confirmed = await _showConfirmationDialog(
-      'Delete Client',
+      'Delete Package',
       'Are you sure you want to delete ${package.name}?',
     );
     if (confirmed && package.id != null) {

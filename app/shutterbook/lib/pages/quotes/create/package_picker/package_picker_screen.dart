@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shutterbook/data/models/client.dart';
+import 'package:shutterbook/data/models/package.dart';
+import 'package:shutterbook/pages/quotes/create/package_picker/package/package_add.dart';
 import 'package:shutterbook/pages/quotes/create/package_picker/package_picker.dart';
 
 class PackagePickerScreen extends StatelessWidget {
@@ -20,11 +22,19 @@ class PackagePickerScreen extends StatelessWidget {
         actions: [
           IconButton(
             onPressed: () {
-
               Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
             },
             icon: const Icon(Icons.home),
           ),
+              IconButton(
+            onPressed: () {
+              Navigator.push(
+                context, 
+                MaterialPageRoute(builder: (context)=> PackageAdd())
+                );
+            },
+            icon: const Icon(Icons.indeterminate_check_box_rounded),
+            ),
         ],
         ),
       body: Padding(

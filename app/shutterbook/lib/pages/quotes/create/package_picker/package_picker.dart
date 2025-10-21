@@ -1,22 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:shutterbook/data/models/client.dart';
+import 'package:shutterbook/data/tables/package_table.dart';
+import 'package:shutterbook/data/models/package.dart';
+
 
 
 import 'package:shutterbook/pages/quotes/create/overview/quote_overview_screen.dart';
 
 
 // Simple Package model
-class Package {
-  final String name;
-  final double price;
-
-  Package({required this.name, required this.price});
-}
 
 class PackagePicker extends StatefulWidget {
-  final Function(Map<Package, int>) onSelectionChanged;
-  final Client client;
   
+  final Client client;
+  final Function(Map<Package, int>) onSelectionChanged;
 
   const PackagePicker({super.key, required this.onSelectionChanged, required this.client});
 
@@ -25,13 +22,33 @@ class PackagePicker extends StatefulWidget {
 }
 
 class PackagePickerState extends State<PackagePicker> {
-  // Hardcoded package list
-  final List<Package> _packages = [
-    Package(name: 'Birthday', price: 250.0),
-    Package(name: 'Wedding', price: 100.0),
-    Package(name: 'Anniversary', price: 250.0),
-    Package(name: 'Family', price: 300.0),
-  ];
+    
+  List<Package> allpackages =[];  
+
+   @override
+  void initState() {
+    super.initState();
+    _loadPackages();
+  }
+
+ Future<void> _loadPackages() async{
+
+final packages = await PackageTable().getAllPackages();
+
+setState(() {
+  allpackages=packages;
+});
+
+for(Package p in packages)
+{
+  debugPrint('Id:${p.id} Name:${p.name} Price:${p.price} Description${p.details}');
+}
+ }
+
+ void onSelectionChanged(){}
+
+
+
 
   // Map to track selected packages and their quantities
   final Map<Package, int> _selectedPackages = {};
@@ -68,83 +85,80 @@ class PackagePickerState extends State<PackagePicker> {
       children: [
         Center(
           child: Text(
-            
             '${widget.client.firstName} ${widget.client.lastName}',
-
-              style: TextStyle(
-                fontSize: 20
+              style: TextStyle(fontSize: 20),
               ),
-
-
-
-          ) ,
         ),
+          
+        Text('Pick Packages'),
+         Expanded(
+           child: ListView.builder(
+             itemCount:allpackages.length,
+             itemBuilder: (context, index) {
+               final package = allpackages[index];
+               final isSelected = _selectedPackages.containsKey(package);
+               final quantity = _selectedPackages[package] ?? 1;
+               return Card(
+                 child: ListTile(
+                   title: Text('${package.name} (R${package.price})'),
+                   trailing: isSelected
+                       ? Row(
+                           mainAxisSize: MainAxisSize.min,
+                           children: [
+                             IconButton(
+                               icon: const Icon(Icons.remove),
+                               onPressed: () {
+                                 if (quantity > 1) {
+                                   _updateQuantity(package, quantity - 1);
+                                 } else {
+                                   _toggleSelection(package);
+                                 }
+                               },
+                             ),
+                             Text('$quantity'),
+                             IconButton(
+                               icon: const Icon(Icons.add),
+                               onPressed: () {
+                                 _updateQuantity(package, quantity + 1);
+                               },
+                             ),
+                             IconButton(
+                               icon: const Icon(Icons.check_box, color: Colors.green),
+                               onPressed: () => _toggleSelection(package),
+                             ),
+                           ],
+                         )
+                       : IconButton(
+                           icon: const Icon(Icons.check_box_outline_blank),
+                           onPressed: () => _toggleSelection(package),
+                         ),
+                 ),
+               );
+             },
+           ),
+         ),
+         const SizedBox(height: 10),
+         Text('Selected: $totalItems items, Total: R${totalPrice.toStringAsFixed(2)}'),
+         const SizedBox(height: 10),
+         ElevatedButton(
+           onPressed: () {
+             widget.onSelectionChanged(_selectedPackages);
+             Navigator.push(
+               context,
+               MaterialPageRoute(builder: (context) =>  QuoteOverviewScreen(
+                 client: widget.client,
+                 total: totalPrice,
+                 packages: _selectedPackages,
+               )),
+             );
+           },
+           child: const Text('Confirm Selection'),
+          )
         
-        const Text('Pick Packages:', style: TextStyle(fontWeight: FontWeight.bold)),
-        Expanded(
-          child: ListView.builder(
-            itemCount: _packages.length,
-            itemBuilder: (context, index) {
-              final package = _packages[index];
-              final isSelected = _selectedPackages.containsKey(package);
-              final quantity = _selectedPackages[package] ?? 1;
-              return Card(
-                child: ListTile(
-                  title: Text('${package.name} (R${package.price})'),
-                  trailing: isSelected
-                      ? Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.remove),
-                              onPressed: () {
-                                if (quantity > 1) {
-                                  _updateQuantity(package, quantity - 1);
-                                } else {
-                                  _toggleSelection(package);
-                                }
-                              },
-                            ),
-                            Text('$quantity'),
-                            IconButton(
-                              icon: const Icon(Icons.add),
-                              onPressed: () {
-                                _updateQuantity(package, quantity + 1);
-                              },
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.check_box, color: Colors.green),
-                              onPressed: () => _toggleSelection(package),
-                            ),
-                          ],
-                        )
-                      : IconButton(
-                          icon: const Icon(Icons.check_box_outline_blank),
-                          onPressed: () => _toggleSelection(package),
-                        ),
-                ),
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: 10),
-        Text('Selected: $totalItems items, Total: R${totalPrice.toStringAsFixed(2)}'),
-        const SizedBox(height: 10),
-        ElevatedButton(
-          onPressed: () {
-            widget.onSelectionChanged(_selectedPackages);
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) =>  QuoteOverviewScreen(
-                client: widget.client,
-                total: totalPrice,
-                packages: _selectedPackages,
-              )),
-            );
-          },
-          child: const Text('Confirm Selection'),
-        ),
-      ],
-    );
-  }
-}
+       ],
+     );
+   }
+ }
+
+
+         

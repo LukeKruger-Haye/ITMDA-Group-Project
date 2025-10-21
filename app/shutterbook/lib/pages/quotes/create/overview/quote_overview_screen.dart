@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:shutterbook/data/models/client.dart';
 import 'package:shutterbook/data/models/quote.dart';
 import 'package:shutterbook/data/tables/quote_table.dart';
-import 'package:shutterbook/pages/quotes/create/package_picker/package_picker.dart';
+
+import 'package:shutterbook/data/models/package.dart';
+
+
 
 class QuoteOverviewScreen extends StatelessWidget {
 final double total;

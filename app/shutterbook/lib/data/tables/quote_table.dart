@@ -30,10 +30,10 @@ class QuoteTable {
   }
 
   Future<List<Quote>> getAllQuotes() async {
-    Database db = await dbHelper.database;
+    final db = await dbHelper.database;
     final maps = await db.query(
       'Quotes',
-      orderBy: 'created_at DESC'
+      orderBy: 'quote_id DESC', // use DESC for newest-first
     );
     return maps.map((m) => Quote.fromMap(m)).toList();
   }
