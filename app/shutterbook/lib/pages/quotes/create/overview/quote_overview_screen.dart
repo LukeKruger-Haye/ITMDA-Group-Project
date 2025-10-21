@@ -20,6 +20,18 @@ final Map<Package, int> packages;
 
     final table = QuoteTable();
 
+    final currentDateTime= DateTime.now();
+
+    final year,month,day,hour,minute,nowTime;
+    year=currentDateTime.year;
+    month=currentDateTime.month;
+    day=currentDateTime.day;
+    hour=currentDateTime.hour;
+    minute=currentDateTime.minute;
+    nowTime='${day}/${month}/${year} - ${hour}:${minute}';
+    
+
+    
     // trim milliseconds/microseconds by constructing a DateTime with seconds precision
     
     
@@ -28,7 +40,7 @@ final Map<Package, int> packages;
       clientId: client.id!,
       totalPrice: total,
       description: packageDescription,
-      createdAt: DateTime.now(),
+      createdAt: nowTime,
     );
 
     await table.insertQuote(quote);
@@ -57,8 +69,7 @@ final Map<Package, int> packages;
            ElevatedButton(onPressed: (){
              
              _insertQuote();
-              Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => true);                
-             
+             Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);   
                       
            }, child: const Text("Save")),
            const SizedBox(height: 10),
