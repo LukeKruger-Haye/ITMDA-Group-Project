@@ -28,7 +28,6 @@ class Item {
       id: map['item_id'],
       name: map['name'],
       category: map['category'],
-      quantity: map['quantity'],
       condition: map['condition'],
     );
   }
