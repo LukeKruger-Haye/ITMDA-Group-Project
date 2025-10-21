@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../data/models/client.dart';
 import '../../data/tables/client_table.dart';
+import '../../data/tables/quote_table.dart';
+import '../../data/tables/booking_table.dart';
+import '../bookings/client_bookings.dart'; // <-- new import
 
 class ClientsPage extends StatefulWidget {
   const ClientsPage({super.key});
@@ -11,6 +14,9 @@ class ClientsPage extends StatefulWidget {
 
 class _ClientsPageState extends State<ClientsPage> {
   final ClientTable _clientTable = ClientTable();
+  final QuoteTable _quoteTable = QuoteTable();
+  final BookingTable _bookingTable = BookingTable();
+
   List<Client> _clients = [];
 
   @override
@@ -154,6 +160,69 @@ class _ClientsPageState extends State<ClientsPage> {
     }
   }
 
+  // show client details dialog with actions to view quotes or bookings (shows counts)
+  Future<void> _showClientDetails(Client client) async {
+    int quotesCount = 0;
+    int bookingsCount = 0;
+
+    if (client.id != null) {
+      try {
+        final quotes = await _quoteTable.getQuotesByClient(client.id!);
+        final bookings = await _bookingTable.getBookingsByClient(client.id!);
+        quotesCount = quotes.length;
+        bookingsCount = bookings.length;
+      } catch (e) {
+        debugPrint('Error fetching client counts: $e');
+      }
+    }
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('${client.firstName} ${client.lastName}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Email: ${client.email}'),
+            const SizedBox(height: 8),
+            Text('Phone: ${client.phone}'),
+            const SizedBox(height: 12),
+            Text('Quotes: $quotesCount'),
+            const SizedBox(height: 6),
+            Text('Bookings: $bookingsCount'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/quotes', arguments: client);
+            },
+            child: const Text('View Quotes'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // open the client bookings list page
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ClientBookingsPage(client: client),
+                ),
+              );
+            },
+            child: const Text('View Bookings'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -163,6 +232,7 @@ class _ClientsPageState extends State<ClientsPage> {
         itemBuilder: (context, index) {
           final client = _clients[index];
           return ListTile(
+            onTap: () => _showClientDetails(client),
             title: Text('${client.firstName} ${client.lastName}'),
             subtitle: Text('${client.email} | ${client.phone}'),
             trailing: Row(

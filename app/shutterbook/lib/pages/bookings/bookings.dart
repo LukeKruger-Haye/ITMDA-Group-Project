@@ -23,6 +23,7 @@ class _BookingsPageState extends State<BookingsPage> {
   Map<String, Client> clientByEmail = {};
 
   late DateTime weekStart;
+  bool _handledInitialArg = false; // <-- new flag
 
   @override
   void initState() {
@@ -31,6 +32,48 @@ class _BookingsPageState extends State<BookingsPage> {
     weekStart = now.subtract(Duration(days: now.weekday - 1));
     _loadBookings();
     _loadClients();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_handledInitialArg) {
+      _handledInitialArg = true;
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args != null) {
+        _handleInitialArgs(args);
+      }
+    }
+  }
+
+  Future<void> _handleInitialArgs(Object args) async {
+    int? openBookingId;
+    if (args is int) {
+      openBookingId = args;
+    } else if (args is Map) {
+      if (args['open_booking_id'] is int) openBookingId = args['open_booking_id'];
+      if (openBookingId == null && args['booking_id'] is int) openBookingId = args['booking_id'];
+    } else if (args is Booking) {
+      openBookingId = args.bookingId;
+    }
+
+    if (openBookingId == null) return;
+
+    // Ensure data loaded
+    await _loadClients();
+    await _loadBookings();
+
+    try {
+      final booking = await bookingTable.getBookingById(openBookingId);
+      if (booking != null) {
+        // open the edit dialog on next frame
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _editBooking(booking.bookingDate, booking);
+        });
+      }
+    } catch (e) {
+      debugPrint('Failed to open booking: $e');
+    }
   }
 
   Future<void> _loadBookings() async {
@@ -113,6 +156,7 @@ class _BookingsPageState extends State<BookingsPage> {
                 children: [
                   // Single autocomplete search field for clients (string-based, uses cache)
                   Autocomplete<String>(
+
                     optionsBuilder: (TextEditingValue textEditingValue) {
                       final query = textEditingValue.text.toLowerCase().trim();
                       if (query.isEmpty) return const Iterable<String>.empty();
@@ -286,6 +330,7 @@ class _BookingsPageState extends State<BookingsPage> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                           content: Text('Please select a client.')),
+
                     );
                     return;
                   }
@@ -294,6 +339,7 @@ class _BookingsPageState extends State<BookingsPage> {
                       const SnackBar(
                           content:
                               Text('Please select a quote for this client.')),
+
                     );
                     return;
                   }
