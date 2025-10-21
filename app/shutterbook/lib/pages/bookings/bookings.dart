@@ -52,7 +52,7 @@ class _BookingsPageState extends State<BookingsPage> {
       quoteById = qMap;
     });
   }
-
+//preload clients
   Future<void> _loadClients() async {
     final data = await clientTable.getAllClients();
 
@@ -94,7 +94,7 @@ class _BookingsPageState extends State<BookingsPage> {
     // Controller to auto-fill client field
     TextEditingController clientController = TextEditingController();
 
-    // If editing, preselect client and load quotes
+    // If editing a booking, select client and load quotes
     if (existing != null) {
       if (allClients.isNotEmpty) {
         selectedClient = allClients.firstWhere(
@@ -373,7 +373,7 @@ class _BookingsPageState extends State<BookingsPage> {
     final hours = List.generate(10, (i) => 8 + i);
     final days = List.generate(7, (i) => weekStart.add(Duration(days: i)));
 
-    // Responsive sizing using MediaQuery
+    // Responsive sizing
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
@@ -394,7 +394,7 @@ class _BookingsPageState extends State<BookingsPage> {
       appBar: AppBar(title: const Text('Booking Calendar')),
       body: Column(
         children: [
-          // Date row with arrows (kept at the top)
+          // Date row with arrows
           Row(
             children: [
               SizedBox(
@@ -405,7 +405,7 @@ class _BookingsPageState extends State<BookingsPage> {
                   tooltip: 'Previous Week',
                 ),
               ),
-              // Dates (stacked Day / Weekday) - widths match the column blocks
+              // Dates (stacked Day / Weekday)
               for (int i = 0; i < days.length; i++)
                 SizedBox(
                   width: blockColumnWidth,
