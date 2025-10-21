@@ -8,6 +8,7 @@ import 'pages/bookings/bookings.dart';
 import 'pages/clients/clients.dart';
 import 'pages/quotes/create/create_quote.dart';
 import 'pages/quotes/manage/manage_quote_screen.dart';
+import 'pages/inventory/inventory.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,8 +37,8 @@ class MyApp extends StatelessWidget {
         '/bookings': (context) => const BookingsPage(),
         '/quotes/create/create_quote.dart': (context) => const CreateQuotePage(),
         '/quotes/manage/manage_quote_screen.dart': (context) => const ManageQuotePage(),
+        '/inventory': (context) => const InventoryPage(),
       },
-
       home: Builder(builder: (context) {
         if (firstLaunch) {
           return SetupScreen(authModel: authModel);
