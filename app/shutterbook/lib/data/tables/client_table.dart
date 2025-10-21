@@ -44,6 +44,22 @@ class ClientTable{
     return null;
   }
 
+  Future<Client?> getClientByQuoteId(int quoteId) async {
+    Database db = await dbHelper.database;
+    final List<Map<String, dynamic>> result = await db.rawQuery('''
+        SELECT Clients.* 
+        FROM Clients 
+        INNER JOIN Quotes ON Clients.client_id = Quotes.client_id 
+        WHERE Quotes.quote_id = ?
+      ''', [quoteId]);
+
+    if (result.isNotEmpty) {
+      return Client.fromMap(result.first);
+    } else {
+      return null;
+    }
+  }
+
   Future<List<Client>> getAllClients() async {
     Database db = await dbHelper.database;
     final maps = await db.query('Clients');

@@ -81,5 +81,15 @@ class DatabaseHelper {
       )
       '''
     );
+
+    await db.execute('''
+      CREATE TABLE Packages (
+        package_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        details TEXT NOT NULL,
+        price REAL NOT NULL
+      )
+      '''
+    );
   }
 } 
