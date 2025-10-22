@@ -101,6 +101,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _useBiometric = value);
   }
 
+  // ignore: unused_element
+  Future<void> _deleteAllQuotes() async{
+
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

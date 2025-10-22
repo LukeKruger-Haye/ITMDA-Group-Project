@@ -2,26 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:shutterbook/data/models/client.dart';
 import 'package:shutterbook/data/tables/package_table.dart';
 import 'package:shutterbook/data/models/package.dart';
+import 'package:shutterbook/pages/quotes/overview/quote_overview_edit_screen.dart';
 
 
 
-import 'package:shutterbook/pages/quotes/create/overview/quote_overview_screen.dart';
+
 
 
 // Simple Package model
 
-class PackagePicker extends StatefulWidget {
+class PackagePickerEdit extends StatefulWidget {
   
+  final int quoteNum;
   final Client client;
   final Function(Map<Package, int>) onSelectionChanged;
 
-  const PackagePicker({super.key, required this.onSelectionChanged, required this.client});
+  const PackagePickerEdit({super.key, required this.onSelectionChanged, required this.client, required this.quoteNum});
 
   @override
-  PackagePickerState createState() => PackagePickerState();
+  PackagePickerEditState createState() => PackagePickerEditState();
 }
 
-class PackagePickerState extends State<PackagePicker> {
+class PackagePickerEditState extends State<PackagePickerEdit> {
     
   List<Package> allpackages =[];  
 
@@ -86,7 +88,7 @@ for(Package p in packages)
         Center(
           child: Text(
             '${widget.client.firstName} ${widget.client.lastName}',
-              style: TextStyle(fontSize: 20),
+              style: const TextStyle(fontSize: 20),
               ),
         ),
           
@@ -145,10 +147,12 @@ for(Package p in packages)
              widget.onSelectionChanged(_selectedPackages);
              Navigator.push(
                context,
-               MaterialPageRoute(builder: (context) =>  QuoteOverviewScreen(
+               MaterialPageRoute(builder: (context) =>  QuoteOverviewEditScreen(
                  client: widget.client,
                  total: totalPrice,
                  packages: _selectedPackages,
+                 quoteNum:widget.quoteNum,
+                 
                )),
              );
            },

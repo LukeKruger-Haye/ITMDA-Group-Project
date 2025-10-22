@@ -3,6 +3,8 @@ import 'package:shutterbook/data/models/client.dart';
 import 'package:shutterbook/data/models/quote.dart';
 import 'package:shutterbook/data/tables/client_table.dart';
 import 'package:shutterbook/data/tables/quote_table.dart';
+import 'package:shutterbook/pages/quotes/package_picker/package_edit/package_picker_edit_screen.dart';
+
 
 class ManageQuote extends StatefulWidget {
   const ManageQuote({super.key});
@@ -162,6 +164,35 @@ class ManageQuoteState extends State<ManageQuote> {
     });
   }
 
+  void _editQuote(Quote quote, Client client){
+    
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Edit Quote'),
+          content:Text('Are you sure you want to edit Quote #${quote.id}'),  
+          
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () =>
+             Navigator.push(context,
+             MaterialPageRoute(builder: (context)=> PackagePickerEditScreen(
+              
+              client: client,
+              quoteNum: quote.id!
+              )
+              ) ),
+             child: const Text('Confirm')),
+          ]
+        )
+      );
+
+      
+
+
+
+  }
   @override
   void dispose() {
     myEditor.dispose();
@@ -232,7 +263,7 @@ class ManageQuoteState extends State<ManageQuote> {
                         children: [
                           IconButton(
                             icon: const Icon(Icons.edit),
-                            onPressed: () {},
+                            onPressed: ()=> _editQuote(quote, client!),
                             tooltip: 'Edit',
                           ),
                           IconButton(

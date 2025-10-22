@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shutterbook/pages/quotes/quote_screen.dart';
 import 'pages/authentication/models/auth_model.dart';
 import 'pages/authentication/login.dart';
 import 'pages/authentication/auth_setup.dart';
@@ -33,7 +32,6 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(primarySwatch: Colors.amber),
       routes: {
         '/home': (context) => HomeScreen(authModel: authModel),
-        '/quotes/quote_screen.dart': (context) => const QuotePage(),
         '/clients': (context) => const ClientsPage(),
         '/bookings': (context) => const BookingsPage(),
         '/quotes/create/create_quote.dart': (context) => const CreateQuotePage(),
