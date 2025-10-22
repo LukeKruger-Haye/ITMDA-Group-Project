@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shutterbook/data/models/client.dart';
 import 'package:shutterbook/data/tables/client_table.dart';
@@ -126,7 +127,7 @@ class _CreateQuotePageState extends State<CreateQuotePage> {
                     subtitle: Text(client.email),
                     onTap: () {
                       // Handle client selection
-                      debugPrint('Selected: ${client.firstName} ${client.lastName}');
+                      if (kDebugMode) debugPrint('Selected: ${client.firstName} ${client.lastName}');
                       setState(() {
                         searchText = '${client.firstName} ${client.lastName}';
                         _onTapChange(searchText);
