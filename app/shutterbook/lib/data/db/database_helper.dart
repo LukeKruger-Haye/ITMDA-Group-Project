@@ -5,7 +5,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 class DatabaseHelper {
   static final _databaseName = 'shutterbook.db';
-  static final _databaseVersion = 1;
+  static final _databaseVersion = 2;
 
   DatabaseHelper._privateConstructor();
   static final DatabaseHelper instance = DatabaseHelper._privateConstructor();
@@ -76,7 +76,6 @@ class DatabaseHelper {
         item_id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         category TEXT NOT NULL,
-        quantity INTEGER NOT NULL,
         condition TEXT NOT NULL DEFAULT 'New'
       )
       '''
