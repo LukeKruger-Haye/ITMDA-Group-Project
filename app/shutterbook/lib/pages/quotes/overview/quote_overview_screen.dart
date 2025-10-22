@@ -8,34 +8,21 @@ import 'package:shutterbook/data/models/package.dart';
 
 
 class QuoteOverviewScreen extends StatelessWidget {
-final double total;
-final Client client;
-final Map<Package, int> packages;
+  final double total;
+  final Client client;
+  final Map<Package, int> packages;
 
   const QuoteOverviewScreen({super.key, required this.client, required this.total, required this.packages});
 
-
-  Future<void> _insertQuote() async
-  {
-    final String packageDescription = packages.entries
-        .map((entry) => '${entry.key.name} x${entry.value}')
-        .join(', ');
-
-    
-
-    final quote = Quote(
-      clientId: client.id!,
-      totalPrice: total,
-      description: packageDescription,
-    );
-
-    final table = QuoteTable(); 
+  Future<void> _insertQuote() async {
+    final String packageDescription=packages.entries.map((entry) => '${entry.key.name} x${entry.value}').join(', ');
+    final table = QuoteTable();
+    final quote = Quote(clientId: client.id!, totalPrice: total, description: packageDescription);
+   
     await table.insertQuote(quote);
 
     debugPrint('Inserted quote:${quote.toMap()}');
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -60,15 +47,7 @@ final Map<Package, int> packages;
              
              
                       
-           }, child: const Text("Save")),
-           const SizedBox(height: 10),
-           ElevatedButton(onPressed: (){
-
-             Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);     
-
-
-           }, child: const Text("Cancel"))
-
+           }, child: const Text("Save"))
           ],
         ),
       ),

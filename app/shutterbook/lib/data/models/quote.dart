@@ -14,13 +14,18 @@ class Quote {
   });
 
   Map<String, dynamic> toMap() {
-    return {
+    final map = {
       'quote_id': id,
       'client_id': clientId,
       'total_price': totalPrice,
       'description': description,
-      'created_at': createdAt
     };
+
+    if (createdAt != null) {
+      map['created_at'] = createdAt?.toString();
+    }
+
+    return map;
   }
 
   factory Quote.fromMap(Map<String, dynamic> map) {

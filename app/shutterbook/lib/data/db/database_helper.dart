@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
-import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 class DatabaseHelper {
@@ -52,7 +51,7 @@ class DatabaseHelper {
         client_id INTEGER NOT NULL, 
         total_price REAL NOT NULL,
         description TEXT NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        created_at DATETIME DEFAULT (strftime('YYYY-MM-DD HH:MM', 'now')),
         FOREIGN KEY (client_id) REFERENCES Clients(client_id) ON DELETE CASCADE
       )
       '''
