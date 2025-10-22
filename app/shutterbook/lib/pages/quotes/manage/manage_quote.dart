@@ -64,6 +64,36 @@ class ManageQuoteState extends State<ManageQuote> {
     }
   }
 
+  Future<bool> _showConfirmationDialog(String title, String content) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(content),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Confirm')),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
+
+    Future<void> _deleteQuote(Quote quote) async {
+      final client = (quote.id != null) ? _clientForQuote[quote.id!] : null;
+      final clientName = client != null
+                        ? '${client.firstName} ${client.lastName}'
+                        : 'Client #${quote.clientId} (not found)';
+    final confirmQuoteDelete=await _showConfirmationDialog(
+    'Delete Quote',
+    'Are you sure you want to delete quote #${quote.id} for $clientName',
+      );
+      if(confirmQuoteDelete && quote.id != null){
+        await QuoteTable().deleteQuotes(quote.id!);
+        _loadQuotes();
+      }
+  } 
   
   
     void _showInfo(Quote quote) {
@@ -206,7 +236,9 @@ class ManageQuoteState extends State<ManageQuote> {
                             tooltip: 'Edit',
                           ),
                           IconButton(
-                            onPressed: () {},
+                            onPressed: () =>
+                              _deleteQuote(quote),
+                            
                             icon: const Icon(Icons.delete),
                             tooltip: 'Delete',
                           )

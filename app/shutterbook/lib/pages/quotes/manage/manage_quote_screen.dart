@@ -11,8 +11,8 @@ class ManageQuotePage extends StatelessWidget {
         title: const Text('Manage Quotes')
         ,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      body: const Padding(
+        padding: EdgeInsets.all(16.0),
         child: Center(
           child: ManageQuote()
           ),

@@ -138,7 +138,7 @@ Future<void> _deletePackage(Package package) async{
 
 
  final confirmed = await _showConfirmationDialog(
-      'Delete Package',
+      'Delete Package', 
       'Are you sure you want to delete ${package.name}?',
     );
     if (confirmed && package.id != null) {
