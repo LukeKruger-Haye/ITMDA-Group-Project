@@ -3,7 +3,7 @@ class Quote {
   int clientId;
   double totalPrice;
   String description;
-  DateTime? createdAt;
+  String? createdAt;
 
   Quote({
     this.id,
@@ -19,13 +19,8 @@ class Quote {
       'client_id': clientId,
       'total_price': totalPrice,
       'description': description,
+      'created_at': createdAt?.toString()
     };
-
-    if (createdAt != null) {
-      map['created_at'] = createdAt?.toString();
-    }
-
-    return map;
   }
 
   factory Quote.fromMap(Map<String, dynamic> map) {
@@ -34,7 +29,7 @@ class Quote {
       clientId: map['client_id'],
       totalPrice: map['total_price'],
       description: map['description'],
-      createdAt: map['created_at'] != null ? DateTime.tryParse(map['created_at']) : null
+      createdAt: map['created_at'] 
     );
   }
 }

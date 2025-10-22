@@ -23,14 +23,30 @@ final Map<Package, int> packages;
         .join(', ');
 
     final table = QuoteTable();
- 
+
+    final currentDateTime= DateTime.now();
+
+    // ignore: prefer_typing_uninitialized_variables
+    final year,month,day,hour,minute,nowTime;
+    year=currentDateTime.year;
+    month=currentDateTime.month;
+    day=currentDateTime.day;
+    hour=currentDateTime.hour;
+    minute=currentDateTime.minute;
+    nowTime=minute< 10 && minute>=0? '$day/$month/$year - $hour:0$minute': '$day/$month/$year - $hour:$minute';
+    
+
+    
+    // trim milliseconds/microseconds by constructing a DateTime with seconds precision
+    
+    
 
     final quote = Quote(
       id: quoteNum,
       clientId: client.id!,
       totalPrice: total,
       description: packageDescription,
-      
+      createdAt: nowTime,
     );
 
     await table.updateQuote(quote);
