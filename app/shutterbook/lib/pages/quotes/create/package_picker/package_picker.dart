@@ -90,7 +90,7 @@ for(Package p in packages)
               ),
         ),
           
-        Text('Pick Packages'),
+        const Text('Pick Packages'),
          Expanded(
            child: ListView.builder(
              itemCount:allpackages.length,

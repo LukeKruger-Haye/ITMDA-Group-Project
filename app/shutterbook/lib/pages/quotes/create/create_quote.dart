@@ -114,7 +114,7 @@ class _CreateQuotePageState extends State<CreateQuotePage> {
                         setState(() {
                           showIcon=false;
                         });
-                  
+                        _loadClients();
                         
                       },
                       icon: const Icon(Icons.close),

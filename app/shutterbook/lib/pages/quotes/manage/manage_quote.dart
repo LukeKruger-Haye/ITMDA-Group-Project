@@ -37,8 +37,6 @@ class ManageQuoteState extends State<ManageQuote> {
     });
     final quoteData = await QuoteTable().getAllQuotes();
 
-    
-
     // set initial lists
     setState(() {
       allQuotes = quoteData;
@@ -65,6 +63,44 @@ class ManageQuoteState extends State<ManageQuote> {
       _filterQuotes(myEditor.text);
     }
   }
+
+  
+  
+    void _showInfo(Quote quote) {
+      final client = (quote.id != null) ? _clientForQuote[quote.id!] : null;
+      final clientName = client != null
+          ? '${client.firstName} ${client.lastName}'
+          : 'Client #${quote.clientId} (not found)';
+      final description =  '${quote.createdAt} \n\n${quote.description}\n R${quote.totalPrice}';
+       
+
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Quote #${quote.id ?? ''}'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Client: $clientName'),
+              const SizedBox(height: 12),
+              Text(description),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      );
+    }
+
+
+
+  
+
 
   void _filterQuotes(String value) {
     final q = value.trim().toLowerCase();
@@ -128,6 +164,7 @@ class ManageQuoteState extends State<ManageQuote> {
                     onPressed: () {
                       myEditor.clear();
                       _filterQuotes('');
+                      _loadQuotes();
                     },
                     icon: const Icon(Icons.close),
                     tooltip: 'Clear',
@@ -175,7 +212,9 @@ class ManageQuoteState extends State<ManageQuote> {
                           )
                         ],
                       ),
-                      onTap: () {},
+                      onTap: () {
+                        _showInfo(quote);
+                      },
                     );
                   },
                 ),

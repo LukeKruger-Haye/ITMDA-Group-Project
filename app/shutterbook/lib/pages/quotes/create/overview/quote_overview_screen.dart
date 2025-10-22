@@ -25,13 +25,14 @@ final Map<Package, int> packages;
 
     final currentDateTime= DateTime.now();
 
+    // ignore: prefer_typing_uninitialized_variables
     final year,month,day,hour,minute,nowTime;
     year=currentDateTime.year;
     month=currentDateTime.month;
     day=currentDateTime.day;
     hour=currentDateTime.hour;
     minute=currentDateTime.minute;
-    nowTime='${day}/${month}/${year} - ${hour}:${minute}';
+    nowTime=minute< 10 && minute>=0? '$day/$month/$year - $hour:0$minute': '$day/$month/$year - $hour:$minute';
     
 
     
@@ -64,7 +65,7 @@ final Map<Package, int> packages;
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text('Client: ${client.id} ${client.firstName} ${client.lastName}'),
-            Text('Total: R$total'),
+            Text('Total: R${total.toStringAsFixed(2)}'),
             const SizedBox(height: 20),
             const Text('Selected Packages:'),
             ...packages.entries.map((entry) => Text('${entry.key.name} x${entry.value} - R${(entry.key.price * entry.value).toStringAsFixed(2)}')),
@@ -72,7 +73,9 @@ final Map<Package, int> packages;
            ElevatedButton(onPressed: (){
              
              _insertQuote();
-             Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);   
+             Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);     
+             
+             
                       
            }, child: const Text("Save")),
            const SizedBox(height: 10),
