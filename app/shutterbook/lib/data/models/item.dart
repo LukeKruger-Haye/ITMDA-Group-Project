@@ -2,14 +2,12 @@ class Item {
   int? id;
   String name;
   String category;
-  int quantity;
   String condition;
 
   Item({
     this.id,
     required this.name,
     required this.category,
-    required this.quantity,
     required this.condition,
   });
 
@@ -18,7 +16,6 @@ class Item {
       'item_id': id,
       'name': name,
       'category': category,
-      'quantity': quantity,
       'condition': condition,
     };
   }
@@ -28,7 +25,6 @@ class Item {
       id: map['item_id'],
       name: map['name'],
       category: map['category'],
-      quantity: map['quantity'],
       condition: map['condition'],
     );
   }
