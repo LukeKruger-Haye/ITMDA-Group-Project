@@ -5,33 +5,21 @@ import 'package:shutterbook/data/tables/quote_table.dart';
 import 'package:shutterbook/pages/quotes/create/package_picker/package_picker.dart';
 
 class QuoteOverviewScreen extends StatelessWidget {
-final double total;
-final Client client;
-final Map<Package, int> packages;
+  final double total;
+  final Client client;
+  final Map<Package, int> packages;
 
   const QuoteOverviewScreen({super.key, required this.client, required this.total, required this.packages});
 
-
-  Future<void> _insertQuote() async
-  {
-   final String packageDescription=packages.entries
-                    .map((entry) => '${entry.key.name} x${entry.value}').join(', ');
-
-    final table= QuoteTable();
-    final quote=Quote(clientId: client.id!, totalPrice: total, description: packageDescription, createdAt: DateTime.now() );
+  Future<void> _insertQuote() async {
+    final String packageDescription=packages.entries.map((entry) => '${entry.key.name} x${entry.value}').join(', ');
+    final table = QuoteTable();
+    final quote = Quote(clientId: client.id!, totalPrice: total, description: packageDescription);
    
-    await table.insertQuote(
-      quote
-      );
+    await table.insertQuote(quote);
 
     debugPrint('Inserted quote:${quote.toMap()}');
-
-
-
-
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -52,8 +40,6 @@ final Map<Package, int> packages;
              _insertQuote();
                       
            }, child: const Text("Save"))
-
-
           ],
         ),
       ),
