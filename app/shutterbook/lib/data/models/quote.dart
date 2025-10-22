@@ -14,7 +14,7 @@ class Quote {
   });
 
   Map<String, dynamic> toMap() {
-    final map = {
+    return {
       'quote_id': id,
       'client_id': clientId,
       'total_price': totalPrice,
