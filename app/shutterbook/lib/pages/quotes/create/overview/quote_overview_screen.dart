@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shutterbook/data/models/client.dart';
 import 'package:shutterbook/data/models/quote.dart';
@@ -18,7 +19,7 @@ class QuoteOverviewScreen extends StatelessWidget {
    
     await table.insertQuote(quote);
 
-    debugPrint('Inserted quote:${quote.toMap()}');
+    if (kDebugMode) debugPrint('Inserted quote:${quote.toMap()}');
   }
 
   @override

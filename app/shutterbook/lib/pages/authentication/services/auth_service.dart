@@ -62,10 +62,7 @@ class AuthService {
   try {
     final isSupported = await _localAuth.isDeviceSupported();
     final canCheck = await _localAuth.canCheckBiometrics;
-    // print('Supported: $isSupported, Can check: $canCheck');
-
     if (!isSupported || !canCheck) {
-      // print('Biometric not supported or not enrolled');
       return false;
     }
 
@@ -76,10 +73,11 @@ class AuthService {
         stickyAuth: true,
       ),
     );
-    // print('Authentication result: $result');
-    return result;
+    if (result) {
+      return true;
+    }
+    return false;
   } catch (e) {
-    // print('Authentication exception: $e');
     return false;
   }
 }

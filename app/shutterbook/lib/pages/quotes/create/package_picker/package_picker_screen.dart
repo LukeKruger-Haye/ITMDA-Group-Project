@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shutterbook/data/models/client.dart';
 import 'package:shutterbook/pages/quotes/create/package_picker/package_picker.dart';
@@ -9,7 +10,7 @@ class PackagePickerScreen extends StatelessWidget {
 
   void _onSelectionChanged(Map<Package, int> selectedPackages) {
     // You can handle the selected packages here (e.g., save, show dialog, etc.)
-    debugPrint('Selected packages: ${selectedPackages.keys.map((p) => p.name).join(', ')}');
+    if (kDebugMode) debugPrint('Selected packages: ${selectedPackages.keys.map((p) => p.name).join(', ')}');
   }
 
 

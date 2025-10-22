@@ -1,9 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../data/models/client.dart';
 import '../../data/tables/client_table.dart';
 import '../../data/tables/quote_table.dart';
 import '../../data/tables/booking_table.dart';
-import '../bookings/client_bookings.dart'; // <-- new import
+import '../theme_controller.dart'; // added to react to global theme
 
 class ClientsPage extends StatefulWidget {
   const ClientsPage({super.key});
@@ -172,7 +173,7 @@ class _ClientsPageState extends State<ClientsPage> {
         quotesCount = quotes.length;
         bookingsCount = bookings.length;
       } catch (e) {
-        debugPrint('Error fetching client counts: $e');
+        if (kDebugMode) debugPrint('Error fetching client counts: $e');
       }
     }
 
@@ -201,20 +202,22 @@ class _ClientsPageState extends State<ClientsPage> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              Navigator.pushNamed(context, '/quotes', arguments: client);
+              // Open the Dashboard and ask it to show this client's quotes
+              Navigator.pushNamed(context, '/dashboard', arguments: {
+                'client': client,
+                'view': 'quotes',
+              });
             },
             child: const Text('View Quotes'),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              // open the client bookings list page
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ClientBookingsPage(client: client),
-                ),
-              );
+              // Open the Dashboard and ask it to show this client's bookings
+              Navigator.pushNamed(context, '/dashboard', arguments: {
+                'client': client,
+                'view': 'bookings',
+              });
             },
             child: const Text('View Bookings'),
           ),
@@ -225,39 +228,49 @@ class _ClientsPageState extends State<ClientsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Clients')),
-      body: ListView.builder(
-        itemCount: _clients.length,
-        itemBuilder: (context, index) {
-          final client = _clients[index];
-          return ListTile(
-            onTap: () => _showClientDetails(client),
-            title: Text('${client.firstName} ${client.lastName}'),
-            subtitle: Text('${client.email} | ${client.phone}'),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.edit),
-                  onPressed: () => _addOrEditClient(client: client),
-                  tooltip: 'Edit',
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete),
-                  onPressed: () => _deleteClient(client),
-                  tooltip: 'Delete',
-                ),
-              ],
+    // Wrap the page's Scaffold with a Theme that follows ThemeController so this page shows dark/light
+    return ValueListenableBuilder<bool>(
+      valueListenable: ThemeController.instance.isDark,
+      builder: (context, isDark, _) {
+        final pageTheme = isDark ? ThemeData.dark() : ThemeData.light();
+        return Theme(
+          data: pageTheme,
+          child: Scaffold(
+            appBar: AppBar(title: const Text('Clients')),
+            body: ListView.builder(
+              itemCount: _clients.length,
+              itemBuilder: (context, index) {
+                final client = _clients[index];
+                return ListTile(
+                  onTap: () => _showClientDetails(client),
+                  title: Text('${client.firstName} ${client.lastName}'),
+                  subtitle: Text('${client.email} | ${client.phone}'),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit),
+                        onPressed: () => _addOrEditClient(client: client),
+                        tooltip: 'Edit',
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete),
+                        onPressed: () => _deleteClient(client),
+                        tooltip: 'Delete',
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _addOrEditClient(),
-        child: const Icon(Icons.add),
-        tooltip: 'Add Client',
-      ),
+            floatingActionButton: FloatingActionButton(
+              onPressed: () => _addOrEditClient(),
+              child: const Icon(Icons.add),
+              tooltip: 'Add Client',
+            ),
+          ),
+        );
+      },
     );
   }
 }

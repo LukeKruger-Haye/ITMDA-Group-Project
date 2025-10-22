@@ -4,6 +4,8 @@ import 'package:shutterbook/data/tables/booking_table.dart';
 import 'package:shutterbook/pages/bookings/create_booking.dart';
 import 'package:shutterbook/pages/bookings/quotes_dialog.dart';
 import 'package:shutterbook/data/models/quote.dart';
+import 'package:shutterbook/data/models/client.dart';
+import 'package:shutterbook/data/tables/quote_table.dart';
 import 'package:shutterbook/pages/bookings/booking_calendar_view.dart';
 
 enum BookingFilter { all, upcoming }
@@ -18,6 +20,13 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage> {
   BookingFilter _filter = BookingFilter.upcoming;
   bool _showCalendar = false;
+  // If a client was passed via route arguments, this will be set and the
+  // dashboard will show client-scoped lists when requested.
+  Client? _clientFromArgs;
+  bool _showQuotesInMain = false;
+  bool _quotesLoading = false;
+  List<Quote> _clientQuotes = [];
+  bool _argsProcessed = false;
 
   Future<void> _openCreateBooking(BuildContext context, Quote quote) async {
     Navigator.of(context).pop();
@@ -33,12 +42,98 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_argsProcessed) return;
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is Map) {
+      final maybeClient = args['client'];
+      final view = args['view'];
+      if (maybeClient is Client) {
+        _clientFromArgs = maybeClient;
+        // If the client asked to view quotes/bookings, force list mode and
+        // show the appropriate view.
+        if (view == 'quotes') {
+          _showQuotesInMain = true;
+          _loadClientQuotes();
+        } else if (view == 'bookings') {
+          _showCalendar = false;
+        }
+      }
+    }
+    _argsProcessed = true;
+  }
+
+  Future<void> _loadClientQuotes() async {
+    if (_clientFromArgs == null || _clientFromArgs!.id == null) return;
+    setState(() {
+      _quotesLoading = true;
+    });
+    final quotes = await QuoteTable().getQuotesByClient(_clientFromArgs!.id!);
+    if (!mounted) return;
+    setState(() {
+      _clientQuotes = quotes;
+      _quotesLoading = false;
+    });
+  }
+
+  Widget _buildQuotesList() {
+    if (_quotesLoading) return const Center(child: CircularProgressIndicator());
+    if (_clientQuotes.isEmpty) return const Center(child: Text('No quotes for this client'));
+    return ListView.separated(
+      itemCount: _clientQuotes.length,
+      separatorBuilder: (_, __) => const Divider(height: 1),
+      itemBuilder: (context, index) {
+        final q = _clientQuotes[index];
+        final title = 'Quote #${q.id}';
+        final subtitle = 'Total: ${q.totalPrice} • ${q.createdAt ?? ''}';
+        return ListTile(
+          leading: const Icon(Icons.description_outlined),
+          title: Text(title),
+          subtitle: Text(
+            '${q.description}\n$subtitle',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          trailing: ElevatedButton.icon(
+            onPressed: () async {
+              await _openCreateBooking(context, q);
+            },
+            icon: const Icon(Icons.add_circle_outline),
+            label: const Text('Book'),
+          ),
+          onTap: () async {
+            await _openCreateBooking(context, q);
+          },
+        );
+      },
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Photography Bookings Dashboard'),
+        title: _clientFromArgs != null
+            ? Text(
+                '${_showQuotesInMain ? 'Quotes' : 'Bookings'} — ${_clientFromArgs!.firstName} ${_clientFromArgs!.lastName}',
+              )
+            : const Text('Photography Bookings Dashboard'),
         backgroundColor: Colors.deepPurple,
-        actions: const [],
+        actions: [
+          if (_clientFromArgs != null)
+            IconButton(
+              tooltip: 'Clear client filter',
+              onPressed: () {
+                setState(() {
+                  _clientFromArgs = null;
+                  _showQuotesInMain = false;
+                  _argsProcessed = false;
+                });
+              },
+              icon: const Icon(Icons.clear),
+            ),
+        ],
       ),
       body: SafeArea(
         child: Column(
@@ -59,7 +154,19 @@ class _DashboardPageState extends State<DashboardPage> {
                     children: [
                       ElevatedButton(
                         style: style,
-                        onPressed: () => _showQuotesDialog(context),
+                        onPressed: () {
+                          // If a client is selected (route arg), show the client's
+                          // quotes in the dashboard main area. Otherwise fall back
+                          // to the global quotes dialog.
+                          if (_clientFromArgs != null) {
+                            setState(() {
+                              _showQuotesInMain = true;
+                            });
+                            _loadClientQuotes();
+                          } else {
+                            _showQuotesDialog(context);
+                          }
+                        },
                         child: const Text('Quotes'),
                       ),
                       // Toggle buttons for List vs Calendar
@@ -125,8 +232,12 @@ class _DashboardPageState extends State<DashboardPage> {
                 padding: const EdgeInsets.all(16.0),
                 child: _showCalendar
                     ? const BookingCalendarView()
-                    : FutureBuilder<List<Booking>>(
-                  future: BookingTable().getAllBookings(),
+                    : _showQuotesInMain
+                        ? _buildQuotesList()
+                        : FutureBuilder<List<Booking>>(
+                      future: _clientFromArgs != null && _clientFromArgs!.id != null
+                          ? BookingTable().getBookingsByClient(_clientFromArgs!.id!)
+                          : BookingTable().getAllBookings(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());

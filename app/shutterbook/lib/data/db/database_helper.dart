@@ -28,7 +28,7 @@ class DatabaseHelper {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, _databaseName);
 
-    debugPrint('Opening database at: $path');
+  if (kDebugMode) debugPrint('Opening database at: $path');
     
     return await openDatabase(path, version: _databaseVersion, onCreate: _onCreate);
   }

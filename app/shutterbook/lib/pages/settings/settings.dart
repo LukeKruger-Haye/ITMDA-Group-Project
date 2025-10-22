@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../authentication/models/auth_model.dart';
-
 import '../authentication/auth_setup.dart';
+import '../theme_controller.dart';
 
 class SettingsScreen extends StatefulWidget {
   final AuthModel authModel;
@@ -16,25 +16,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _newPasswordController = TextEditingController();
   bool _usePassword = false;
   bool _useBiometric = false;
+  bool _useDark = false;
 
   @override
   void initState() {
     super.initState();
     _load();
+    ThemeController.instance.isDark.addListener(_themeListener);
+  }
+
+  void _themeListener() {
+    if (!mounted) return;
+    setState(() => _useDark = ThemeController.instance.isDark.value);
   }
 
   @override
   void dispose() {
+    ThemeController.instance.isDark.removeListener(_themeListener);
     _newPasswordController.dispose();
     super.dispose();
   }
 
   Future<void> _load() async {
     await widget.authModel.loadSettings();
-    if (!mounted) return;
+    // ThemeController should be initialized in main(), but read current value here:
     setState(() {
       _usePassword = widget.authModel.hasPassword;
       _useBiometric = widget.authModel.biometricEnabled;
+      _useDark = ThemeController.instance.isDark.value;
     });
   }
 
@@ -101,6 +110,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _useBiometric = value);
   }
 
+  Future<void> _toggleDark(bool value) async {
+    await ThemeController.instance.setDark(value);
+    if (!mounted) return;
+    setState(() => _useDark = value);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -112,7 +127,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             SwitchListTile(
               title: const Text('Enable Password Lock'),
               value: _usePassword,
-              onChanged: _togglePassword, 
+              onChanged: _togglePassword,
             ),
             if (_usePassword) ...[
               TextField(
@@ -129,6 +144,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onChanged: _toggleBiometric,
               ),
             ],
+            const SizedBox(height: 24),
+            SwitchListTile(
+              title: const Text('Dark Mode'),
+              value: _useDark,
+              onChanged: _toggleDark,
+            ),
           ],
         ),
       ),
