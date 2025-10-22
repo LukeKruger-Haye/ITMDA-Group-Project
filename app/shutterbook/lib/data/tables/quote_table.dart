@@ -33,7 +33,7 @@ class QuoteTable {
     final db = await dbHelper.database;
     final maps = await db.query(
       'Quotes',
-      orderBy: 'quote_id DESC', // use DESC for newest-first
+      orderBy: 'created_at DESC'
     );
     return maps.map((m) => Quote.fromMap(m)).toList();
   }

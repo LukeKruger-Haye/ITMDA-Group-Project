@@ -3,7 +3,7 @@ class Quote {
   int clientId;
   double totalPrice;
   String description;
-  String? createdAt;
+  DateTime? createdAt;
 
   Quote({
     this.id,
@@ -19,7 +19,7 @@ class Quote {
       'client_id': clientId,
       'total_price': totalPrice,
       'description': description,
-      'created_at': createdAt?.toString()
+      'created_at': createdAt
     };
   }
 
@@ -29,7 +29,7 @@ class Quote {
       clientId: map['client_id'],
       totalPrice: map['total_price'],
       description: map['description'],
-      createdAt: map['created_at'] 
+      createdAt: map['created_at'] != null ? DateTime.tryParse(map['created_at']) : null
     );
   }
 }
