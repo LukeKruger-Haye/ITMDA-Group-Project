@@ -4,6 +4,7 @@ import 'package:shutterbook/data/tables/booking_table.dart';
 import 'package:shutterbook/pages/bookings/create_booking.dart';
 import 'package:shutterbook/pages/bookings/quotes_dialog.dart';
 import 'package:shutterbook/data/models/quote.dart';
+import 'package:shutterbook/pages/bookings/booking_calendar_view.dart';
 
 enum BookingFilter { all, upcoming }
 
@@ -16,6 +17,7 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   BookingFilter _filter = BookingFilter.upcoming;
+  bool _showCalendar = false;
 
   Future<void> _openCreateBooking(BuildContext context, Quote quote) async {
     Navigator.of(context).pop();
@@ -60,38 +62,58 @@ class _DashboardPageState extends State<DashboardPage> {
                         onPressed: () => _showQuotesDialog(context),
                         child: const Text('Quotes'),
                       ),
-                      DropdownButtonHideUnderline(
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(6),
+                      // Toggle buttons for List vs Calendar
+                      SegmentedButton<bool>(
+                        segments: const [
+                          ButtonSegment<bool>(
+                            value: false,
+                            label: Text('List'),
+                            icon: Icon(Icons.view_list),
                           ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            child: DropdownButton<BookingFilter>(
-                              isDense: true,
-                              value: _filter,
-                              dropdownColor: Colors.white,
-                              style: const TextStyle(color: Colors.black87),
-                              iconEnabledColor: Colors.black54,
-                              onChanged: (value) {
-                                if (value == null) return;
-                                setState(() => _filter = value);
-                              },
-                              items: const [
-                                DropdownMenuItem(
-                                  value: BookingFilter.upcoming,
-                                  child: Text('Upcoming only'),
-                                ),
-                                DropdownMenuItem(
-                                  value: BookingFilter.all,
-                                  child: Text('All bookings'),
-                                ),
-                              ],
+                          ButtonSegment<bool>(
+                            value: true,
+                            label: Text('Calendar'),
+                            icon: Icon(Icons.calendar_month),
+                          ),
+                        ],
+                        selected: <bool>{_showCalendar},
+                        onSelectionChanged: (s) {
+                          setState(() => _showCalendar = s.first);
+                        },
+                      ),
+                      if (!_showCalendar)
+                        DropdownButtonHideUnderline(
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              child: DropdownButton<BookingFilter>(
+                                isDense: true,
+                                value: _filter,
+                                dropdownColor: Colors.white,
+                                style: const TextStyle(color: Colors.black87),
+                                iconEnabledColor: Colors.black54,
+                                onChanged: (value) {
+                                  if (value == null) return;
+                                  setState(() => _filter = value);
+                                },
+                                items: const [
+                                  DropdownMenuItem(
+                                    value: BookingFilter.upcoming,
+                                    child: Text('Upcoming only'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: BookingFilter.all,
+                                    child: Text('All bookings'),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
-                      ),
                     ],
                   );
                 }),
@@ -101,7 +123,9 @@ class _DashboardPageState extends State<DashboardPage> {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: FutureBuilder<List<Booking>>(
+                child: _showCalendar
+                    ? const BookingCalendarView()
+                    : FutureBuilder<List<Booking>>(
                   future: BookingTable().getAllBookings(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
