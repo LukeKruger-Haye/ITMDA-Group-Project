@@ -45,7 +45,7 @@ class HomeScreen extends StatelessWidget {
             title: const Text('Quotes'),
             subtitle: const Text('Create and view quotes'),
             trailing: const Icon(Icons.request_quote),
-            onTap: () => Navigator.pushNamed(context, '/quotes/quote_screen.dart'),
+            onTap: () => Navigator.pushNamed(context, '/quotes'),
           ),
           ListTile(
             title: const Text('Bookings'),

@@ -67,7 +67,7 @@ class _QuotePageState extends State<QuotePage> {
                         ),
                         onTap: () {
                           // Open manage quote screen for that quote
-                          Navigator.pushNamed(context, '/quotes/manage/manage_quote_screen.dart', arguments: q);
+                          Navigator.pushNamed(context, '/quotes/manage', arguments: q);
                         },
                       );
                     },
@@ -95,11 +95,11 @@ class Buttons extends StatefulWidget {
 
 class ButtonsState extends State<Buttons> {
   void onPressedCreate() {
-    Navigator.pushNamed(context, '/quotes/create/create_quote.dart');
+    Navigator.pushNamed(context, '/quotes/create');
   }
 
   void onPressedManage() {
-    Navigator.pushNamed(context, '/quotes/manage/manage_quote_screen.dart');
+    Navigator.pushNamed(context, '/quotes/manage');
   }
 
   @override
