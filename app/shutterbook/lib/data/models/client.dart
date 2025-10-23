@@ -10,7 +10,7 @@ class Client {
     required this.firstName,
     required this.lastName,
     required this.email,
-    required this.phone
+    required this.phone,
   });
 
   Map<String, dynamic> toMap() {

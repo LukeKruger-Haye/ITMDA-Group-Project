@@ -1,279 +1,359 @@
 import 'package:flutter/material.dart';
 import 'package:shutterbook/data/models/booking.dart';
 import 'package:shutterbook/data/tables/booking_table.dart';
+import 'package:shutterbook/data/tables/client_table.dart';
+import 'package:shutterbook/data/tables/quote_table.dart';
+import 'package:shutterbook/data/tables/inventory_table.dart';
 import 'package:shutterbook/pages/bookings/create_booking.dart';
-import 'package:shutterbook/pages/bookings/quotes_dialog.dart';
 import 'package:shutterbook/data/models/quote.dart';
-import 'package:shutterbook/pages/bookings/booking_calendar_view.dart';
-
-enum BookingFilter { all, upcoming }
+import 'package:shutterbook/data/models/client.dart';
+import 'package:shutterbook/widgets/stat_grid.dart';
+import 'package:shutterbook/utils/formatters.dart';
 
 class DashboardPage extends StatefulWidget {
-  const DashboardPage({super.key});
+  final void Function(int index)? onNavigateToTab;
+  final bool embedded; // when true, return content only (no Scaffold)
+
+  const DashboardPage({super.key, this.onNavigateToTab, this.embedded = false});
 
   @override
   State<DashboardPage> createState() => _DashboardPageState();
 }
 
-class _DashboardPageState extends State<DashboardPage> {
-  BookingFilter _filter = BookingFilter.upcoming;
-  bool _showCalendar = false;
+// header delegate removed — use a single scrollable Column for simplicity
 
-  Future<void> _openCreateBooking(BuildContext context, Quote quote) async {
-    Navigator.of(context).pop();
-    final created = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => CreateBookingPage(quote: quote),
-      ),
-    );
-    if (created == true && mounted) {
-      setState(() {});
+class _DashboardPageState extends State<DashboardPage> {
+  // Dashboard no longer supports in-place calendar/list toggle; show concise overview only
+  Client? _clientFromArgs;
+  bool _showQuotesInMain = false;
+  // quote-specific fields removed - Dashboard shows recent quotes via QuoteTable directly
+  bool _argsProcessed = false;
+
+  int _upcomingCount = 0;
+  int _clientsCount = 0;
+  int _quotesCount = 0;
+  int _inventoryCount = 0;
+  bool _statsLoading = true;
+
+  // navigation to create booking performed inline where needed
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_argsProcessed) return;
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is Map) {
+      final maybeClient = args['client'];
+      final view = args['view'];
+      if (maybeClient is Client) {
+        _clientFromArgs = maybeClient;
+        if (view == 'quotes') {
+          _showQuotesInMain = true;
+        }
+      }
+    }
+    _argsProcessed = true;
+    _loadStats();
+  }
+
+  Future<void> _loadStats() async {
+    setState(() => _statsLoading = true);
+    try {
+      final all = await BookingTable().getAllBookings();
+      final now = DateTime.now();
+      _upcomingCount = all.where((b) => b.bookingDate.isAfter(now)).length;
+      _clientsCount = (await ClientTable().getAllClients()).length;
+      _quotesCount = (await QuoteTable().getAllQuotes()).length;
+      _inventoryCount = (await InventoryTable().getItemCount());
+    } catch (_) {}
+    if (!mounted) return;
+    setState(() => _statsLoading = false);
+  }
+
+  Color _statusColor(String status, ThemeData theme) {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return Colors.green.shade600;
+      case 'cancelled':
+        return Colors.red.shade600;
+      case 'confirmed':
+        return Colors.blue.shade600;
+      default:
+        return theme.colorScheme.primaryContainer;
     }
   }
 
+  // client-scoped quote loading removed; dashboard shows recent quotes globally
+
+
+
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Photography Bookings Dashboard'),
-        backgroundColor: Colors.deepPurple,
-        actions: const [],
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Builder(builder: (context) {
-                  final ButtonStyle style = ElevatedButton.styleFrom(
-                    minimumSize: const Size(100, 36),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    textStyle: const TextStyle(fontSize: 14),
-                  );
-                  return Wrap(
-                    spacing: 12,
-                    runSpacing: 8,
-                    children: [
-                      ElevatedButton(
-                        style: style,
-                        onPressed: () => _showQuotesDialog(context),
-                        child: const Text('Quotes'),
-                      ),
-                      // Toggle buttons for List vs Calendar
-                      SegmentedButton<bool>(
-                        segments: const [
-                          ButtonSegment<bool>(
-                            value: false,
-                            label: Text('List'),
-                            icon: Icon(Icons.view_list),
-                          ),
-                          ButtonSegment<bool>(
-                            value: true,
-                            label: Text('Calendar'),
-                            icon: Icon(Icons.calendar_month),
-                          ),
-                        ],
-                        selected: <bool>{_showCalendar},
-                        onSelectionChanged: (s) {
-                          setState(() => _showCalendar = s.first);
-                        },
-                      ),
-                      if (!_showCalendar)
-                        DropdownButtonHideUnderline(
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              child: DropdownButton<BookingFilter>(
-                                isDense: true,
-                                value: _filter,
-                                dropdownColor: Colors.white,
-                                style: const TextStyle(color: Colors.black87),
-                                iconEnabledColor: Colors.black54,
-                                onChanged: (value) {
-                                  if (value == null) return;
-                                  setState(() => _filter = value);
-                                },
-                                items: const [
-                                  DropdownMenuItem(
-                                    value: BookingFilter.upcoming,
-                                    child: Text('Upcoming only'),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: BookingFilter.all,
-                                    child: Text('All bookings'),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
+    final theme = Theme.of(context);
+
+    Widget headerSection = Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: Card(
+        elevation: 1,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Builder(
+              builder: (context) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text('Welcome back', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 6),
+                            Text('Your studio overview', style: theme.textTheme.bodyMedium),
+                          ]),
                         ),
-                    ],
+                        // use a neutral stats icon instead of camera
+                        Container(
+                          decoration: BoxDecoration(color: theme.colorScheme.primaryContainer, shape: BoxShape.circle),
+                          padding: const EdgeInsets.all(8),
+                          child: Icon(Icons.bar_chart, size: 28, color: theme.colorScheme.onPrimaryContainer),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    _statsLoading
+                        ? const SizedBox(height: 48, child: Center(child: CircularProgressIndicator()))
+                        : StatGrid(items: [
+                            StatItem(label: 'Upcoming', value: _upcomingCount.toString(), icon: Icons.calendar_today),
+                            StatItem(label: 'Clients', value: _clientsCount.toString(), icon: Icons.people),
+                            StatItem(label: 'Quotes', value: _quotesCount.toString(), icon: Icons.request_quote),
+                            StatItem(label: 'Items', value: _inventoryCount.toString(), icon: Icons.inventory),
+                          ]),
+                    const SizedBox(height: 8),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+
+    // main body content
+    // Simplified dashboard: show stats + next 3 upcoming bookings + recent 3 quotes
+    Widget bodyContent = FutureBuilder<List<dynamic>>(
+      future: Future.wait([BookingTable().getAllBookings(), QuoteTable().getAllQuotes(), ClientTable().getAllClients()]),
+      builder: (context, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return const SizedBox(height: 200, child: Center(child: CircularProgressIndicator()));
+        }
+
+        final data = snap.data ?? <dynamic>[];
+        final bookings = (data.isNotEmpty ? (data[0] as List<Booking>) : <Booking>[])
+            .where((b) => b.bookingDate.isAfter(DateTime.now()))
+            .toList()
+          ..sort((a, b) => a.bookingDate.compareTo(b.bookingDate));
+        final quotes = data.length > 1 ? (data[1] as List<Quote>) : <Quote>[];
+        final clients = data.length > 2 ? (data[2] as List<Client>) : <Client>[];
+
+        final clientById = {for (var c in clients) (c.id ?? -1): c};
+
+        String fmtDate(DateTime dt) {
+          final d = dt.toLocal();
+          final day = d.day.toString().padLeft(2, '0');
+          final month = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.month-1];
+          final year = d.year;
+          final hour = d.hour.toString().padLeft(2, '0');
+          final minute = d.minute.toString().padLeft(2, '0');
+          return '$day $month $year • $hour:$minute';
+        }
+
+        return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          const SizedBox(height: 8),
+          // Next bookings - show as responsive grid
+          Text('Next bookings', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          if (bookings.isEmpty)
+            const Text('No upcoming bookings')
+          else
+            LayoutBuilder(builder: (context, constraints) {
+              final cols = constraints.maxWidth >= 620 ? 2 : 1;
+              final items = bookings.take(6).toList();
+              // compute childAspectRatio based on available width and desired tile height
+              final tileHeight = cols == 2 ? 84.0 : 76.0; // slightly taller for two columns
+              final childAspectRatio = (constraints.maxWidth / cols) / tileHeight;
+              return GridView.count(
+                crossAxisCount: cols,
+                crossAxisSpacing: 8,
+                mainAxisSpacing: 8,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                childAspectRatio: childAspectRatio.clamp(1.6, 4.0),
+                children: items.map((b) {
+                  final when = b.bookingDate;
+                  final client = clientById[b.clientId];
+                  final clientLabel = client != null ? '${client.firstName} ${client.lastName}' : 'Client #${b.clientId}';
+                  final initials = client != null && (client.firstName.isNotEmpty || client.lastName.isNotEmpty)
+                      ? '${client.firstName.isNotEmpty ? client.firstName[0] : ''}${client.lastName.isNotEmpty ? client.lastName[0] : ''}'.toUpperCase()
+                      : '#';
+                  return Card(
+                    margin: EdgeInsets.zero,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    child: InkWell(
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CreateBookingPage(existing: b))).then((_) { if (mounted) setState(() {}); }),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        child: Row(children: [
+                          CircleAvatar(radius: 18, child: Text(initials, style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold))),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                              Text(clientLabel, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
+                              const SizedBox(height: 4),
+                              Text(fmtDate(when), style: theme.textTheme.bodySmall, maxLines: 1, overflow: TextOverflow.ellipsis),
+                            ]),
+                          ),
+                          const SizedBox(width: 8),
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 120),
+                            child: Chip(
+                              label: Text(b.status, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onPrimary)),
+                              backgroundColor: _statusColor(b.status, theme),
+                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                            ),
+                          ),
+                        ]),
+                      ),
+                    ),
                   );
-                }),
+                }).toList(),
+              );
+            }),
+
+          const SizedBox(height: 12),
+          // Recent quotes - two-column grid
+          Text('Recent quotes', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          if (quotes.isEmpty)
+            const Text('No quotes yet')
+          else
+            LayoutBuilder(builder: (context, constraints) {
+              final cols = constraints.maxWidth >= 620 ? 2 : 1;
+              final items = quotes.take(6).toList();
+              final tileHeight = cols == 2 ? 84.0 : 76.0;
+              final childAspectRatio = (constraints.maxWidth / cols) / tileHeight;
+              return GridView.count(
+                crossAxisCount: cols,
+                crossAxisSpacing: 8,
+                mainAxisSpacing: 8,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                childAspectRatio: childAspectRatio.clamp(1.6, 4.0),
+                children: items.map((q) {
+                  final client = clientById[q.clientId];
+                  final clientLabel = client != null ? '${client.firstName} ${client.lastName}' : 'Client #${q.clientId}';
+                  final initials = client != null && (client.firstName.isNotEmpty || client.lastName.isNotEmpty)
+                      ? '${client.firstName.isNotEmpty ? client.firstName[0] : ''}${client.lastName.isNotEmpty ? client.lastName[0] : ''}'.toUpperCase()
+                      : '#';
+                              return Card(
+                    margin: EdgeInsets.zero,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    child: InkWell(
+                      onTap: () => widget.onNavigateToTab?.call(3),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        child: Row(children: [
+                          CircleAvatar(radius: 18, child: Text(initials, style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold))),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                              Text(clientLabel, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
+                              const SizedBox(height: 4),
+                              Row(children: [
+                                Expanded(child: Text(q.description, style: theme.textTheme.bodySmall, maxLines: 1, overflow: TextOverflow.ellipsis)),
+                                const SizedBox(width: 8),
+                                Chip(label: Text(formatRand(q.totalPrice), style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onPrimary)), backgroundColor: theme.colorScheme.primary, materialTapTargetSize: MaterialTapTargetSize.shrinkWrap, padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 0)),
+                              ])
+                            ]),
+                          ),
+                        ]),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              );
+            }),
+
+          const SizedBox(height: 12),
+          // Link to full sections
+          Row(children: [
+            Expanded(child: OutlinedButton.icon(onPressed: () => widget.onNavigateToTab?.call(1), icon: const Icon(Icons.calendar_today), label: const Text('Open Bookings'))),
+            const SizedBox(width: 8),
+            Expanded(child: OutlinedButton.icon(onPressed: () => widget.onNavigateToTab?.call(3), icon: const Icon(Icons.request_quote), label: const Text('Open Quotes'))),
+          ]),
+        ]);
+      },
+    );
+
+    Future<void> refreshAll() async {
+      // reload stats and then rebuild to refresh bookings/quotes futures
+      await _loadStats();
+      if (mounted) setState(() {});
+    }
+
+    final content = SafeArea(
+      child: RefreshIndicator(
+        onRefresh: refreshAll,
+        // Use a scroll view with slivers for more robust layout and better spacing control.
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverToBoxAdapter(child: headerSection),
+            const SliverToBoxAdapter(child: Divider(height: 1)),
+            SliverPadding(
+              padding: const EdgeInsets.all(16.0),
+              sliver: SliverToBoxAdapter(
+                child: AnimatedSwitcher(duration: const Duration(milliseconds: 250), child: bodyContent),
               ),
             ),
-            const Divider(height: 1),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: _showCalendar
-                    ? const BookingCalendarView()
-                    : FutureBuilder<List<Booking>>(
-                  future: BookingTable().getAllBookings(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    if (snapshot.hasError) {
-                      return Center(
-                        child: Text(
-                          'Failed to load bookings',
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                      );
-                    }
-                    var bookings = snapshot.data ?? const <Booking>[];
-                    if (_filter == BookingFilter.upcoming) {
-                      final now = DateTime.now();
-                      bookings = bookings.where((b) => b.bookingDate.isAfter(now)).toList();
-                      bookings.sort((a, b) => a.bookingDate.compareTo(b.bookingDate));
-                    }
-                    if (bookings.isEmpty) {
-                      return const Center(child: Text('No bookings found.'));
-                    }
-
-                    return LayoutBuilder(
-                      builder: (context, constraints) {
-                        Widget buildCard(Booking b) {
-                          final title = 'Booking #${b.bookingId}';
-                          final subtitle = 'Status: ${b.status}';
-                          final details = 'Date: ${b.bookingDate}';
-                          return Card(
-                            elevation: 4,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            color: Colors.white,
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.camera_alt, size: 36, color: Colors.deepPurple),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    title,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.deepPurple,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                    softWrap: true,
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    subtitle,
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      color: Colors.black87,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                    softWrap: true,
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    details,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                    softWrap: true,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        }
-
-                        final isPhone = constraints.maxWidth < 480;
-                        if (isPhone) {
-                          return ListView.separated(
-                            itemCount: bookings.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: 12),
-                            itemBuilder: (context, index) {
-                              final b = bookings[index];
-                              return InkWell(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => CreateBookingPage(existing: b),
-                                    ),
-                                  ).then((value) {
-                                    if (mounted) setState(() {});
-                                  });
-                                },
-                                child: buildCard(b),
-                              );
-                            },
-                          );
-                        }
-
-                        final crossAxisCount = (constraints.maxWidth / 360).floor().clamp(2, 6);
-                        return GridView.builder(
-                          itemCount: bookings.length,
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: crossAxisCount,
-                            crossAxisSpacing: 12,
-                            mainAxisSpacing: 12,
-                            childAspectRatio: 1.1,
-                          ),
-                          itemBuilder: (context, index) {
-                            final b = bookings[index];
-                            return InkWell(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => CreateBookingPage(existing: b),
-                                  ),
-                                ).then((value) {
-                                  if (mounted) setState(() {});
-                                });
-                              },
-                              child: buildCard(b),
-                            );
-                          },
-                        );
-                      },
-                    );
-                  },
-                ),
+            // add bottom padding to avoid content being obscured by system bars / nav bars
+            SliverPadding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).padding.bottom + kBottomNavigationBarHeight + 16,
               ),
+              sliver: const SliverToBoxAdapter(child: SizedBox.shrink()),
             ),
           ],
         ),
       ),
     );
-  }
 
-  Future<void> _showQuotesDialog(BuildContext context) async {
-    final selectedQuote = await showDialog(
-      context: context,
-      builder: (context) => const QuotesDialog(),
+    if (widget.embedded) return content;
+
+    return Scaffold(
+      appBar: AppBar(title: _clientFromArgs != null ? Text('${_showQuotesInMain ? 'Quotes' : 'Bookings'} — ${_clientFromArgs!.firstName} ${_clientFromArgs!.lastName}') : const Text('Photography Bookings Dashboard'), actions: [
+        if (_clientFromArgs != null)
+          IconButton(tooltip: 'Clear client filter', onPressed: () {
+            setState(() {
+              _clientFromArgs = null;
+              _showQuotesInMain = false;
+              _argsProcessed = false;
+            });
+          }, icon: const Icon(Icons.clear)),
+      ]),
+      body: content,
     );
-    if (selectedQuote != null) {
-      await _openCreateBooking(context, selectedQuote);
-    }
   }
 }
+
+
+
+ 

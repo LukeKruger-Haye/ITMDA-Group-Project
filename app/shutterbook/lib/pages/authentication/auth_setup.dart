@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'models/auth_model.dart';
-import '../home.dart';
+import '../dashboard_home.dart';
+import '../../widgets/section_card.dart';
+import '../../widgets/password_field.dart';
 
 class SetupScreen extends StatefulWidget {
   final AuthModel authModel;
@@ -13,30 +15,39 @@ class SetupScreen extends StatefulWidget {
 
 class _SetupScreenState extends State<SetupScreen> {
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
   bool _usePassword = true;
+  bool _showPasswordEditor = true; // show editor by default on initial setup
 
   @override
   void dispose() {
     _passwordController.dispose();
+    _confirmController.dispose();
     super.dispose();
   }
 
   Future<void> _continue() async {
+    // Capture messenger and navigator before any awaits to avoid use_build_context_synchronously
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
     if (_usePassword) {
-      final pw = _passwordController.text.trim();
-      if (pw.length < 4) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Password must be at least 4 characters long')),
-        );
+      if (!(_formKey.currentState?.validate() ?? false)) {
+        messenger.showSnackBar(const SnackBar(content: Text('Please set a valid password')));
         return;
       }
-      await widget.authModel.setPassword(pw);
 
-      // Prompt to enable biometrics if available
-      final canUseBiometric = await widget.authModel.authenticate();
-      if (canUseBiometric) {
+      await widget.authModel.setPassword(_passwordController.text.trim());
+
+      final available = await widget.authModel.isBiometricAvailable();
+      if (available) {
         await widget.authModel.setBiometricEnabled(true);
+      } else {
+        await widget.authModel.setBiometricEnabled(false);
+        if (mounted) {
+          messenger.showSnackBar(const SnackBar(content: Text('Biometric authentication not available on this device')));
+        }
       }
     } else {
       await widget.authModel.removePassword();
@@ -44,12 +55,7 @@ class _SetupScreenState extends State<SetupScreen> {
     }
 
     if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => HomeScreen(authModel: widget.authModel),
-      ),
-    );
+    navigator.pushReplacement(MaterialPageRoute(builder: (_) => DashboardHome(authModel: widget.authModel)));
   }
 
   @override
@@ -69,20 +75,60 @@ class _SetupScreenState extends State<SetupScreen> {
                   onChanged: (v) => setState(() => _usePassword = v),
                 ),
                 if (_usePassword) ...[
-                  TextField(
-                    controller: _passwordController,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Set a password',
-                      border: OutlineInputBorder(),
-                    ),
+                  SectionCard(
+                    child: _showPasswordEditor
+                        ? Form(
+                            key: _formKey,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                PasswordField(
+                                  controller: _passwordController,
+                                  labelText: 'Set a password',
+                                  showStrength: true,
+                                ),
+                                const SizedBox(height: 12),
+                                PasswordField(
+                                  controller: _confirmController,
+                                  labelText: 'Confirm password',
+                                  compareWith: _passwordController,
+                                ),
+                                const SizedBox(height: 12),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: ElevatedButton(
+                                        onPressed: _continue,
+                                        child: const Text('Save & Continue'),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    OutlinedButton(
+                                      onPressed: () {
+                                        _passwordController.clear();
+                                        _confirmController.clear();
+                                        setState(() => _showPasswordEditor = false);
+                                      },
+                                      child: const Text('Cancel'),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          )
+                        : ElevatedButton(
+                            onPressed: () => setState(() => _showPasswordEditor = true),
+                            child: const Text('Set Password'),
+                          ),
                   ),
                   const SizedBox(height: 16),
                 ],
-                ElevatedButton(
-                  onPressed: _continue,
-                  child: const Text('Continue'),
-                ),
+                if (!_usePassword)
+                  ElevatedButton(
+                    onPressed: _continue,
+                    child: const Text('Continue'),
+                  ),
               ],
             ),
           ),

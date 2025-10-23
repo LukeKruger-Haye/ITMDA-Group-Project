@@ -1,27 +1,27 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shutterbook/data/models/client.dart';
 import 'package:shutterbook/data/tables/client_table.dart';
-import 'package:shutterbook/pages/quotes/package_picker/package_picker/package_picker_screen.dart';
+import 'package:shutterbook/pages/quotes/create/package_picker/package_picker_screen.dart';
+import 'package:shutterbook/pages/quotes/create/package_picker/package_picker.dart';
+import 'package:shutterbook/pages/quotes/create/overview/quote_overview_screen.dart';
 
-
-
-
-class CreateQuotePage extends StatefulWidget{
-  const CreateQuotePage({super.key,});
+class CreateQuotePage extends StatefulWidget {
+  const CreateQuotePage({super.key});
 
   @override
   State<CreateQuotePage> createState() => _CreateQuotePageState();
 }
 
-class _CreateQuotePageState extends State<CreateQuotePage> {  
+class _CreateQuotePageState extends State<CreateQuotePage> {
   List<Client> allClients = [];
   List<Client> suggestions = [];
   String searchText = '';
 
-  final TextEditingController myEditor=TextEditingController();
-  bool showIcon=false;
+  final TextEditingController myEditor = TextEditingController();
+  bool showIcon = false;
 
   @override
   void initState() {
@@ -30,58 +30,42 @@ class _CreateQuotePageState extends State<CreateQuotePage> {
   }
 
   Future<void> _loadClients() async {
-
     final table = ClientTable();
     final data = await table.getAllClients();
     setState(() {
       allClients = data;
     });
-    suggestions=data;
+    suggestions = data;
   }
 
   void _onSearchChanged(String value) {
     setState(() {
-      
       searchText = value;
       suggestions = allClients
-      .where((client) =>
-        client.firstName.toLowerCase().contains(value.toLowerCase()) ||
-        client.lastName.toLowerCase().contains(value.toLowerCase()))
-      .toList();
-    
-      if (suggestions.isEmpty)
-      {
-        showIcon=false;
+          .where(
+            (client) =>
+                client.firstName.toLowerCase().contains(value.toLowerCase()) ||
+                client.lastName.toLowerCase().contains(value.toLowerCase()),
+          )
+          .toList();
+
+      if (suggestions.isEmpty) {
+        showIcon = false;
       }
     });
   }
 
-  void _onTapChange(String searchText)
-  {
-   myEditor.text=searchText;
-   if (myEditor.text == searchText)
-   {
-    showIcon=true;
-   }
-   
-
+  void _onTapChange(String searchText) {
+    myEditor.text = searchText;
+    if (myEditor.text == searchText) {
+      showIcon = true;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Create Quote'),
-        actions: [
-          IconButton(
-            onPressed: () {
-              Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
-            },
-            icon: const Icon(Icons.home),
-            ),
-         
-        ]
-      ),
+      appBar: AppBar(title: const Text('Create Quote')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -94,37 +78,66 @@ class _CreateQuotePageState extends State<CreateQuotePage> {
                 suffixIcon: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
-                    if(showIcon)
+                    if (showIcon)
                       IconButton(
                         icon: const Icon(Icons.check),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context)=> PackagePickerScreen(
-                            client: Client.fromMap(suggestions[0].toMap()),
-
-                            )));
-                          // Add your onPressed logic here
+                        onPressed: () async {
+                          // Open package picker and wait for selected packages
+                          final navigator = Navigator.of(context);
+                          final packages = await navigator.push<dynamic>(
+                            MaterialPageRoute(
+                              builder: (context) => PackagePickerScreen(
+                                client: Client.fromMap(suggestions[0].toMap()),
+                              ),
+                            ),
+                          );
+                          if (packages == null) {
+                            return;
+                          }
+                          if (kDebugMode) debugPrint('CreateQuotePage got packages: ${packages.keys.map((p) => p.name).join(', ')}');
+                          // calculate total safely and navigate to overview for confirmation
+                          double total = 0.0;
+                          if (packages is Map) {
+                            for (final entry in packages.entries) {
+                              final key = entry.key;
+                              final val = entry.value;
+                              double price = 0.0;
+                              if (key is Package) {
+                                price = key.price;
+                              } else if (key is Map && key['price'] != null) {
+                                price = (key['price'] as num).toDouble();
+                              }
+                              final int qty = val is int ? val : int.tryParse(val.toString()) ?? 0;
+                              total += price * qty;
+                            }
+                          }
+                          final saved = await navigator.push<bool?>(
+                            MaterialPageRoute(
+                              builder: (context) => QuoteOverviewScreen(client: Client.fromMap(suggestions[0].toMap()), total: total, packages: packages),
+                            ),
+                          );
+                          // if the overview saved the quote, close this create page too
+                          if (saved == true) {
+                            if (mounted) navigator.pop(true);
+                          }
                         },
                       ),
-                    if(myEditor.text.isNotEmpty || showIcon)  
-                    IconButton(
-                      onPressed: () {
-                        myEditor.text = "";
-                        setState(() {
-                          showIcon=false;
-                        });
-                        _loadClients();
-                        
-                      },
-                      icon: const Icon(Icons.close),
-                    ),
+                    if (myEditor.text.isNotEmpty || showIcon)
+                      IconButton(
+                        onPressed: () {
+                          myEditor.text = "";
+                          setState(() {
+                            showIcon = false;
+                          });
+                        },
+                        icon: const Icon(Icons.close),
+                      ),
                   ],
                 ),
               ),
               onChanged: _onSearchChanged,
             ),
-            
+
             Expanded(
               child: allClients.isEmpty
               ?const Center(child: Text('No clients found'))
@@ -137,7 +150,11 @@ class _CreateQuotePageState extends State<CreateQuotePage> {
                     subtitle: Text(client.email),
                     onTap: () {
                       // Handle client selection
-                      debugPrint('Selected: ${client.firstName} ${client.lastName}');
+                      if (kDebugMode) {
+                        debugPrint(
+                          'Selected: ${client.firstName} ${client.lastName}',
+                        );
+                      }
                       setState(() {
                         searchText = '${client.firstName} ${client.lastName}';
                         _onTapChange(searchText);

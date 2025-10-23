@@ -12,12 +12,7 @@ class Package {
   });
 
   Map<String, dynamic> toMap() {
-    return {
-      'package_id': id,
-      'name': name,
-      'details': details,
-      'price': price,
-    };
+    return {'package_id': id, 'name': name, 'details': details, 'price': price};
   }
 
   factory Package.fromMap(Map<String, dynamic> map) {

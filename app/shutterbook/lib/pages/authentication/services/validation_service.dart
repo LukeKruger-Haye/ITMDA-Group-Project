@@ -1,5 +1,4 @@
 class Validators {
-
   // Optionally, enforce: uppercase, numbers, symbols
   static String? validatePassword(String? password) {
     if (password == null || password.isEmpty) return 'Password is required';

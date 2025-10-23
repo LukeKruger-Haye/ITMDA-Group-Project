@@ -1,54 +1,210 @@
 import 'package:flutter/material.dart';
-import 'package:shutterbook/pages/bookings/dashboard.dart';
+import 'pages/theme_controller.dart';
+import 'pages/bookings/dashboard.dart';
 import 'pages/authentication/models/auth_model.dart';
 import 'pages/authentication/login.dart';
 import 'pages/authentication/auth_setup.dart';
-import 'pages/home.dart';
+import 'pages/dashboard_home.dart';
+import 'pages/quotes/quotes.dart';
 import 'pages/bookings/bookings.dart';
 import 'pages/clients/clients.dart';
 import 'pages/quotes/create/create_quote.dart';
 import 'pages/quotes/manage/manage_quote_screen.dart';
 import 'pages/inventory/inventory.dart';
 
-void main() async {
-    WidgetsFlutterBinding.ensureInitialized();
-    final authModel = AuthModel();
-    await authModel.loadSettings();
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
 
-    final firstLaunch = await authModel.isFirstLaunch();
+  // load persisted choice before runApp so UI starts with correct theme
+  await ThemeController.instance.init();
 
-    runApp(MyApp(authModel: authModel, firstLaunch: firstLaunch));
+  final authModel = AuthModel();
+  await authModel.loadSettings();
+
+  final firstLaunch = await authModel.isFirstLaunch();
+
+  runApp(MyApp(authModel: authModel, firstLaunch: firstLaunch));
 }
 
 class MyApp extends StatelessWidget {
-    final AuthModel authModel;
-    final bool firstLaunch;
+  final AuthModel authModel;
+  final bool firstLaunch;
 
-    const MyApp({super.key, required this.authModel, required this.firstLaunch});
+  const MyApp({super.key, required this.authModel, required this.firstLaunch});
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Shutterbook',
-      theme: ThemeData(primarySwatch: Colors.amber),
-      routes: {
-        '/home': (context) => HomeScreen(authModel: authModel),
-        '/clients': (context) => const ClientsPage(),
-        '/bookings': (context) => const BookingsPage(),
-        '/quotes/create/create_quote.dart': (context) => const CreateQuotePage(),
-        '/quotes/manage/manage_quote_screen.dart': (context) => const ManageQuotePage(),
-        '/dashboard': (context) => const DashboardPage(),
-        '/inventory': (context) => const InventoryPage(),
+    return ValueListenableBuilder<bool>(
+      valueListenable: ThemeController.instance.isDark,
+      builder: (context, isDark, _) {
+  // Palette: Slate Blue seed with coral accent (Option A)
+  const seed = Color(0xFF4B6B9A); // slate blue
+  const coral = Color(0xFFFF6B6B);
+  final baseLight = ColorScheme.fromSeed(seedColor: seed, brightness: Brightness.light);
+  final baseDark = ColorScheme.fromSeed(seedColor: seed, brightness: Brightness.dark);
+  final lightScheme = baseLight.copyWith(secondary: coral);
+  final darkScheme = baseDark.copyWith(secondary: coral);
 
+        final lightTheme = ThemeData(
+          colorScheme: lightScheme,
+          useMaterial3: true,
+          appBarTheme: AppBarTheme(
+            backgroundColor: lightScheme.primary,
+            foregroundColor: lightScheme.onPrimary,
+            elevation: 2,
+            centerTitle: true,
+          ),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: lightScheme.primary,
+              foregroundColor: lightScheme.onPrimary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            ),
+          ),
+          outlinedButtonTheme: OutlinedButtonThemeData(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: lightScheme.primary,
+              side: BorderSide(color: lightScheme.primary.withAlpha((0.16 * 255).round())),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            ),
+          ),
+          textButtonTheme: TextButtonThemeData(
+            style: TextButton.styleFrom(foregroundColor: lightScheme.primary),
+          ),
+          floatingActionButtonTheme: FloatingActionButtonThemeData(
+            backgroundColor: lightScheme.secondary,
+            foregroundColor: lightScheme.onSecondary,
+          ),
+          snackBarTheme: SnackBarThemeData(
+            backgroundColor: lightScheme.surfaceContainerHighest,
+            contentTextStyle: TextStyle(color: lightScheme.onSurface),
+          ),
+          listTileTheme: ListTileThemeData(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            tileColor: lightScheme.surfaceContainerHighest,
+            iconColor: lightScheme.primary,
+          ),
+          cardColor: lightScheme.surface,
+          inputDecorationTheme: InputDecorationTheme(
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            filled: true,
+            fillColor: lightScheme.surfaceContainerHighest,
+          ),
+          scaffoldBackgroundColor: lightScheme.surface,
+          textTheme: ThemeData.light().textTheme.apply(
+                bodyColor: lightScheme.onSurface,
+                displayColor: lightScheme.onSurface,
+              ),
+        );
+
+        final darkTheme = ThemeData(
+          colorScheme: darkScheme,
+          useMaterial3: true,
+          appBarTheme: AppBarTheme(
+            backgroundColor: darkScheme.surfaceContainerHighest,
+            foregroundColor: darkScheme.onSurface,
+            elevation: 2,
+            centerTitle: true,
+          ),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: darkScheme.primary,
+              foregroundColor: darkScheme.onPrimary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            ),
+          ),
+          outlinedButtonTheme: OutlinedButtonThemeData(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: darkScheme.primary,
+              side: BorderSide(color: darkScheme.primary.withAlpha((0.16 * 255).round())),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            ),
+          ),
+          textButtonTheme: TextButtonThemeData(
+            style: TextButton.styleFrom(foregroundColor: darkScheme.primary),
+          ),
+          floatingActionButtonTheme: FloatingActionButtonThemeData(
+            backgroundColor: darkScheme.secondary,
+            foregroundColor: darkScheme.onSecondary,
+          ),
+          snackBarTheme: SnackBarThemeData(
+            backgroundColor: darkScheme.surfaceContainerHighest,
+            contentTextStyle: TextStyle(color: darkScheme.onSurface),
+          ),
+          listTileTheme: ListTileThemeData(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            tileColor: darkScheme.surfaceContainerHighest,
+            iconColor: darkScheme.primary,
+          ),
+          cardColor: darkScheme.surface,
+          inputDecorationTheme: InputDecorationTheme(
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            filled: true,
+            fillColor: darkScheme.surfaceContainerHighest,
+          ),
+          scaffoldBackgroundColor: darkScheme.surface,
+          textTheme: ThemeData.dark().textTheme.apply(
+                bodyColor: darkScheme.onSurface,
+                displayColor: darkScheme.onSurface,
+              ),
+        );
+
+        // Build a reusable routes map so onGenerateRoute can reference it.
+        final routeMap = {
+            '/quotes': (context) => const QuotePage(),
+            '/clients': (context) => const ClientsPage(),
+            '/bookings': (context) => const BookingsPage(),
+            '/quotes/create': (context) => const CreateQuotePage(),
+            '/quotes/manage': (context) => const ManageQuotePage(),
+            '/dashboard': (context) => const DashboardPage(),
+            '/inventory': (context) => const InventoryPage(),
+        };
+
+        return MaterialApp(
+          title: 'Local Auth App',
+          theme: lightTheme,
+          darkTheme: darkTheme,
+          themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
+          // Route guard: when password lock is enabled and the session is not
+          // unlocked, redirect navigation attempts to the login screen.
+          onGenerateRoute: (settings) {
+            // If authModel requires a password and hasn't been unlocked,
+            // send the user to LoginScreen first.
+            final protected = authModel.hasPassword && !authModel.isUnlocked;
+            if (protected) {
+              return MaterialPageRoute(
+                builder: (_) => LoginScreen(authModel: authModel),
+                settings: settings,
+              );
+            }
+
+            // Fall back to the default routes map if defined
+            final builder = (routeMap[settings.name] as WidgetBuilder?);
+            if (builder != null) return MaterialPageRoute(builder: builder, settings: settings);
+            return null;
+          },
+          home: Builder(
+            builder: (context) {
+              if (firstLaunch) {
+                return SetupScreen(authModel: authModel);
+              }
+
+              if (authModel.hasPassword) {
+                return LoginScreen(authModel: authModel);
+              }
+
+              // Make the dashboard the landing/home screen for flow
+              return DashboardHome(authModel: authModel);
+            },
+          ),
+        );
       },
-      home: Builder(builder: (context) {
-        if (firstLaunch) {
-          return SetupScreen(authModel: authModel);
-        } else if (authModel.hasPassword) {
-          return LoginScreen(authModel: authModel);
-        } else {
-          return HomeScreen(authModel: authModel);
-        }
-      }),
     );
   }
 }

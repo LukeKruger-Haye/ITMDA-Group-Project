@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shutterbook/data/models/quote.dart';
 import 'package:shutterbook/data/tables/quote_table.dart';
+import 'package:shutterbook/utils/formatters.dart';
 
 class QuotesDialog extends StatelessWidget {
   const QuotesDialog({super.key});
@@ -31,7 +32,7 @@ class QuotesDialog extends StatelessWidget {
               itemBuilder: (context, index) {
                 final q = quotes[index];
                 final title = 'Quote #${q.id}';
-                final subtitle = 'Total: ${q.totalPrice} • ${q.createdAt}';
+                final subtitle = 'Total: ${formatRand(q.totalPrice)} • ${q.createdAt}';
                 return ListTile(
                   leading: const Icon(Icons.description_outlined),
                   title: Text(title),

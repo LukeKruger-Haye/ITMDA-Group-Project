@@ -8,18 +8,18 @@ class PackageTable {
   Future<int> insertPackage(Package package) async {
     Database db = await dbHelper.database;
     return await db.insert(
-      'Packages', 
+      'Packages',
       package.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace 
+      conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
 
   Future<Package?> getPackageById(int id) async {
     Database db = await dbHelper.database;
     final maps = await db.query(
-      'Packages', 
+      'Packages',
       where: 'package_id = ?',
-      whereArgs: [id]
+      whereArgs: [id],
     );
 
     if (maps.isNotEmpty) {
@@ -31,20 +31,13 @@ class PackageTable {
 
   Future<List<Package>> getAllPackages() async {
     Database db = await dbHelper.database;
-    final maps = await db.query(
-      'Packages',
-      orderBy: 'name DESC'
-    );
+    final maps = await db.query('Packages', orderBy: 'name DESC');
     return maps.map((m) => Package.fromMap(m)).toList();
   }
 
   Future<List<Package>> getPackagesPaged(int limit, int offset) async {
     final db = await dbHelper.database;
-    final maps = await db.query(
-      'Packages',
-      limit: limit,
-      offset: offset,
-    );
+    final maps = await db.query('Packages', limit: limit, offset: offset);
     return maps.map((m) => Package.fromMap(m)).toList();
   }
 
@@ -54,7 +47,7 @@ class PackageTable {
       'Packages',
       package.toMap(),
       where: 'package_id = ?',
-      whereArgs: [package.id]
+      whereArgs: [package.id],
     );
   }
 
@@ -63,7 +56,7 @@ class PackageTable {
     return await db.delete(
       'Packages',
       where: 'package_id = ?',
-      whereArgs: [id]
+      whereArgs: [id],
     );
   }
 
