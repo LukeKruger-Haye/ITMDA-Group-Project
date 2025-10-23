@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shutterbook/pages/quotes/overview/quote_overview_screen.dart';
 import '../../data/models/client.dart';
 import '../../data/models/quote.dart';
 import '../../utils/formatters.dart';
@@ -9,7 +10,6 @@ import '../bookings/create_booking.dart';
 import '../../widgets/client_search_dialog.dart';
 import 'create/package_picker/package_picker_screen.dart';
 import 'create/package_picker/package_picker.dart';
-import 'create/overview/quote_overview_screen.dart';
 import 'manage/manage_quote_screen.dart';
 
 class QuotePage extends StatefulWidget {
@@ -133,7 +133,10 @@ class _QuotePageState extends State<QuotePage> {
                 }
                 final saved = await nav.push<bool?>(
                   MaterialPageRoute(
-                    builder: (_) => QuoteOverviewScreen(client: client, total: total, packages: packages),
+                    builder: (_) => QuoteOverviewScreen(
+                      client: client,
+                      total: total,
+                      packages: packages),
                   ),
                 );
                 if (saved == true && mounted) setState(() {});
