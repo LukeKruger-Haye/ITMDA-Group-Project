@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../data/models/client.dart';
@@ -5,9 +6,13 @@ import '../../data/tables/client_table.dart';
 import '../../data/tables/quote_table.dart';
 import '../../data/tables/booking_table.dart';
 import '../theme_controller.dart'; // added to react to global theme
+import '../../widgets/section_card.dart';
+import '../bookings/bookings.dart';
 
 class ClientsPage extends StatefulWidget {
-  const ClientsPage({super.key});
+  final bool embedded; // when true, return content only (no Scaffold)
+  final void Function(Client client)? onViewBookings;
+  const ClientsPage({super.key, this.embedded = false, this.onViewBookings});
 
   @override
   State<ClientsPage> createState() => _ClientsPageState();
@@ -19,19 +24,52 @@ class _ClientsPageState extends State<ClientsPage> {
   final BookingTable _bookingTable = BookingTable();
 
   List<Client> _clients = [];
+  List<Client> _filteredClients = [];
+  final TextEditingController _searchController = TextEditingController();
+  Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
     _loadClients();
+    _searchController.addListener(_onSearchChanged);
   }
 
   Future<void> _loadClients() async {
     final clients = await _clientTable.getAllClients();
     setState(() {
       _clients = clients;
+      // Apply current search filter (if any) after loading
+      _applyFilter();
     });
   }
+
+  void _applyFilter() {
+    final q = _searchController.text.trim().toLowerCase();
+    if (q.isEmpty) {
+      _filteredClients = List.from(_clients);
+    } else {
+      _filteredClients = _clients.where((c) {
+        final full = '${c.firstName} ${c.lastName}'.toLowerCase();
+        return full.contains(q) || c.email.toLowerCase().contains(q) || c.phone.toLowerCase().contains(q) || '${c.id}'.contains(q);
+      }).toList();
+    }
+  }
+
+  void _onSearchChanged() {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 250), () {
+      setState(() {
+        _applyFilter();
+      });
+    });
+  }
+
+  // Public refresh method so parent (DashboardHome) can trigger reload when embedded
+  Future<void> refresh() async => _loadClients();
+
+  // Publicly callable method to open the Add Client dialog when embedded
+  Future<void> openAddDialog() async => await _addOrEditClient();
 
   String? _validateEmail(String? value) {
     if (value == null || value.trim().isEmpty) return 'Email required';
@@ -53,14 +91,21 @@ class _ClientsPageState extends State<ClientsPage> {
       s.isEmpty ? s : s[0].toUpperCase() + s.substring(1).toLowerCase();
 
   Future<bool> _showConfirmationDialog(String title, String content) async {
+    final nav = Navigator.of(context);
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(title),
         content: Text(content),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Confirm')),
+          TextButton(
+            onPressed: () => nav.pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => nav.pop(true),
+            child: const Text('Confirm'),
+          ),
         ],
       ),
     );
@@ -68,8 +113,12 @@ class _ClientsPageState extends State<ClientsPage> {
   }
 
   Future<void> _addOrEditClient({Client? client}) async {
-    final firstNameController = TextEditingController(text: client?.firstName ?? '');
-    final lastNameController = TextEditingController(text: client?.lastName ?? '');
+    final firstNameController = TextEditingController(
+      text: client?.firstName ?? '',
+    );
+    final lastNameController = TextEditingController(
+      text: client?.lastName ?? '',
+    );
     final emailController = TextEditingController(text: client?.email ?? '');
     final phoneController = TextEditingController(text: client?.phone ?? '');
     final formKey = GlobalKey<FormState>();
@@ -82,40 +131,52 @@ class _ClientsPageState extends State<ClientsPage> {
           key: formKey,
           child: SingleChildScrollView(
             child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: firstNameController,
-                  decoration: const InputDecoration(labelText: 'First Name'),
-                  validator: (value) => value == null || value.trim().isEmpty ? 'First name required' : null,
-                  textCapitalization: TextCapitalization.words,
-                ),
-                TextFormField(
-                  controller: lastNameController,
-                  decoration: const InputDecoration(labelText: 'Last Name'),
-                  validator: (value) => value == null || value.trim().isEmpty ? 'Last name required' : null,
-                  textCapitalization: TextCapitalization.words,
-                ),
-                TextFormField(
-                  controller: emailController,
-                  decoration: const InputDecoration(labelText: 'Email'),
-                  validator: _validateEmail,
-                  keyboardType: TextInputType.emailAddress,
-                ),
-                TextFormField(
-                  controller: phoneController,
-                  decoration: const InputDecoration(labelText: 'Phone'),
-                  validator: _validatePhone,
-                  keyboardType: TextInputType.phone,
-                ),
-              ],
-            ),
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextFormField(
+                    controller: firstNameController,
+                    decoration: const InputDecoration(labelText: 'First Name'),
+                    validator: (value) => value == null || value.trim().isEmpty
+                        ? 'First name required'
+                        : null,
+                    textCapitalization: TextCapitalization.words,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: lastNameController,
+                    decoration: const InputDecoration(labelText: 'Last Name'),
+                    validator: (value) => value == null || value.trim().isEmpty
+                        ? 'Last name required'
+                        : null,
+                    textCapitalization: TextCapitalization.words,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: emailController,
+                    decoration: const InputDecoration(labelText: 'Email'),
+                    validator: _validateEmail,
+                    keyboardType: TextInputType.emailAddress,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: phoneController,
+                    decoration: const InputDecoration(labelText: 'Phone'),
+                    validator: _validatePhone,
+                    keyboardType: TextInputType.phone,
+                  ),
+                ],
+              ),
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
           ElevatedButton(
             onPressed: () async {
+              final nav = Navigator.of(context);
               if (formKey.currentState?.validate() ?? false) {
                 final confirmed = await _showConfirmationDialog(
                   client == null ? 'Add Client' : 'Save Changes',
@@ -129,9 +190,12 @@ class _ClientsPageState extends State<ClientsPage> {
                   firstName: _capitalize(firstNameController.text.trim()),
                   lastName: _capitalize(lastNameController.text.trim()),
                   email: emailController.text.trim().toLowerCase(),
-                  phone: phoneController.text.trim().replaceAll(RegExp(r'\D'), ''),
+                  phone: phoneController.text.trim().replaceAll(
+                    RegExp(r'\D'),
+                    '',
+                  ),
                 );
-                Navigator.pop(context, newClient);
+                if (nav.mounted) nav.pop(newClient);
               }
             },
             child: const Text('Save'),
@@ -161,6 +225,14 @@ class _ClientsPageState extends State<ClientsPage> {
     }
   }
 
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    super.dispose();
+  }
+
   // show client details dialog with actions to view quotes or bookings (shows counts)
   Future<void> _showClientDetails(Client client) async {
     int quotesCount = 0;
@@ -177,6 +249,7 @@ class _ClientsPageState extends State<ClientsPage> {
       }
     }
 
+    if (!mounted) return;
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
@@ -201,23 +274,28 @@ class _ClientsPageState extends State<ClientsPage> {
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(context);
-              // Open the Dashboard and ask it to show this client's quotes
-              Navigator.pushNamed(context, '/dashboard', arguments: {
-                'client': client,
-                'view': 'quotes',
-              });
+              final nav = Navigator.of(context);
+              nav.pop();
+              // Open the Quotes page and show quotes for this client
+              Navigator.pushNamed(nav.context, '/quotes', arguments: client);
             },
             child: const Text('View Quotes'),
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(context);
-              // Open the Dashboard and ask it to show this client's bookings
-              Navigator.pushNamed(context, '/dashboard', arguments: {
-                'client': client,
-                'view': 'bookings',
-              });
+              final nav = Navigator.of(context);
+              nav.pop();
+              // Delegate to parent's onViewBookings if available so we don't push separate views
+              if (widget.onViewBookings != null) {
+                try {
+                  widget.onViewBookings!(client);
+                } catch (_) {
+                  // fallback to opening full Bookings page
+                  Navigator.push(nav.context, MaterialPageRoute(builder: (_) => BookingsPage(initialClient: client)));
+                }
+              } else {
+                Navigator.push(nav.context, MaterialPageRoute(builder: (_) => BookingsPage(initialClient: client)));
+              }
             },
             child: const Text('View Bookings'),
           ),
@@ -233,18 +311,44 @@ class _ClientsPageState extends State<ClientsPage> {
       valueListenable: ThemeController.instance.isDark,
       builder: (context, isDark, _) {
         final pageTheme = isDark ? ThemeData.dark() : ThemeData.light();
-        return Theme(
-          data: pageTheme,
-          child: Scaffold(
-            appBar: AppBar(title: const Text('Clients')),
-            body: ListView.builder(
-              itemCount: _clients.length,
-              itemBuilder: (context, index) {
-                final client = _clients[index];
-                return ListTile(
+        final pageBody = Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12.0),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(icon: const Icon(Icons.clear), onPressed: () => _searchController.clear())
+                        : null,
+                    hintText: 'Search clients by name, email or phone',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: ListView.separated(
+                  itemCount: _filteredClients.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final client = _filteredClients[index];
+              return SectionCard(
+                child: ListTile(
                   onTap: () => _showClientDetails(client),
+                  leading: CircleAvatar(
+                    backgroundColor: Theme.of(context).colorScheme.primary.withAlpha((0.12 * 255).round()),
+                    child: Text(
+                      client.firstName.isNotEmpty ? client.firstName[0].toUpperCase() : '?',
+                      style: TextStyle(color: Theme.of(context).colorScheme.primary),
+                    ),
+                  ),
                   title: Text('${client.firstName} ${client.lastName}'),
-                  subtitle: Text('${client.email} | ${client.phone}'),
+                  subtitle: Text('${client.email} • ${client.phone}'),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -260,15 +364,28 @@ class _ClientsPageState extends State<ClientsPage> {
                       ),
                     ],
                   ),
-                );
-              },
-            ),
-            floatingActionButton: FloatingActionButton(
-              onPressed: () => _addOrEditClient(),
-              child: const Icon(Icons.add),
-              tooltip: 'Add Client',
-            ),
+                ),
+              );
+            },
+                ),
+              ),
+            ],
           ),
+        );
+
+        return Theme(
+          data: pageTheme,
+          child: widget.embedded
+              ? pageBody
+              : Scaffold(
+                  appBar: AppBar(title: const Text('Clients')),
+                  body: pageBody,
+                  floatingActionButton: FloatingActionButton(
+                    onPressed: () => _addOrEditClient(),
+                    tooltip: 'Add Client',
+                    child: const Icon(Icons.person_add),
+                  ),
+                ),
         );
       },
     );

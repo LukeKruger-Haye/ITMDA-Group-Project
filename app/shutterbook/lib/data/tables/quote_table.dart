@@ -8,33 +8,30 @@ class QuoteTable {
   Future<int> insertQuote(Quote quote) async {
     Database db = await dbHelper.database;
     return await db.insert(
-      'Quotes', 
+      'Quotes',
       quote.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace 
+      conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
 
   Future<Quote?> getQuoteById(int id) async {
     Database db = await dbHelper.database;
     final maps = await db.query(
-      'Quotes', 
+      'Quotes',
       where: 'quote_id = ?',
-      whereArgs: [id]
+      whereArgs: [id],
     );
 
     if (maps.isNotEmpty) {
-            return Quote.fromMap(maps.first);
-        }
+      return Quote.fromMap(maps.first);
+    }
 
     return null;
   }
 
   Future<List<Quote>> getAllQuotes() async {
     Database db = await dbHelper.database;
-    final maps = await db.query(
-      'Quotes',
-      orderBy: 'created_at DESC'
-    );
+    final maps = await db.query('Quotes', orderBy: 'created_at DESC');
     return maps.map((m) => Quote.fromMap(m)).toList();
   }
 
@@ -66,17 +63,13 @@ class QuoteTable {
       'Quotes',
       quote.toMap(),
       where: 'quote_id = ?',
-      whereArgs: [quote.id]
+      whereArgs: [quote.id],
     );
   }
 
   Future<int> deleteQuotes(int id) async {
     final db = await dbHelper.database;
-    return await db.delete(
-      'Quotes',
-      where: 'quote_id = ?',
-      whereArgs: [id]
-    );
+    return await db.delete('Quotes', where: 'quote_id = ?', whereArgs: [id]);
   }
 
   Future<int> getQuoteCount() async {

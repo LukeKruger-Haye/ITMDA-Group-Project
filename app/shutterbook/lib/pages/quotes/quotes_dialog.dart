@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shutterbook/data/models/quote.dart';
 import 'package:shutterbook/data/tables/quote_table.dart';
+import 'package:shutterbook/utils/formatters.dart';
 
 class QuotesDialog extends StatelessWidget {
   const QuotesDialog({super.key});
@@ -25,13 +26,15 @@ class QuotesDialog extends StatelessWidget {
             if (quotes.isEmpty) {
               return const Center(child: Text('No quotes found.'));
             }
-            return ListView.separated(
-              itemCount: quotes.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
-              itemBuilder: (context, index) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: ListView.separated(
+                itemCount: quotes.length,
+                separatorBuilder: (_, __) => const Divider(height: 1),
+                itemBuilder: (context, index) {
                 final q = quotes[index];
                 final title = 'Quote #${q.id}';
-                final subtitle = 'Total: ${q.totalPrice} • ${q.createdAt}';
+                final subtitle = 'Total: ${formatRand(q.totalPrice)} • ${q.createdAt}';
                 return ListTile(
                   leading: const Icon(Icons.description_outlined),
                   title: Text(title),
@@ -47,7 +50,8 @@ class QuotesDialog extends StatelessWidget {
                   ),
                   onTap: () => Navigator.of(context).pop<Quote>(q),
                 );
-              },
+                },
+              ),
             );
           },
         ),

@@ -28,10 +28,7 @@ class BookingTable {
 
   Future<List<Booking>> getAllBookings() async {
     final db = await dbHelper.database;
-    final maps = await db.query(
-      'Bookings', 
-      orderBy: 'booking_date DESC'
-    );
+    final maps = await db.query('Bookings', orderBy: 'booking_date DESC');
     return maps.map((m) => Booking.fromMap(m)).toList();
   }
 

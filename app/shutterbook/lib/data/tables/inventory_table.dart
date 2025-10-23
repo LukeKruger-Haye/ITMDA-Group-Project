@@ -8,18 +8,18 @@ class InventoryTable {
   Future<int> insertItem(Item item) async {
     Database db = await dbHelper.database;
     return await db.insert(
-      'Inventory', 
+      'Inventory',
       item.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace 
+      conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
 
   Future<Item?> getItemById(int id) async {
     Database db = await dbHelper.database;
     final maps = await db.query(
-      'Inventory', 
+      'Inventory',
       where: 'item_id = ?',
-      whereArgs: [id]
+      whereArgs: [id],
     );
 
     if (maps.isNotEmpty) {
@@ -52,17 +52,13 @@ class InventoryTable {
       'Inventory',
       item.toMap(),
       where: 'item_id = ?',
-      whereArgs: [item.id]
+      whereArgs: [item.id],
     );
   }
 
   Future<int> deleteItem(int id) async {
     final db = await dbHelper.database;
-    return await db.delete(
-      'Inventory',
-      where: 'item_id = ?',
-      whereArgs: [id]
-    );
+    return await db.delete('Inventory', where: 'item_id = ?', whereArgs: [id]);
   }
 
   Future<int> getItemCount() async {

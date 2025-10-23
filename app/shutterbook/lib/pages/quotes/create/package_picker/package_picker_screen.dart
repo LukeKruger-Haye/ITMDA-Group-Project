@@ -10,9 +10,12 @@ class PackagePickerScreen extends StatelessWidget {
 
   void _onSelectionChanged(Map<Package, int> selectedPackages) {
     // You can handle the selected packages here (e.g., save, show dialog, etc.)
-    if (kDebugMode) debugPrint('Selected packages: ${selectedPackages.keys.map((p) => p.name).join(', ')}');
+    if (kDebugMode) {
+      debugPrint(
+        'Selected packages: ${selectedPackages.keys.map((p) => p.name).join(', ')}',
+      );
+    }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +25,8 @@ class PackagePickerScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         child: PackagePicker(
           onSelectionChanged: _onSelectionChanged,
-          client: client,),
+          client: client,
+        ),
       ),
     );
   }

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -59,29 +60,48 @@ class AuthService {
 
   /// Attempt biometric authentication
   Future<bool> authenticate() async {
-  try {
-    final isSupported = await _localAuth.isDeviceSupported();
-    final canCheck = await _localAuth.canCheckBiometrics;
-    if (!isSupported || !canCheck) {
+    try {
+      final isSupported = await _localAuth.isDeviceSupported();
+      final canCheck = await _localAuth.canCheckBiometrics;
+      if (!isSupported || !canCheck) {
+        if (kDebugMode) debugPrint('AuthService.authenticate: device not supported or cannot check biometrics (isSupported=$isSupported, canCheck=$canCheck)');
+        return false;
+      }
+
+      final result = await _localAuth.authenticate(
+        localizedReason: 'Authenticate to continue',
+        options: const AuthenticationOptions(
+          biometricOnly: false,
+          stickyAuth: true,
+        ),
+      );
+      if (result) {
+        return true;
+      }
+      return false;
+    } catch (e) {
+      if (kDebugMode) debugPrint('AuthService.authenticate exception: $e');
       return false;
     }
-
-    final result = await _localAuth.authenticate(
-      localizedReason: 'Authenticate to continue',
-      options: const AuthenticationOptions(
-        biometricOnly: false,
-        stickyAuth: true,
-      ),
-    );
-    if (result) {
-      return true;
-    }
-    return false;
-  } catch (e) {
-    return false;
   }
-}
 
+  /// Check whether biometric authentication is available and enrolled on device
+  Future<bool> isBiometricAvailable() async {
+    try {
+      final isSupported = await _localAuth.isDeviceSupported();
+      final canCheck = await _localAuth.canCheckBiometrics;
+      if (!isSupported || !canCheck) return false;
+      final available = await _localAuth.getAvailableBiometrics();
+      final ok = available.isNotEmpty;
+      if (!ok) {
+        if (kDebugMode) debugPrint('AuthService.isBiometricAvailable: no biometrics available, list: $available');
+      }
+      return ok;
+    } catch (e) {
+      if (kDebugMode) debugPrint('AuthService.isBiometricAvailable exception: $e');
+      return false;
+    }
+  }
 
   /// Check if this is first launch ever
   Future<bool> isFirstLaunch() async {

@@ -34,7 +34,9 @@ class Quote {
       clientId: map['client_id'],
       totalPrice: map['total_price'],
       description: map['description'],
-      createdAt: map['created_at'] != null ? DateTime.tryParse(map['created_at']) : null
+      createdAt: map['created_at'] != null
+          ? DateTime.tryParse(map['created_at'])
+          : null,
     );
   }
 }
