@@ -227,7 +227,9 @@ class _ClientsPageState extends State<ClientsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Clients')),
-      body: ListView.builder(
+      body: _clients.isEmpty
+      ?const Center(child: Text('No clients found'),)
+      :ListView.builder(
         itemCount: _clients.length,
         itemBuilder: (context, index) {
           final client = _clients[index];

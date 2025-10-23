@@ -3,7 +3,7 @@ class Quote {
   int clientId;
   double totalPrice;
   String description;
-  String? createdAt;
+  DateTime? createdAt;
 
   Quote({
     this.id,
@@ -14,13 +14,19 @@ class Quote {
   });
 
   Map<String, dynamic> toMap() {
-    return {
+    final map = {
       'quote_id': id,
       'client_id': clientId,
       'total_price': totalPrice,
       'description': description,
       'created_at': createdAt?.toString()
     };
+
+     if (createdAt != null) {
+      map['created_at'] = createdAt?.toString();
+    }
+
+    return map;
   }
 
   factory Quote.fromMap(Map<String, dynamic> map) {

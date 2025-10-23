@@ -92,7 +92,9 @@ for(Package p in packages)
           
         const Text('Pick Packages'),
          Expanded(
-           child: ListView.builder(
+           child:allpackages.isEmpty? 
+           const Center(child:Text('No packages found'))
+            :ListView.builder(
              itemCount:allpackages.length,
              itemBuilder: (context, index) {
                final package = allpackages[index];

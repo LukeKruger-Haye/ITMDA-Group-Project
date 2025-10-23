@@ -21,16 +21,11 @@ final Map<Package, int> packages;
                     .map((entry) => '${entry.key.name} x${entry.value}').join(', ');
 
     final table= QuoteTable();
-    final quote=Quote(clientId: client.id!, totalPrice: total, description: packageDescription, createdAt: DateTime.now() );
+    final quote=Quote(clientId: client.id!, totalPrice: total, description: packageDescription);
    
-    await table.insertQuote(
-      quote
-      );
+    await table.insertQuote(quote);
 
     debugPrint('Inserted quote:${quote.toMap()}');
-
-
-
 
   }
 
@@ -55,13 +50,9 @@ final Map<Package, int> packages;
            ElevatedButton(onPressed: (){
              
              _insertQuote();
-             Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);     
-             
-             
-                      
+             Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);    
+
            }, child: const Text("Save"))
-
-
           ],
         ),
       ),

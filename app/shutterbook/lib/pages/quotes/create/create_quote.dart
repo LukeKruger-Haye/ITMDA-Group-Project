@@ -126,7 +126,9 @@ class _CreateQuotePageState extends State<CreateQuotePage> {
             ),
             
             Expanded(
-              child: ListView.builder(
+              child: allClients.isEmpty
+              ?const Center(child: Text('No clients found'))
+              :ListView.builder(
                 itemCount: suggestions.length,
                 itemBuilder: (context, index) {
                   final client = suggestions[index];

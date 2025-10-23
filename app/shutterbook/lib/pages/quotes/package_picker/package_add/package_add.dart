@@ -28,6 +28,7 @@ final packages= await PackageTable().getAllPackages();
 setState(() {
   allPackages=packages;
 });
+  
 
 }
 
@@ -155,11 +156,11 @@ Future<void> _deletePackage(Package package) async{
 
   @override
   Widget build(BuildContext context) {
-    // TODO: implement build
-    
     return Scaffold(
       appBar: AppBar(title: const Text('Packages')),
-      body: ListView.builder(
+      body: allPackages.isEmpty
+        ? const Center(child:Text('No Packages found')):
+        ListView.builder(
         itemCount: allPackages.length,
         itemBuilder: (context, index) {
           final package = allPackages[index];
@@ -184,11 +185,15 @@ Future<void> _deletePackage(Package package) async{
           );
         },
       ),
+      
+      
       floatingActionButton: FloatingActionButton(
         onPressed: () => _addOrEditPackages(),
         tooltip: 'Add Package',
         child: const Icon(Icons.add),
       ),
+      
+      
     );
   }
 

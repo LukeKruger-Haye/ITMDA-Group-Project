@@ -30,7 +30,7 @@ class PackagePickerScreen extends StatelessWidget {
             onPressed: () {
               Navigator.push(
                 context, 
-                MaterialPageRoute(builder: (context)=> PackageAdd())
+                MaterialPageRoute(builder: (context)=> const PackageAdd())
                 );
             },
             icon: const Icon(Icons.indeterminate_check_box_rounded),
