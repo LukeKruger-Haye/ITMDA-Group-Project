@@ -19,10 +19,9 @@ class Quote {
       'client_id': clientId,
       'total_price': totalPrice,
       'description': description,
-      'created_at': createdAt?.toString()
     };
 
-     if (createdAt != null) {
+    if (createdAt != null) {
       map['created_at'] = createdAt?.toString();
     }
 
@@ -35,7 +34,7 @@ class Quote {
       clientId: map['client_id'],
       totalPrice: map['total_price'],
       description: map['description'],
-      createdAt: map['created_at'] 
+      createdAt: map['created_at'] != null ? DateTime.tryParse(map['created_at'].toString()) : null
     );
   }
 }
