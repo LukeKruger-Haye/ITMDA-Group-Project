@@ -9,14 +9,12 @@ import 'pages/clients/clients.dart';
 import 'pages/quotes/create/create_quote.dart';
 import 'pages/quotes/manage/manage_quote_screen.dart';
 import 'pages/inventory/inventory.dart';
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final authModel = AuthModel();
   await authModel.loadSettings();
 
   final firstLaunch = await authModel.isFirstLaunch();
-
   runApp(MyApp(authModel: authModel, firstLaunch: firstLaunch));
 }
 
@@ -50,4 +48,4 @@ class MyApp extends StatelessWidget {
       }),
     );
   }
-}
+} 
