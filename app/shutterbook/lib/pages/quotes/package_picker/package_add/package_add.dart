@@ -75,7 +75,7 @@ final result = await showDialog(
             ),
              TextFormField(
               controller: packagePriceController,
-              keyboardType: TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: <TextInputFormatter>[
               FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*$')), // Allows digits and at most one decimal point
                      ],

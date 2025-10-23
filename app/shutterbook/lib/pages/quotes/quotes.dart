@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:shutterbook/pages/quotes/overview/quote_overview_screen.dart';
 import '../../data/models/client.dart';
 import '../../data/models/quote.dart';
+import '../../data/models/package.dart';
 import '../../utils/formatters.dart';
 import '../../data/tables/quote_table.dart';
 import '../../data/tables/client_table.dart';
 import '../../widgets/section_card.dart';
 import '../bookings/create_booking.dart';
 import '../../widgets/client_search_dialog.dart';
-import 'create/package_picker/package_picker_screen.dart';
-import 'create/package_picker/package_picker.dart';
+import 'package:shutterbook/pages/quotes/package_picker/package_picker/package_picker_screen.dart';
 import 'manage/manage_quote_screen.dart';
 
 class QuotePage extends StatefulWidget {
@@ -186,8 +186,6 @@ class _QuoteListState extends State<QuoteList> {
       _loading = false;
     });
   }
-
-
 
   @override
   Widget build(BuildContext context) {
