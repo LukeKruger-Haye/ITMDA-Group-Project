@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:shutterbook/data/models/client.dart';
 import 'package:shutterbook/data/models/quote.dart';
 import 'package:shutterbook/data/tables/quote_table.dart';
 import 'package:shutterbook/pages/bookings/create_booking.dart';
+import 'package:shutterbook/pages/quotes/package_picker/package_edit/package_picker_edit_screen.dart';
 import 'package:shutterbook/utils/formatters.dart';
 
 class ManageQuotePage extends StatefulWidget {
+  
   const ManageQuotePage({super.key});
 
   @override
@@ -34,6 +37,30 @@ class _ManageQuotePageState extends State<ManageQuotePage> {
       _quote = fresh ?? q;
       _loading = false;
     });
+  }
+
+Future<void> _edit() async {
+    if (_quote?.id == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Quote'),
+        content: const Text('Are you sure you want to edit this quote?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
+          ElevatedButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Edit')),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      
+      // Navigator.push(context,
+      // MaterialPageRoute(builder: (context)=>
+      // PackagePickerEditScreen(
+      //   client: ,
+      //   quoteNum: _quote.id
+      // )));
+    }
   }
 
   Future<void> _delete() async {
@@ -72,6 +99,8 @@ class _ManageQuotePageState extends State<ManageQuotePage> {
             const SizedBox(height: 8),
             Text('Total: ${formatRand(_quote!.totalPrice)}'),
             const SizedBox(height: 8),
+            Text('Created at: ${_quote!.createdAt}'),
+            const SizedBox(height: 8),
             Text('Description: ${_quote!.description}'),
             const SizedBox(height: 16),
             Row(
@@ -90,6 +119,14 @@ class _ManageQuotePageState extends State<ManageQuotePage> {
                   icon: const Icon(Icons.add_circle_outline),
                   label: const Text('Book'),
                 ),
+                                const SizedBox(width: 12),
+                ElevatedButton.icon(
+                  onPressed: _edit,
+                  icon: const Icon(Icons.edit),
+                  label: const Text('Edit'),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.orangeAccent),
+                ),
+
                 const SizedBox(width: 12),
                 ElevatedButton.icon(
                   onPressed: _delete,

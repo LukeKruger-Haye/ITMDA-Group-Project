@@ -267,7 +267,7 @@ class _QuoteListState extends State<QuoteList> {
                                 final messenger = ScaffoldMessenger.of(context);
                                 try {
                                   await nav.push(
-                                    MaterialPageRoute(builder: (_) => ManageQuotePage(), settings: RouteSettings(arguments: q)),
+                                    MaterialPageRoute(builder: (_) => const ManageQuotePage(), settings: RouteSettings(arguments: q)),
                                   );
                                   if (mounted) {
                                     await _load();
