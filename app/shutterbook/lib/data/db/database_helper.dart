@@ -77,7 +77,9 @@ class DatabaseHelper {
         item_id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         category TEXT NOT NULL,
-        condition TEXT NOT NULL DEFAULT 'New'
+        condition TEXT NOT NULL DEFAULT 'New',
+        serial_number TEXT,
+        image_path TEXT
       )
       '''
     );

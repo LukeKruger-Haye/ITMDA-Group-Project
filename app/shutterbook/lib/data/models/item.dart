@@ -3,12 +3,16 @@ class Item {
   String name;
   String category;
   String condition;
+  String? serialNumber;
+  String? imagePath;
 
   Item({
     this.id,
     required this.name,
     required this.category,
     required this.condition,
+    this.serialNumber,
+    this.imagePath,
   });
 
   Map<String, dynamic> toMap() {
@@ -17,6 +21,8 @@ class Item {
       'name': name,
       'category': category,
       'condition': condition,
+      'serial_number': serialNumber,
+      'image_path': imagePath,
     };
   }
 
@@ -26,6 +32,8 @@ class Item {
       name: map['name'],
       category: map['category'],
       condition: map['condition'],
+      serialNumber: map['serial_number'],
+      imagePath: map['image_path'],
     );
   }
 }
