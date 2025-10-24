@@ -4,6 +4,7 @@
 // newly created client without leaving the current flow.
 import 'package:flutter/material.dart';
 import 'package:shutterbook/data/models/client.dart';
+import 'package:shutterbook/theme/ui_styles.dart';
 import 'package:shutterbook/data/tables/client_table.dart';
 
 class ClientSearchDialog extends StatefulWidget {
@@ -110,6 +111,7 @@ class _ClientSearchDialogState extends State<ClientSearchDialog> {
                       itemBuilder: (context, index) {
                         final c = _filtered[index];
                         return ListTile(
+                          contentPadding: UIStyles.tilePadding,
                           title: Text('${c.firstName} ${c.lastName}'),
                           subtitle: Text('${c.email} • ${c.phone}'),
                           onTap: () => Navigator.of(context).pop(c),

@@ -10,6 +10,7 @@ import '../../utils/formatters.dart';
 import '../../data/tables/quote_table.dart';
 import '../../data/tables/client_table.dart';
 import '../../widgets/section_card.dart';
+import 'package:shutterbook/theme/ui_styles.dart';
 import '../bookings/create_booking.dart';
 import '../../widgets/client_search_dialog.dart';
 import 'create/package_picker/package_picker_screen.dart';
@@ -191,10 +192,10 @@ class _QuotePageState extends State<QuotePage> {
               Expanded(
                 child: _quotes.isEmpty
                     ? const Center(child: Text('No quotes for this client'))
-                    : ListView.separated(
-                        itemCount: _quotes.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1),
-                        itemBuilder: (context, index) {
+          : ListView.separated(
+            itemCount: _quotes.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
                           final q = _quotes[index];
                           final title = 'Quote #${q.id}';
                           final subtitle = 'Total: ${formatRand(q.totalPrice)} • ${q.createdAt ?? ''}';
@@ -204,25 +205,26 @@ class _QuotePageState extends State<QuotePage> {
                             final joined = '${q.description} ${q.id} ${q.totalPrice}'.toLowerCase();
                             if (!joined.contains(s)) return const SizedBox.shrink();
                           }
-                          return SectionCard(
-                            child: ListTile(
-                              leading: const Icon(Icons.description_outlined),
-                              title: Text(title),
-                              subtitle: Text(
-                                '${q.description}\n$subtitle',
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
+                            return SectionCard(
+                                child: ListTile(
+                                  contentPadding: UIStyles.tilePadding,
+                                leading: const Icon(Icons.description_outlined),
+                                title: Text(title),
+                                subtitle: Text(
+                                  '${q.description}\n$subtitle',
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                onTap: () {
+                                  // Open manage quote screen for that quote
+                                  Navigator.pushNamed(
+                                    context,
+                                    '/quotes/manage',
+                                    arguments: q,
+                                  );
+                                },
                               ),
-                              onTap: () {
-                                // Open manage quote screen for that quote
-                                Navigator.pushNamed(
-                                  context,
-                                  '/quotes/manage',
-                                  arguments: q,
-                                );
-                              },
-                            ),
-                          );
+                            );
                         },
                       ),
               ),
@@ -394,16 +396,18 @@ class _QuoteListState extends State<QuoteList> {
                 ? const Center(child: CircularProgressIndicator())
                 : filtered.isEmpty
                     ? const Center(child: Text('No quotes'))
-                    : ListView.separated(
-                        itemCount: filtered.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1),
-                        itemBuilder: (context, index) {
+          : ListView.separated(
+            itemCount: filtered.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
                           final q = filtered[index];
                           final clientName = _clientNames[q.clientId] ?? 'Client ${q.clientId}';
                           final title = 'Quote #${q.id} — $clientName';
                           final subtitle = 'Total: ${formatRand(q.totalPrice)} • ${q.createdAt ?? ''}';
                           return SectionCard(
+                            elevation: UIStyles.cardElevation,
                             child: ListTile(
+                              contentPadding: UIStyles.tilePadding,
                               leading: const Icon(Icons.description_outlined),
                               title: Text(title),
                               subtitle: Text(

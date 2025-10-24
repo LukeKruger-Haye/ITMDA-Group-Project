@@ -5,6 +5,9 @@ import 'package:shutterbook/data/models/quote.dart';
 import 'package:shutterbook/data/tables/quote_table.dart';
 import 'package:shutterbook/pages/bookings/create_booking.dart';
 import 'package:shutterbook/utils/formatters.dart';
+import 'package:shutterbook/theme/ui_styles.dart';
+
+import 'package:shutterbook/utils/dialogs.dart';
 
 class ManageQuotePage extends StatefulWidget {
   /// Optional initialQuote can be provided to avoid a DB lookup (useful for tests)
@@ -64,16 +67,12 @@ class _ManageQuotePageState extends State<ManageQuotePage> {
 
   Future<void> _delete() async {
     if (_quote?.id == null) return;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Quote'),
-        content: const Text('Are you sure you want to delete this quote?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Delete')),
-        ],
-      ),
+    final confirmed = await showConfirmationDialog(
+      context,
+      title: 'Delete Quote',
+      content: 'Are you sure you want to delete this quote?',
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
     );
     if (confirmed == true) {
       final table = widget.quoteTable ?? QuoteTable();
@@ -170,21 +169,31 @@ class _ManageQuotePageState extends State<ManageQuotePage> {
                 ),
                 const SizedBox(height: 12),
                 Row(children: [
-                  ElevatedButton.icon(onPressed: _save, icon: const Icon(Icons.save), label: const Text('Save')),
+                  ElevatedButton.icon(
+                    style: UIStyles.primaryButton(context),
+                    onPressed: _save,
+                    icon: const Icon(Icons.save),
+                    label: const Text('Save'),
+                  ),
                   const SizedBox(width: 12),
-                  OutlinedButton(onPressed: () {
-                    setState(() {
-                      _editing = false;
-                      _descriptionController.text = _quote?.description ?? '';
-                      _priceController.text = _quote != null ? _quote!.totalPrice.toStringAsFixed(2) : '';
-                    });
-                  }, child: const Text('Cancel')),
+                  OutlinedButton(
+                    style: UIStyles.outlineButton(context),
+                    onPressed: () {
+                      setState(() {
+                        _editing = false;
+                        _descriptionController.text = _quote?.description ?? '';
+                        _priceController.text = _quote != null ? _quote!.totalPrice.toStringAsFixed(2) : '';
+                      });
+                    },
+                    child: const Text('Cancel'),
+                  ),
                 ])
               ],
               const SizedBox(height: 16),
               Row(
                 children: [
                   ElevatedButton.icon(
+                    style: UIStyles.primaryButton(context),
                     onPressed: () async {
                       // Book from this quote
                       final nav = Navigator.of(context);
@@ -200,10 +209,10 @@ class _ManageQuotePageState extends State<ManageQuotePage> {
                   ),
                   const SizedBox(width: 12),
                   ElevatedButton.icon(
+                    style: UIStyles.destructiveButton(context),
                     onPressed: _delete,
                     icon: const Icon(Icons.delete),
                     label: const Text('Delete'),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
                   ),
                 ],
               )

@@ -2,6 +2,7 @@
 // A compact calendar view used in the bookings section to visualise
 // upcoming sessions. It's intentionally small and focused on display logic.
 import 'package:flutter/material.dart';
+import 'package:shutterbook/theme/ui_styles.dart';
 import 'package:shutterbook/data/models/booking.dart';
 import 'package:shutterbook/data/models/client.dart';
 import 'package:shutterbook/data/models/quote.dart';
@@ -232,6 +233,7 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                                       )
                                     : '';
                                 return ListTile(
+                                  contentPadding: UIStyles.tilePadding,
                                   title: Text(namePart),
                                   subtitle: emailPart.isNotEmpty
                                       ? Text(emailPart)
@@ -308,9 +310,9 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                     if (!mounted) return;
                     _loadBookings();
                   },
-                  child: const Text(
+                  child: Text(
                     'Delete',
-                    style: TextStyle(color: Colors.red),
+                    style: TextStyle(color: Theme.of(context).colorScheme.error),
                   ),
                 ),
               TextButton(
@@ -452,9 +454,9 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                 SizedBox(
                   width: blockW,
                   child: Center(
-                    child: Text(
+                      child: Text(
                       getWeekdayName(d),
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                      style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color),
                     ),
                   ),
                 ),
@@ -498,9 +500,9 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                           final slot = DateTime(d.year, d.month, d.day, hour);
                           final booking = getBookingForSlot(slot);
                           if (booking != null) {
-                            return Colors.green[300];
+                            return Theme.of(context).colorScheme.secondaryContainer;
                           }
-                          return Colors.grey[200];
+                          return Theme.of(context).colorScheme.surfaceContainerHighest;
                         })(),
                         borderRadius: BorderRadius.circular(4),
                       ),

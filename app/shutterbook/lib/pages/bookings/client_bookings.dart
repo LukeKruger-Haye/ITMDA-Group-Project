@@ -2,6 +2,7 @@
 // Shows bookings filtered to a single client. Used when drilling down
 // from clients or quick links.
 import 'package:flutter/material.dart';
+import 'package:shutterbook/theme/ui_styles.dart';
 import '../../data/models/client.dart';
 import '../../data/models/booking.dart';
 import '../../data/tables/booking_table.dart';
@@ -61,6 +62,7 @@ class _ClientBookingsPageState extends State<ClientBookingsPage> {
               itemBuilder: (context, index) {
                 final b = bookings[index];
                 return ListTile(
+                  contentPadding: UIStyles.tilePadding,
                   title: Text(_formatDate(b.bookingDate)),
                   subtitle: Text('Status: ${b.status}  •  Quote: ${b.quoteId}'),
                   onTap: () async {

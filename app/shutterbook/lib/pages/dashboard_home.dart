@@ -176,7 +176,7 @@ class _DashboardHomeState extends State<DashboardHome> {
 
   @override
   Widget build(BuildContext context) {
-  final Color activeColor = AppColors.colorForIndex(_currentIndex);
+  final Color activeColor = AppColors.colorForIndex(context, _currentIndex);
     return Scaffold(
       appBar: AppBar(
         title: Row(

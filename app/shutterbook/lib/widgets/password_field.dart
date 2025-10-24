@@ -46,9 +46,9 @@ class _PasswordFieldState extends State<PasswordField> {
   Color _strengthColor(BuildContext context, String pwd) {
     final ThemeData t = Theme.of(context);
     if (pwd.isEmpty) return t.colorScheme.primary;
-    if (pwd.length < 6) return Colors.red;
-    if (RegExp(r'(?=.*[A-Z])(?=.*\d)').hasMatch(pwd)) return Colors.green;
-    return Colors.orange;
+    if (pwd.length < 6) return t.colorScheme.error;
+    if (RegExp(r'(?=.*[A-Z])(?=.*\d)').hasMatch(pwd)) return t.colorScheme.primary;
+    return t.colorScheme.secondary;
   }
 
   @override

@@ -9,6 +9,7 @@ import 'package:shutterbook/data/models/client.dart';
 import 'package:shutterbook/data/tables/client_table.dart';
 import 'package:shutterbook/pages/quotes/create/package_picker/package_picker_screen.dart';
 import 'package:shutterbook/pages/quotes/create/package_picker/package_picker.dart';
+import 'package:shutterbook/theme/ui_styles.dart';
 import 'package:shutterbook/pages/quotes/create/overview/quote_overview_screen.dart';
 
 class CreateQuotePage extends StatefulWidget {
@@ -147,6 +148,7 @@ class _CreateQuotePageState extends State<CreateQuotePage> {
                 itemBuilder: (context, index) {
                   final client = suggestions[index];
                   return ListTile(
+                    contentPadding: UIStyles.tilePadding,
                     title: Text('${client.firstName} ${client.lastName}'),
                     subtitle: Text(client.email),
                     onTap: () {

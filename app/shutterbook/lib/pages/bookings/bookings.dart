@@ -3,6 +3,7 @@ import 'dart:async';
 // Displays a paginated list or calendar of bookings and provides
 // entry points to create or edit bookings.
 import 'package:flutter/material.dart';
+import 'package:shutterbook/theme/ui_styles.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'booking_calendar_view.dart';
 import '../../widgets/section_card.dart';
@@ -355,12 +356,9 @@ class _BookingListViewState extends State<BookingListView> {
                 ? '${client.firstName.isNotEmpty ? client.firstName[0] : ''}${client.lastName.isNotEmpty ? client.lastName[0] : ''}'.toUpperCase()
                 : '#';
 
-            return Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              margin: EdgeInsets.zero,
+            return SectionCard(
               child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                contentPadding: UIStyles.tilePadding,
                 leading: CircleAvatar(child: Text(initials, style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold))),
                 title: Text(title, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
                 subtitle: Text(subtitle, style: theme.textTheme.bodySmall),

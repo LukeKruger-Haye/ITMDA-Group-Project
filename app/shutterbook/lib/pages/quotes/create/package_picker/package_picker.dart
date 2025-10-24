@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 // building a quote.
 import 'package:flutter/material.dart';
 import 'package:shutterbook/utils/formatters.dart';
+import 'package:shutterbook/theme/ui_styles.dart';
 import 'package:shutterbook/data/models/client.dart';
 
 
@@ -90,6 +91,7 @@ class PackagePickerState extends State<PackagePicker> {
               final quantity = _selectedPackages[package] ?? 1;
               return Card(
                 child: ListTile(
+                  contentPadding: UIStyles.tilePadding,
                   title: Text('${package.name} (${formatRand(package.price)})'),
                   trailing: isSelected
                       ? Row(
@@ -113,9 +115,9 @@ class PackagePickerState extends State<PackagePicker> {
                               },
                             ),
                             IconButton(
-                              icon: const Icon(
+                              icon: Icon(
                                 Icons.check_box,
-                                color: Colors.green,
+                                color: Theme.of(context).colorScheme.primary,
                               ),
                               onPressed: () => _toggleSelection(package),
                             ),

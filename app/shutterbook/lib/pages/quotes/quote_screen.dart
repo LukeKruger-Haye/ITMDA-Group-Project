@@ -2,6 +2,7 @@
 // Displays details for a single quote and provides actions like booking
 // or editing.
 import 'package:flutter/material.dart';
+import 'package:shutterbook/theme/ui_styles.dart';
 
 class QuotePage extends StatelessWidget {
   const QuotePage({super.key});
@@ -13,7 +14,7 @@ class QuotePage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.pinkAccent,
+        backgroundColor: Theme.of(context).colorScheme.primary,
         title: const Text('Quotes'),
       ),
       body: const Buttons(),
@@ -39,9 +40,8 @@ class ButtonsState extends State<Buttons> {
 
   @override
   Widget build(BuildContext context) {
-    final ButtonStyle style = ElevatedButton.styleFrom(
-      textStyle: const TextStyle(fontSize: 30),
-    );
+    // Use centralized UI styles for consistency
+    final ButtonStyle style = UIStyles.primaryButton(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -49,13 +49,13 @@ class ButtonsState extends State<Buttons> {
           ElevatedButton(
             style: style,
             onPressed: onPressedCreate,
-            child: const Text("Create"),
+            child: const Text("Create", style: TextStyle(fontSize: 30)),
           ),
           const SizedBox(height: 60),
           ElevatedButton(
             style: style,
             onPressed: onPressedManage,
-            child: const Text("Manage"),
+            child: const Text("Manage", style: TextStyle(fontSize: 30)),
           ),
         ],
       ),

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shutterbook/data/models/quote.dart';
 import 'package:shutterbook/data/tables/quote_table.dart';
 import 'package:shutterbook/utils/formatters.dart';
+import 'package:shutterbook/theme/ui_styles.dart';
 
 class QuotesDialog extends StatefulWidget {
   const QuotesDialog({super.key, this.clientId});
@@ -55,6 +56,7 @@ class _QuotesDialogState extends State<QuotesDialog> {
                 final title = 'Quote #${q.id}';
                 final subtitle = 'Total: ${formatRand(q.totalPrice)} • ${q.createdAt}';
                 return ListTile(
+                  contentPadding: UIStyles.tilePadding,
                   leading: const Icon(Icons.description_outlined),
                   title: Text(title),
                   subtitle: Text(
@@ -63,6 +65,7 @@ class _QuotesDialogState extends State<QuotesDialog> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   trailing: ElevatedButton.icon(
+                    style: UIStyles.primaryButton(context),
                     onPressed: () => Navigator.of(context).pop<Quote>(q),
                     icon: const Icon(Icons.add_circle_outline),
                     label: const Text('Book'),

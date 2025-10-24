@@ -2,6 +2,7 @@
 // Simple responsive grid and card widgets for the small statistic tiles
 // used on the dashboard. Keeps layout logic local to this component.
 import 'package:flutter/material.dart';
+import 'package:shutterbook/theme/ui_styles.dart';
 
 class StatItem {
   final String label;
@@ -26,22 +27,23 @@ class StatCard extends StatelessWidget {
     final labelStyle = theme.textTheme.bodySmall;
 
     return Card(
-      elevation: 2,
+      elevation: UIStyles.cardElevation,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      color: theme.colorScheme.secondaryContainer,
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: pad, vertical: pad),
         child: Row(
           children: [
-            Icon(item.icon, size: iconSize, color: theme.colorScheme.primary),
+            Icon(item.icon, size: iconSize, color: theme.colorScheme.onSecondaryContainer),
             SizedBox(width: compact ? 8 : 12),
             Flexible(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(item.value, style: titleStyle),
+                  Text(item.value, style: titleStyle?.copyWith(color: theme.colorScheme.onSecondaryContainer)),
                   SizedBox(height: compact ? 2 : 4),
-                  Text(item.label, style: labelStyle, overflow: TextOverflow.ellipsis),
+                  Text(item.label, style: labelStyle?.copyWith(color: theme.colorScheme.onSecondaryContainer), overflow: TextOverflow.ellipsis),
                 ],
               ),
             ),

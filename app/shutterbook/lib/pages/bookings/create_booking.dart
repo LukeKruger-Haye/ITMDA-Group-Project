@@ -7,6 +7,7 @@
 // actions and the bookings list.
 import 'package:flutter/material.dart';
 import 'package:shutterbook/data/models/quote.dart';
+import 'package:shutterbook/theme/ui_styles.dart';
 import 'package:shutterbook/data/models/booking.dart';
 import 'package:shutterbook/data/models/client.dart';
 import 'package:shutterbook/data/tables/booking_table.dart';
@@ -251,6 +252,7 @@ class _CreateBookingPageState extends State<CreateBookingPage> {
                       if (!isEditing)
                         (widget.quote != null
                             ? ListTile(
+                                contentPadding: UIStyles.tilePadding,
                                 leading: const Icon(Icons.description_outlined),
                                 title: Text('Quote #${widget.quote!.id}'),
                                 subtitle: Text(widget.quote!.description),
@@ -298,6 +300,7 @@ class _CreateBookingPageState extends State<CreateBookingPage> {
                               ))
                       else
                         ListTile(
+                          contentPadding: UIStyles.tilePadding,
                           leading: const Icon(Icons.edit_calendar_outlined),
                           title: Text('Booking #${widget.existing!.bookingId ?? ''}'),
                           subtitle: const Text('Edit booking details'),
@@ -322,6 +325,7 @@ class _CreateBookingPageState extends State<CreateBookingPage> {
                       ),
                       const SizedBox(height: 12),
                       OutlinedButton.icon(
+                        style: UIStyles.outlineButton(context),
                         onPressed: _pickDateTime,
                         icon: const Icon(Icons.event),
                         label: Text(
@@ -346,6 +350,7 @@ class _CreateBookingPageState extends State<CreateBookingPage> {
                 _saving
                     ? const Center(child: CircularProgressIndicator())
                     : ElevatedButton.icon(
+                        style: UIStyles.primaryButton(context),
                         onPressed: _saveBooking,
                         icon: const Icon(Icons.check),
                         label: const Text('Save Booking'),
