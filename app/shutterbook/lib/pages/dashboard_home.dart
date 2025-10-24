@@ -26,6 +26,10 @@ class DashboardHome extends StatefulWidget {
 
 class _DashboardHomeState extends State<DashboardHome> {
   int _currentIndex = 0;
+  late final PageController _pageController;
+  // Whether horizontal swiping between pages is enabled. Can be toggled
+  // programmatically (e.g. to lock navigation while a modal flow runs).
+  bool _swipeEnabled = true;
   final GlobalKey _clientsKey = GlobalKey();
   final GlobalKey _bookingsKey = GlobalKey();
   final GlobalKey _inventoryKey = GlobalKey();
@@ -42,49 +46,73 @@ class _DashboardHomeState extends State<DashboardHome> {
     'Inventory',
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: _currentIndex);
+    // No fractional page listener needed when indicator is removed.
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
   Widget _buildBody() {
-    return IndexedStack(
-      index: _currentIndex,
+    // PageView provides native horizontal swipe navigation with animation.
+    return PageView(
+      controller: _pageController,
+      physics: _swipeEnabled ? const ClampingScrollPhysics() : const NeverScrollableScrollPhysics(),
+      onPageChanged: (index) => setState(() => _currentIndex = index),
       children: [
         // Use the redesigned DashboardPage as the embedded home dashboard
         DashboardPage(
           embedded: true,
-          onNavigateToTab: (index) => setState(() => _currentIndex = index),
+          onNavigateToTab: (index) {
+            // dashboard can ask to navigate to another tab — animate the page transition
+            _pageController.animateToPage(index, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+          },
         ),
-  BookingsPage(key: _bookingsKey, embedded: true),
+        BookingsPage(key: _bookingsKey, embedded: true),
         ClientsPage(
           key: _clientsKey,
           embedded: true,
-          onViewBookings: (client) {
-          // when a client requests to view bookings, switch to Bookings tab and focus the embedded BookingsPage
-          setState(() {
-            _currentIndex = 1;
-          });
-          // try to call focusOnClient on the embedded bookings page
-          final state = _bookingsKey.currentState;
-          if (state != null) {
-            try {
-              (state as dynamic).focusOnClient(client);
-            } catch (_) {}
-          }
+          onViewBookings: (client) async {
+            // animate to Bookings tab and focus the embedded BookingsPage
+            await _pageController.animateToPage(1, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+            final state = _bookingsKey.currentState;
+            if (state != null) {
+              try {
+                (state as dynamic).focusOnClient(client);
+              } catch (_) {}
+            }
           },
-          onViewQuotes: (client) {
-            // switch to Quotes tab and tell embedded QuotePage to focus on the client
-            setState(() {
-              _currentIndex = 3;
-            });
+          onViewQuotes: (client) async {
+            // animate to Quotes tab and tell embedded QuotePage to focus on the client
+            await _pageController.animateToPage(3, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
             final state = _quotesKey.currentState;
             if (state != null) {
               try {
                 (state as dynamic).focusOnClient(client);
               } catch (_) {}
             }
-        }),
+          },
+        ),
         QuotePage(key: _quotesKey, embedded: true),
         InventoryPage(key: _inventoryKey, embedded: true),
       ],
     );
   }
+
+  /// Enable or disable swipe navigation. Public so parent widgets or
+  /// embedded pages can lock navigation when needed.
+  void setSwipeEnabled(bool enabled) {
+    if (!mounted) return;
+    setState(() => _swipeEnabled = enabled);
+  }
+
+  // Page indicator removed per UX feedback.
 
   FloatingActionButton? _buildFab() {
     switch (_currentIndex) {
@@ -224,7 +252,10 @@ class _DashboardHomeState extends State<DashboardHome> {
       floatingActionButton: _buildFab(),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
-        onTap: (i) => setState(() => _currentIndex = i),
+        onTap: (i) {
+          // animate the PageView to the tapped page
+          _pageController.animateToPage(i, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+        },
         type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Home'),
