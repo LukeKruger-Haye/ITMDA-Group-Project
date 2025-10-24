@@ -1,3 +1,7 @@
+// Shutterbook — password_field.dart
+// Reusable password field with optional strength indicator and comparison
+// support. Used on auth setup and login flows. Keep validation logic in the
+// parent for reusability.
 import 'package:flutter/material.dart';
 
 typedef PasswordValidator = String? Function(String?);
@@ -56,7 +60,7 @@ class _PasswordFieldState extends State<PasswordField> {
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
+      children: <Widget>[
         TextFormField(
           controller: widget.controller,
           obscureText: !_visible,
@@ -77,9 +81,13 @@ class _PasswordFieldState extends State<PasswordField> {
           },
           onChanged: (_) => setState(() {}),
         ),
-        if (widget.showStrength) ...[
+        if (widget.showStrength) ...<Widget>[
           const SizedBox(height: 8),
-          LinearProgressIndicator(value: strength, color: color, backgroundColor: color.withAlpha((0.18 * 255).round())),
+          LinearProgressIndicator(
+            value: strength,
+            color: color,
+            backgroundColor: color.withAlpha((0.18 * 255).round()),
+          ),
           const SizedBox(height: 6),
           Align(alignment: Alignment.centerLeft, child: Text(label, style: TextStyle(color: color, fontSize: 12))),
         ],

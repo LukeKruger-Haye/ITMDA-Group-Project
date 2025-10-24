@@ -1,3 +1,5 @@
+// Shutterbook — simple validation helpers
+// Very small helpers for validating user input (passwords, emails, etc.).
 class Validators {
   // Optionally, enforce: uppercase, numbers, symbols
   static String? validatePassword(String? password) {

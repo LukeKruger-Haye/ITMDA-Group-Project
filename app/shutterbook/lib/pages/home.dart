@@ -1,3 +1,6 @@
+// Shutterbook — Home screen
+// A simple navigation hub used after login or setup. Keeps the list of
+// top-level links to the main app sections.
 import 'package:flutter/material.dart';
 import 'authentication/models/auth_model.dart';
 import 'settings/settings.dart';

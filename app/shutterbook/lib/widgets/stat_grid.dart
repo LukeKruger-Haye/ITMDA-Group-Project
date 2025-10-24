@@ -1,3 +1,6 @@
+// Shutterbook — stat_grid.dart
+// Simple responsive grid and card widgets for the small statistic tiles
+// used on the dashboard. Keeps layout logic local to this component.
 import 'package:flutter/material.dart';
 
 class StatItem {

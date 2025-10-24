@@ -1,4 +1,7 @@
 import 'package:flutter/foundation.dart';
+// Shutterbook — Package picker
+// Small helper screen that allows selecting pre-defined packages when
+// building a quote.
 import 'package:flutter/material.dart';
 import 'package:shutterbook/utils/formatters.dart';
 import 'package:shutterbook/data/models/client.dart';

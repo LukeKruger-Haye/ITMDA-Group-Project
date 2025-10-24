@@ -34,6 +34,7 @@ class _DashboardPageState extends State<DashboardPage> {
   int _quotesCount = 0;
   int _inventoryCount = 0;
   bool _statsLoading = true;
+  late Future<List<dynamic>> _dashboardFuture;
 
   // navigation to create booking performed inline where needed
 
@@ -54,6 +55,15 @@ class _DashboardPageState extends State<DashboardPage> {
     }
     _argsProcessed = true;
     _loadStats();
+    _initDashboardFuture();
+  }
+
+  void _initDashboardFuture() {
+    _dashboardFuture = Future.wait([
+      BookingTable().getAllBookings(),
+      QuoteTable().getAllQuotes(),
+      ClientTable().getAllClients(),
+    ]);
   }
 
   Future<void> _loadStats() async {
@@ -145,7 +155,7 @@ class _DashboardPageState extends State<DashboardPage> {
     // main body content
     // Simplified dashboard: show stats + next 3 upcoming bookings + recent 3 quotes
     Widget bodyContent = FutureBuilder<List<dynamic>>(
-      future: Future.wait([BookingTable().getAllBookings(), QuoteTable().getAllQuotes(), ClientTable().getAllClients()]),
+      future: _dashboardFuture,
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
           return const SizedBox(height: 200, child: Center(child: CircularProgressIndicator()));
@@ -306,6 +316,8 @@ class _DashboardPageState extends State<DashboardPage> {
     Future<void> refreshAll() async {
       // reload stats and then rebuild to refresh bookings/quotes futures
       await _loadStats();
+      // recreate dashboard future so FutureBuilder refires
+      _initDashboardFuture();
       if (mounted) setState(() {});
     }
 

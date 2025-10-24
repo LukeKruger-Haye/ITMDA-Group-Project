@@ -1,10 +1,26 @@
+// Shutterbook — Quotes dialog
+// Small modal that lists quotes and allows quick selection for actions
+// such as creating a booking.
 import 'package:flutter/material.dart';
 import 'package:shutterbook/data/models/quote.dart';
 import 'package:shutterbook/data/tables/quote_table.dart';
 import 'package:shutterbook/utils/formatters.dart';
 
-class QuotesDialog extends StatelessWidget {
+class QuotesDialog extends StatefulWidget {
   const QuotesDialog({super.key});
+
+  @override
+  State<QuotesDialog> createState() => _QuotesDialogState();
+}
+
+class _QuotesDialogState extends State<QuotesDialog> {
+  late Future<List<Quote>> _quotesFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _quotesFuture = QuoteTable().getAllQuotes();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +30,7 @@ class QuotesDialog extends StatelessWidget {
         width: double.maxFinite,
         height: 420,
         child: FutureBuilder<List<Quote>>(
-          future: QuoteTable().getAllQuotes(),
+          future: _quotesFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());

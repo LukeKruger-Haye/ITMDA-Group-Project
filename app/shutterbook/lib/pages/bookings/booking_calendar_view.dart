@@ -1,3 +1,6 @@
+// Shutterbook — booking_calendar_view.dart
+// A compact calendar view used in the bookings section to visualise
+// upcoming sessions. It's intentionally small and focused on display logic.
 import 'package:flutter/material.dart';
 import 'package:shutterbook/data/models/booking.dart';
 import 'package:shutterbook/data/models/client.dart';

@@ -1,3 +1,6 @@
+// Shutterbook — Client-specific bookings view
+// Shows bookings filtered to a single client. Used when drilling down
+// from clients or quick links.
 import 'package:flutter/material.dart';
 import '../../data/models/client.dart';
 import '../../data/models/booking.dart';

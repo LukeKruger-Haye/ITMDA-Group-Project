@@ -1,18 +1,23 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+// Shutterbook — Clients management
+// Lists and edits clients. Keep UI logic here; persistence is in
+// `data/tables/client_table.dart`.
 import 'package:flutter/material.dart';
 import '../../data/models/client.dart';
 import '../../data/tables/client_table.dart';
 import '../../data/tables/quote_table.dart';
 import '../../data/tables/booking_table.dart';
 import '../theme_controller.dart'; // added to react to global theme
+import '../../theme/app_colors.dart';
 import '../../widgets/section_card.dart';
 import '../bookings/bookings.dart';
 
 class ClientsPage extends StatefulWidget {
   final bool embedded; // when true, return content only (no Scaffold)
   final void Function(Client client)? onViewBookings;
-  const ClientsPage({super.key, this.embedded = false, this.onViewBookings});
+  final void Function(Client client)? onViewQuotes;
+  const ClientsPage({super.key, this.embedded = false, this.onViewBookings, this.onViewQuotes});
 
   @override
   State<ClientsPage> createState() => _ClientsPageState();
@@ -276,7 +281,14 @@ class _ClientsPageState extends State<ClientsPage> {
             onPressed: () {
               final nav = Navigator.of(context);
               nav.pop();
-              // Open the Quotes page and show quotes for this client
+              // Delegate to parent's onViewQuotes if available so we don't push separate views
+              if (widget.onViewQuotes != null) {
+                try {
+                  widget.onViewQuotes!(client);
+                  return;
+                } catch (_) {}
+              }
+              // fallback to opening full Quotes page
               Navigator.pushNamed(nav.context, '/quotes', arguments: client);
             },
             child: const Text('View Quotes'),
@@ -378,14 +390,33 @@ class _ClientsPageState extends State<ClientsPage> {
           child: widget.embedded
               ? pageBody
               : Scaffold(
-                  appBar: AppBar(title: const Text('Clients')),
-                  body: pageBody,
-                  floatingActionButton: FloatingActionButton(
-                    onPressed: () => _addOrEditClient(),
-                    tooltip: 'Add Client',
-                    child: const Icon(Icons.person_add),
-                  ),
-                ),
+                        appBar: AppBar(
+                          title: Row(
+                            children: [
+                              Container(
+                                width: 6,
+                                height: 20,
+                                margin: const EdgeInsets.only(right: 8),
+                                decoration: BoxDecoration(
+                                  color: AppColors.colorForIndex(2).withAlpha((0.95 * 255).round()),
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
+                              ),
+                              const Text('Clients'),
+                            ],
+                          ),
+                          bottom: PreferredSize(
+                            preferredSize: const Size.fromHeight(2.0),
+                            child: Container(height: 2.0, color: AppColors.colorForIndex(2).withAlpha((0.6 * 255).round())),
+                          ),
+                        ),
+                        body: pageBody,
+                        floatingActionButton: FloatingActionButton(
+                          onPressed: () => _addOrEditClient(),
+                          tooltip: 'Add Client',
+                          child: const Icon(Icons.person_add),
+                        ),
+                      ),
         );
       },
     );

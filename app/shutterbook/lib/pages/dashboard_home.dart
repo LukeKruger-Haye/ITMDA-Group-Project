@@ -1,7 +1,10 @@
+// Shutterbook — Dashboard home
+// The embedded-tab dashboard used as the app's landing page. Hosts
+// Bookings, Clients, Quotes and Inventory tabs and exposes quick actions.
+// Keep tab-switching logic here for a compact UX.
 // ignore_for_file: sort_child_properties_last
 import 'package:flutter/material.dart';
 import 'authentication/models/auth_model.dart';
-// dashboard page temporarily removed - using placeholder while redesigning
 import 'bookings/dashboard.dart';
 import 'bookings/bookings.dart';
 import 'clients/clients.dart';
@@ -10,6 +13,7 @@ import 'quotes/create/create_quote.dart';
 import 'bookings/create_booking.dart';
 import 'inventory/inventory.dart';
 import 'settings/settings.dart';
+import '../theme/app_colors.dart';
 
 class DashboardHome extends StatefulWidget {
   final AuthModel authModel;
@@ -25,6 +29,10 @@ class _DashboardHomeState extends State<DashboardHome> {
   final GlobalKey _clientsKey = GlobalKey();
   final GlobalKey _bookingsKey = GlobalKey();
   final GlobalKey _inventoryKey = GlobalKey();
+  // key for the embedded quotes page so we can trigger a refresh after creates
+  final GlobalKey _quotesKey = GlobalKey();
+
+  // Use centralized colors from AppColors
 
   static const _labels = [
     'Dashboard',
@@ -43,8 +51,11 @@ class _DashboardHomeState extends State<DashboardHome> {
           embedded: true,
           onNavigateToTab: (index) => setState(() => _currentIndex = index),
         ),
-        BookingsPage(key: _bookingsKey, embedded: true),
-        ClientsPage(key: _clientsKey, embedded: true, onViewBookings: (client) {
+  BookingsPage(key: _bookingsKey, embedded: true),
+        ClientsPage(
+          key: _clientsKey,
+          embedded: true,
+          onViewBookings: (client) {
           // when a client requests to view bookings, switch to Bookings tab and focus the embedded BookingsPage
           setState(() {
             _currentIndex = 1;
@@ -56,8 +67,20 @@ class _DashboardHomeState extends State<DashboardHome> {
               (state as dynamic).focusOnClient(client);
             } catch (_) {}
           }
+          },
+          onViewQuotes: (client) {
+            // switch to Quotes tab and tell embedded QuotePage to focus on the client
+            setState(() {
+              _currentIndex = 3;
+            });
+            final state = _quotesKey.currentState;
+            if (state != null) {
+              try {
+                (state as dynamic).focusOnClient(client);
+              } catch (_) {}
+            }
         }),
-        const QuotePage(embedded: true),
+        QuotePage(key: _quotesKey, embedded: true),
         InventoryPage(key: _inventoryKey, embedded: true),
       ],
     );
@@ -85,7 +108,16 @@ class _DashboardHomeState extends State<DashboardHome> {
             final created = await nav.push<bool>(
               MaterialPageRoute(builder: (_) => CreateQuotePage()),
             );
-            if (created == true && mounted) setState(() {});
+            if (created == true) {
+              // try to notify the embedded quotes page to refresh its data
+              final state = _quotesKey.currentState;
+              if (state != null) {
+                try {
+                  await (state as dynamic).refresh();
+                } catch (_) {}
+              }
+              if (mounted) setState(() {});
+            }
           },
           child: const Icon(Icons.request_quote),
           tooltip: 'Create quote',
@@ -144,9 +176,24 @@ class _DashboardHomeState extends State<DashboardHome> {
 
   @override
   Widget build(BuildContext context) {
+  final Color activeColor = AppColors.colorForIndex(_currentIndex);
     return Scaffold(
       appBar: AppBar(
-        title: Text(_labels[_currentIndex]),
+        title: Row(
+          children: [
+            // small left color accent
+            Container(
+              width: 6,
+              height: 20,
+              margin: const EdgeInsets.only(right: 8),
+                decoration: BoxDecoration(
+                color: activeColor.withAlpha((0.95 * 255).round()),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Text(_labels[_currentIndex]),
+          ],
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
@@ -159,6 +206,17 @@ class _DashboardHomeState extends State<DashboardHome> {
             },
           ),
         ],
+         // subtle colored underline to indicate active tab without changing
+         // the AppBar's main color — animate the color change for polish.
+         bottom: PreferredSize(
+           preferredSize: const Size.fromHeight(3.0),
+            child: AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOut,
+            height: 3.0,
+            color: activeColor.withAlpha((0.6 * 255).round()),
+          ),
+         ),
       ),
       body: SafeArea(
         child: _buildBody(),

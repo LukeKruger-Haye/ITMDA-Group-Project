@@ -1,3 +1,5 @@
+// Shutterbook — Manage Quote screen
+// Full screen used to view and edit a single quote's details.
 import 'package:flutter/material.dart';
 import 'package:shutterbook/data/models/quote.dart';
 import 'package:shutterbook/data/tables/quote_table.dart';
@@ -5,7 +7,12 @@ import 'package:shutterbook/pages/bookings/create_booking.dart';
 import 'package:shutterbook/utils/formatters.dart';
 
 class ManageQuotePage extends StatefulWidget {
-  const ManageQuotePage({super.key});
+  /// Optional initialQuote can be provided to avoid a DB lookup (useful for tests)
+  final Quote? initialQuote;
+  /// Optional injected QuoteTable for testing/mocking
+  final dynamic quoteTable;
+
+  const ManageQuotePage({super.key, this.initialQuote, this.quoteTable});
 
   @override
   State<ManageQuotePage> createState() => _ManageQuotePageState();
@@ -14,10 +21,26 @@ class ManageQuotePage extends StatefulWidget {
 class _ManageQuotePageState extends State<ManageQuotePage> {
   Quote? _quote;
   bool _loading = true;
+  bool _editing = false;
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _priceController = TextEditingController();
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    // Prefer provided initialQuote (testing) to avoid DB I/O
+    if (widget.initialQuote != null) {
+      final q = widget.initialQuote!;
+      setState(() {
+        _quote = q;
+        _loading = false;
+        _descriptionController.text = _quote?.description ?? '';
+        _priceController.text = _quote != null ? _quote!.totalPrice.toStringAsFixed(2) : '';
+      });
+      return;
+    }
+
     final args = ModalRoute.of(context)?.settings.arguments;
     if (args is Quote) {
       _load(args);
@@ -28,11 +51,14 @@ class _ManageQuotePageState extends State<ManageQuotePage> {
 
   Future<void> _load(Quote q) async {
     // reload from DB to ensure latest
-    final fresh = await QuoteTable().getQuoteById(q.id!);
+    final table = widget.quoteTable ?? QuoteTable();
+    final fresh = await table.getQuoteById(q.id!);
     if (!mounted) return;
     setState(() {
       _quote = fresh ?? q;
       _loading = false;
+      _descriptionController.text = _quote?.description ?? '';
+      _priceController.text = _quote != null ? _quote!.totalPrice.toStringAsFixed(2) : '';
     });
   }
 
@@ -50,10 +76,39 @@ class _ManageQuotePageState extends State<ManageQuotePage> {
       ),
     );
     if (confirmed == true) {
-      await QuoteTable().deleteQuotes(_quote!.id!);
+      final table = widget.quoteTable ?? QuoteTable();
+      await table.deleteQuotes(_quote!.id!);
       if (!mounted) return;
       Navigator.of(context).pop(true);
     }
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_quote == null) return;
+    final desc = _descriptionController.text.trim();
+    final price = double.tryParse(_priceController.text.replaceAll(',', '').replaceAll('R', '').replaceAll(' ', ''));
+    if (price == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a valid price')));
+      return;
+    }
+
+    final updated = Quote(
+      id: _quote!.id,
+      clientId: _quote!.clientId,
+      totalPrice: price,
+      description: desc,
+      createdAt: _quote!.createdAt,
+    );
+
+    final table = widget.quoteTable ?? QuoteTable();
+    await table.updateQuote(updated);
+    if (!mounted) return;
+    setState(() {
+      _quote = updated;
+      _editing = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Quote saved')));
   }
 
   @override
@@ -62,44 +117,98 @@ class _ManageQuotePageState extends State<ManageQuotePage> {
     if (_quote == null) return const Scaffold(body: Center(child: Text('Quote not found')));
 
     return Scaffold(
-      appBar: AppBar(title: Text('Quote #${_quote!.id}')),
+      appBar: AppBar(
+        title: Text('Quote #${_quote!.id}'),
+        actions: [
+          IconButton(
+            icon: Icon(_editing ? Icons.close : Icons.edit),
+            onPressed: () {
+              if (_editing) {
+                // cancel edits
+                setState(() {
+                  _editing = false;
+                  _descriptionController.text = _quote?.description ?? '';
+                  _priceController.text = _quote != null ? _quote!.totalPrice.toStringAsFixed(2) : '';
+                });
+              } else {
+                setState(() => _editing = true);
+              }
+            },
+          )
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Client ID: ${_quote!.clientId}'),
-            const SizedBox(height: 8),
-            Text('Total: ${formatRand(_quote!.totalPrice)}'),
-            const SizedBox(height: 8),
-            Text('Description: ${_quote!.description}'),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                ElevatedButton.icon(
-                  onPressed: () async {
-                        // Book from this quote
-                        final nav = Navigator.of(context);
-                        final created = await nav.push<bool>(
-                          MaterialPageRoute(builder: (_) => CreateBookingPage(quote: _quote)),
-                        );
-                        if (created == true) {
-                          if (mounted) nav.pop(true);
-                        }
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Client ID: ${_quote!.clientId}'),
+              const SizedBox(height: 8),
+              if (!_editing) ...[
+                Text('Total: ${formatRand(_quote!.totalPrice)}'),
+                const SizedBox(height: 8),
+                Text('Description: ${_quote!.description}'),
+              ] else ...[
+                TextFormField(
+                  controller: _priceController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(labelText: 'Total (R)', border: OutlineInputBorder()),
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) return 'Enter a price';
+                    if (double.tryParse(v.replaceAll(',', '').replaceAll('R', '').trim()) == null) return 'Invalid number';
+                    return null;
                   },
-                  icon: const Icon(Icons.add_circle_outline),
-                  label: const Text('Book'),
                 ),
-                const SizedBox(width: 12),
-                ElevatedButton.icon(
-                  onPressed: _delete,
-                  icon: const Icon(Icons.delete),
-                  label: const Text('Delete'),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _descriptionController,
+                  maxLines: 3,
+                  decoration: const InputDecoration(labelText: 'Description', border: OutlineInputBorder()),
+                  validator: (v) => v == null || v.trim().isEmpty ? 'Enter a description' : null,
                 ),
+                const SizedBox(height: 12),
+                Row(children: [
+                  ElevatedButton.icon(onPressed: _save, icon: const Icon(Icons.save), label: const Text('Save')),
+                  const SizedBox(width: 12),
+                  OutlinedButton(onPressed: () {
+                    setState(() {
+                      _editing = false;
+                      _descriptionController.text = _quote?.description ?? '';
+                      _priceController.text = _quote != null ? _quote!.totalPrice.toStringAsFixed(2) : '';
+                    });
+                  }, child: const Text('Cancel')),
+                ])
               ],
-            )
-          ],
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      // Book from this quote
+                      final nav = Navigator.of(context);
+                      final created = await nav.push<bool>(
+                        MaterialPageRoute(builder: (_) => CreateBookingPage(quote: _quote)),
+                      );
+                      if (created == true) {
+                        if (mounted) nav.pop(true);
+                      }
+                    },
+                    icon: const Icon(Icons.add_circle_outline),
+                    label: const Text('Book'),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton.icon(
+                    onPressed: _delete,
+                    icon: const Icon(Icons.delete),
+                    label: const Text('Delete'),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+                  ),
+                ],
+              )
+            ],
+          ),
         ),
       ),
     );

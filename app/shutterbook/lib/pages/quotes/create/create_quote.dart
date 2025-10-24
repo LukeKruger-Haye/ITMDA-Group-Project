@@ -1,6 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+// Shutterbook — Create Quote flow
+// Multi-step flow for building a quote (select client, add packages/items,
+// review total). Split into small screens in the create/ directory.
 import 'package:flutter/material.dart';
 import 'package:shutterbook/data/models/client.dart';
 import 'package:shutterbook/data/tables/client_table.dart';

@@ -1,3 +1,6 @@
+// Shutterbook — quote_table.dart
+// Simple persistence helper for quotes. Use this API from the UI layer
+// to read and write quote records without touching raw SQL.
 import 'package:sqflite/sqflite.dart';
 import '../db/database_helper.dart';
 import '../models/quote.dart';

@@ -1,20 +1,41 @@
+// Shutterbook — quotes_dialog (used from bookings)
+// Displays a selectable list of quotes suitable for booking creation.
 import 'package:flutter/material.dart';
 import 'package:shutterbook/data/models/quote.dart';
 import 'package:shutterbook/data/tables/quote_table.dart';
 import 'package:shutterbook/utils/formatters.dart';
 
-class QuotesDialog extends StatelessWidget {
-  const QuotesDialog({super.key});
+class QuotesDialog extends StatefulWidget {
+  const QuotesDialog({super.key, this.clientId});
+  final int? clientId;
+
+  @override
+  State<QuotesDialog> createState() => _QuotesDialogState();
+}
+
+class _QuotesDialogState extends State<QuotesDialog> {
+  late Future<List<Quote>> _quotesFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.clientId != null) {
+      _quotesFuture = QuoteTable().getQuotesByClient(widget.clientId!);
+    } else {
+      _quotesFuture = QuoteTable().getAllQuotes();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final isClient = widget.clientId != null;
     return AlertDialog(
-      title: const Text('All Quotes'),
+      title: Text(isClient ? 'Client Quotes' : 'All Quotes'),
       content: SizedBox(
         width: double.maxFinite,
         height: 420,
         child: FutureBuilder<List<Quote>>(
-          future: QuoteTable().getAllQuotes(),
+          future: _quotesFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());

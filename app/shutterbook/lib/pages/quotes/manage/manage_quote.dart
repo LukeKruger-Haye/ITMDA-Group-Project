@@ -1,3 +1,5 @@
+// Shutterbook — Manage Quote helper
+// Small utilities and screens to edit or duplicate existing quotes.
 import 'package:flutter/material.dart';
 
 class ManageQuote extends StatefulWidget {

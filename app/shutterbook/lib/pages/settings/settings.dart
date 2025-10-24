@@ -1,3 +1,5 @@
+// Shutterbook — Settings
+// App-level settings such as password lock and theme preferences.
 import 'package:flutter/material.dart';
 import '../authentication/models/auth_model.dart';
 import '../authentication/auth_setup.dart';

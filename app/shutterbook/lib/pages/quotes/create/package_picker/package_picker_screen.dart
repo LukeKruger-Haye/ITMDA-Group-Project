@@ -1,4 +1,7 @@
 import 'package:flutter/foundation.dart';
+// Shutterbook — Package picker screen
+// Screen wrapper used to show the package picker as a full screen flow
+// when needed.
 import 'package:flutter/material.dart';
 import 'package:shutterbook/data/models/client.dart';
 import 'package:shutterbook/pages/quotes/create/package_picker/package_picker.dart';

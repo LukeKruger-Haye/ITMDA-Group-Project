@@ -1,3 +1,7 @@
+// Shutterbook — Login screen
+// Lightweight login page used when the app is protected by a password.
+// Authentication is handled by AuthModel and the services under the
+// authentication/services directory.
 import 'package:flutter/material.dart';
 import 'models/auth_model.dart';
 import '../dashboard_home.dart';

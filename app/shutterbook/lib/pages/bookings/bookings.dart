@@ -1,10 +1,14 @@
 import 'dart:async';
+// Shutterbook — Bookings list page
+// Displays a paginated list or calendar of bookings and provides
+// entry points to create or edit bookings.
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'booking_calendar_view.dart';
 import '../../widgets/section_card.dart';
 import '../../data/models/booking.dart';
 import '../../data/models/client.dart';
+import '../../data/models/quote.dart';
 import '../../data/tables/booking_table.dart';
 import '../../data/tables/client_table.dart';
 import '../../data/tables/quote_table.dart';
@@ -285,12 +289,14 @@ class _BookingListViewState extends State<BookingListView> {
 
   late Future<List<Booking>> _bookingsFuture;
   late Future<List<Client>> _clientsFuture;
+  late Future<List<Quote>> _quotesFuture;
 
   @override
   void initState() {
     super.initState();
     _bookingsFuture = _bookingTable.getAllBookings();
     _clientsFuture = _clientTable.getAllClients();
+    _quotesFuture = _quoteTable.getAllQuotes();
   }
 
   String _fmt(DateTime d) {
@@ -306,7 +312,7 @@ class _BookingListViewState extends State<BookingListView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return FutureBuilder<List<dynamic>>(
-      future: Future.wait([_bookingsFuture, _clientsFuture, _quoteTable.getAllQuotes()]),
+      future: Future.wait([_bookingsFuture, _clientsFuture, _quotesFuture]),
       builder: (context, snap) {
         if (snap.connectionState != ConnectionState.done) return const Center(child: CircularProgressIndicator());
         final data = snap.data ?? <dynamic>[];

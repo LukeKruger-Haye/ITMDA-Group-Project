@@ -1,3 +1,6 @@
+// Shutterbook — data model: Package
+// Minor helper model used while building quotes. Kept intentionally
+// lightweight and serializable for ease of persistence.
 class Package {
   int? id;
   String name;

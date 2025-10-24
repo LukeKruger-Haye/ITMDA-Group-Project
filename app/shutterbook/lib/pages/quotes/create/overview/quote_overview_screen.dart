@@ -1,4 +1,7 @@
 import 'package:flutter/foundation.dart';
+// Shutterbook — Quote overview
+// Final review screen in the create-quote flow showing totals and
+// allowing the user to save or adjust items.
 import 'package:flutter/material.dart';
 import 'package:shutterbook/data/models/client.dart';
 import 'package:shutterbook/data/models/quote.dart';

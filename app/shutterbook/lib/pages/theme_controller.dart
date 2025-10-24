@@ -1,3 +1,6 @@
+// Shutterbook — ThemeController
+// Simple singleton that persists the user's light/dark preference and
+// exposes a ValueNotifier used by `main.dart` to rebuild the app theme.
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

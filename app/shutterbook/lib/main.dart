@@ -1,3 +1,9 @@
+// Shutterbook — main.dart
+// Entry point for the Shutterbook app. Sets up theme, routing and the
+// initial authentication flow. Small, focused file — keep app wiring here.
+//
+// Tip: For theme tweaks, edit ThemeController or the ThemeData builders
+// used below rather than changing app wiring.
 import 'package:flutter/material.dart';
 import 'pages/theme_controller.dart';
 import 'pages/bookings/dashboard.dart';
@@ -94,10 +100,9 @@ class MyApp extends StatelessWidget {
             fillColor: lightScheme.surfaceContainerHighest,
           ),
           scaffoldBackgroundColor: lightScheme.surface,
-          textTheme: ThemeData.light().textTheme.apply(
-                bodyColor: lightScheme.onSurface,
-                displayColor: lightScheme.onSurface,
-              ),
+          textTheme: ThemeData.light()
+              .textTheme
+              .apply(bodyColor: lightScheme.onSurface, displayColor: lightScheme.onSurface),
         );
 
         final darkTheme = ThemeData(
@@ -149,10 +154,9 @@ class MyApp extends StatelessWidget {
             fillColor: darkScheme.surfaceContainerHighest,
           ),
           scaffoldBackgroundColor: darkScheme.surface,
-          textTheme: ThemeData.dark().textTheme.apply(
-                bodyColor: darkScheme.onSurface,
-                displayColor: darkScheme.onSurface,
-              ),
+          textTheme: ThemeData.dark()
+              .textTheme
+              .apply(bodyColor: darkScheme.onSurface, displayColor: darkScheme.onSurface),
         );
 
         // Build a reusable routes map so onGenerateRoute can reference it.

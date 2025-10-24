@@ -1,3 +1,7 @@
+// Shutterbook — section_card.dart
+// A small reusable card wrapper used throughout the app for consistent
+// padding, elevation and rounded corners. Use this for compact sections
+// and lists to keep the UI consistent.
 import 'package:flutter/material.dart';
 
 class SectionCard extends StatelessWidget {

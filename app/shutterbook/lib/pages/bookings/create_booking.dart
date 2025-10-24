@@ -2,6 +2,9 @@
 // in a safe way (we check `mounted` before calling setState / pop). Suppress the
 // analyzer warning about BuildContext across async gaps for this file.
 // ignore_for_file: use_build_context_synchronously
+// Shutterbook — Create/Edit Booking screen
+// Form to create or edit booking records. Called from dashboard quick
+// actions and the bookings list.
 import 'package:flutter/material.dart';
 import 'package:shutterbook/data/models/quote.dart';
 import 'package:shutterbook/data/models/booking.dart';

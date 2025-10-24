@@ -1,3 +1,6 @@
+// Shutterbook — Quote detail screen
+// Displays details for a single quote and provides actions like booking
+// or editing.
 import 'package:flutter/material.dart';
 
 class QuotePage extends StatelessWidget {
