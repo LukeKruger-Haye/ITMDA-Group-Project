@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shutterbook/data/models/client.dart';
+import 'package:shutterbook/data/tables/client_table.dart';
 import 'package:shutterbook/data/tables/package_table.dart';
 import 'package:shutterbook/data/models/package.dart';
 import 'package:shutterbook/pages/quotes/overview/quote_overview_edit_screen.dart';
@@ -14,18 +14,22 @@ import 'package:shutterbook/pages/quotes/overview/quote_overview_edit_screen.dar
 class PackagePickerEdit extends StatefulWidget {
   
   final int quoteNum;
-  final Client client;
+  
+  
   final Function(Map<Package, int>) onSelectionChanged;
 
-  const PackagePickerEdit({super.key, required this.onSelectionChanged, required this.client, required this.quoteNum});
+  const PackagePickerEdit({super.key, required this.onSelectionChanged, required this.quoteNum});
 
   @override
   PackagePickerEditState createState() => PackagePickerEditState();
 }
 
 class PackagePickerEditState extends State<PackagePickerEdit> {
-    
+  
   List<Package> allpackages =[];  
+  String clientNameFromQuery='';
+  
+  
 
    @override
   void initState() {
@@ -45,6 +49,10 @@ for(Package p in packages)
 {
   debugPrint('Id:${p.id} Name:${p.name} Price:${p.price} Description${p.details}');
 }
+
+final client = await ClientTable().getClientByQuoteId(widget.quoteNum);
+clientNameFromQuery = '${client?.firstName} ${client?.lastName}';
+
  }
 
  void onSelectionChanged(){}
@@ -87,7 +95,14 @@ for(Package p in packages)
       children: [
         Center(
           child: Text(
-            '${widget.client.firstName} ${widget.client.lastName}',
+            ' Quote #${widget.quoteNum} ',
+
+              style: const TextStyle(fontSize: 20),
+              ),
+        ),
+        Center(
+          child: Text(
+              clientNameFromQuery,
               style: const TextStyle(fontSize: 20),
               ),
         ),
@@ -148,10 +163,11 @@ for(Package p in packages)
              Navigator.push(
                context,
                MaterialPageRoute(builder: (context) =>  QuoteOverviewEditScreen(
-                 client: widget.client,
+                 
                  total: totalPrice,
                  packages: _selectedPackages,
                  quoteNum:widget.quoteNum,
+                 clientName: clientNameFromQuery,
                  
                )),
              );

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shutterbook/data/models/client.dart';
 import 'package:shutterbook/data/models/quote.dart';
 import 'package:shutterbook/data/tables/quote_table.dart';
 
@@ -9,28 +8,39 @@ import 'package:shutterbook/data/models/package.dart';
 
 class QuoteOverviewEditScreen extends StatelessWidget {
 final int quoteNum;
+final String clientName;
 final double total;
-final Client client;
+
+
 final Map<Package, int> packages;
 
-  const QuoteOverviewEditScreen({super.key, required this.client, required this.total, required this.packages, required this.quoteNum});
+  const QuoteOverviewEditScreen({super.key, required this.total, required this.packages, required this.quoteNum, required this.clientName});
 
 
   Future<void> _updateQuote() async
   {
-    final String packageDescription = packages.entries
-        .map((entry) => '${entry.key.name} x${entry.value}')
-        .join(', ');
+     final String packageDescription = packages.entries
+         .map((entry) => '${entry.key.name} x${entry.value}')
+         .join(', ');
 
-    final table = QuoteTable();
+
+     final quoteInfo = await QuoteTable().getQuoteById(quoteNum);
+     int clientInfoId = 0;
+
+     if (quoteInfo != null) {
+       // quoteInfo is a single Quote, not an iterable; extract clientId directly.
+       clientInfoId = quoteInfo.clientId;
+     }
+
+    
 
     final quote = Quote(
       id: quoteNum,
-      clientId: client.id!,
+      clientId: clientInfoId,
       totalPrice: total,
       description: packageDescription,
     );
-
+    final table = QuoteTable();
     await table.updateQuote(quote);
 
     debugPrint('Updated quote:${quote.toMap()}');
@@ -48,8 +58,7 @@ final Map<Package, int> packages;
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('Client: ${client.id} ${client.firstName} ${client.lastName}'),
-            Text('Total: R${total.toStringAsFixed(2)}'),
+            Text('Quote #$quoteNum\n$clientName\nTotal: R${total.toStringAsFixed(2)}'),            
             const SizedBox(height: 20),
             const Text('Selected Packages:'),
             ...packages.entries.map((entry) => Text('${entry.key.name} x${entry.value} - R${(entry.key.price * entry.value).toStringAsFixed(2)}')),
@@ -57,7 +66,7 @@ final Map<Package, int> packages;
            ElevatedButton(onPressed: (){
              
              _updateQuote();
-             Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);     
+             Navigator.pushNamedAndRemoveUntil(context, '/quotes', (route) => false);     
              
              
                       

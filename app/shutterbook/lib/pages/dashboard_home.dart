@@ -88,7 +88,7 @@ class _DashboardHomeState extends State<DashboardHome> {
             if (created == true && mounted) setState(() {});
           },
           child: const Icon(Icons.request_quote),
-          tooltip: 'Create quote',
+          tooltip: 'Create ',
         );
       case 2: // Clients - open add client dialog by delegating to page
         return FloatingActionButton(

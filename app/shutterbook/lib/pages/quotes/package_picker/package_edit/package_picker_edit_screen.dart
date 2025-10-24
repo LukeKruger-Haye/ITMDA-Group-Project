@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:shutterbook/data/models/client.dart';
 import 'package:shutterbook/data/models/package.dart';
 import 'package:shutterbook/pages/quotes/package_picker/package_add/package_add.dart';
 import 'package:shutterbook/pages/quotes/package_picker/package_edit/package_picker_edit.dart';
 
 class PackagePickerEditScreen extends StatelessWidget {
   final int quoteNum;
-  final Client client;
+  
 
-  const PackagePickerEditScreen({super.key, required this.client, required this.quoteNum});
+  const PackagePickerEditScreen({super.key, required this.quoteNum});
 
   void _onSelectionChanged(Map<Package, int> selectedPackages) {
     // You can handle the selected packages here (e.g., save, show dialog, etc.)
@@ -43,7 +42,7 @@ class PackagePickerEditScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         child: PackagePickerEdit(
           onSelectionChanged: _onSelectionChanged,
-          client: client,
+          
           quoteNum: quoteNum,
 
           ),

@@ -166,7 +166,16 @@ class _QuoteListState extends State<QuoteList> {
   @override
   void initState() {
     super.initState();
-    _load();
+    _load(); // Load quotes immediately when widget is created
+  }
+
+  @override 
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Reload when returning to this screen
+      if (mounted) _load();
+    });
   }
 
   Future<void> _load() async {
@@ -251,7 +260,7 @@ class _QuoteListState extends State<QuoteList> {
                                     final messenger = ScaffoldMessenger.of(context);
                                     try {
                                       await nav.push(
-                                        MaterialPageRoute(builder: (_) => ManageQuotePage(), settings: RouteSettings(arguments: q)),
+                                        MaterialPageRoute(builder: (_) => const ManageQuotePage(), settings: RouteSettings(arguments: q)),
                                       );
                                       if (mounted) {
                                         await _load();

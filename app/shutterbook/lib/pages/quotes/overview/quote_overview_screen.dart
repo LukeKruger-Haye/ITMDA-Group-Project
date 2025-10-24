@@ -32,15 +32,11 @@ final Map<Package, int> packages;
 
     await table.insertQuote(quote);
     if (kDebugMode) debugPrint('Inserted quote:${quote.toMap()}');
-    // show simple feedback and pop with success
-    // Note: we don't have direct access to context here; caller handles navigation.
   }
-
-
 
   @override
   Widget build(BuildContext context) {
-  if (kDebugMode) debugPrint('QuoteOverviewScreen built for client ${client.id} total $total');
+    if (kDebugMode) debugPrint('QuoteOverviewScreen built for client ${client.id} total $total');
     return Scaffold(
       appBar: AppBar(
         title: const Text('Quote Overview')),
@@ -61,12 +57,20 @@ final Map<Package, int> packages;
             const SizedBox(height: 30),
             ElevatedButton(
               onPressed: () async {
-                final nav = Navigator.of(context);
-                final messenger = ScaffoldMessenger.of(context);
-                await _insertQuote();
-                if (nav.mounted) {
-                  messenger.showSnackBar(const SnackBar(content: Text('Quote saved')));
-                  nav.pop(true);
+                try {
+                  await _insertQuote();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Quote saved successfully')),
+                    );
+                    Navigator.of(context).pop(true); // Pop with true to indicate success
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed to save quote: $e')),
+                    );
+                  }
                 }
               },
               child: const Text("Save"),

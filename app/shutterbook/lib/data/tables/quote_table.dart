@@ -79,6 +79,7 @@ class QuoteTable {
   }
  
   Future<List<Map<String, dynamic>>> searchQuotesByClientName(String query) async {
+    
   final db = await dbHelper.database;
 
   final results = await db.rawQuery('''

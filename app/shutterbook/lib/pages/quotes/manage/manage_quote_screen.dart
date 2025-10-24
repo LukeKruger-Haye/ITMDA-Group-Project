@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shutterbook/data/models/client.dart';
 import 'package:shutterbook/data/models/quote.dart';
 import 'package:shutterbook/data/tables/quote_table.dart';
 import 'package:shutterbook/pages/bookings/create_booking.dart';
@@ -54,12 +53,12 @@ Future<void> _edit() async {
     );
     if (confirmed == true) {
       
-      // Navigator.push(context,
-      // MaterialPageRoute(builder: (context)=>
-      // PackagePickerEditScreen(
-      //   client: ,
-      //   quoteNum: _quote.id
-      // )));
+      Navigator.push(context,
+      MaterialPageRoute(builder: (context)=>
+      PackagePickerEditScreen(
+        
+        quoteNum: _quote!.id!
+      )));
     }
   }
 
