@@ -5,6 +5,7 @@
 // Tip: For theme tweaks, edit ThemeController or the ThemeData builders
 // used below rather than changing app wiring.
 import 'package:flutter/material.dart';
+import 'package:shutterbook/data/db/database_helper.dart';
 import 'pages/theme_controller.dart';
 import 'pages/bookings/dashboard.dart';
 import 'pages/authentication/models/auth_model.dart';
@@ -22,7 +23,7 @@ import 'pages/inventory/inventory.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // load persisted choice before runApp so UI starts with correct theme
+  await DatabaseHelper.instance.database;
   await ThemeController.instance.init();
 
   final authModel = AuthModel();
