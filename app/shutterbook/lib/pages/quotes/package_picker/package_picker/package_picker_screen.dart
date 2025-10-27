@@ -3,17 +3,50 @@ import 'package:shutterbook/data/models/client.dart';
 import 'package:shutterbook/data/models/package.dart';
 import 'package:shutterbook/pages/quotes/package_picker/package_add/package_add.dart';
 import 'package:shutterbook/pages/quotes/package_picker/package_picker/package_picker.dart';
+import 'package:shutterbook/pages/quotes/overview/quote_overview_screen.dart';
 
-class PackagePickerScreen extends StatelessWidget {
+class PackagePickerScreen extends StatefulWidget {
   final Client client;
 
   const PackagePickerScreen({super.key, required this.client});
 
+  @override
+  State<PackagePickerScreen> createState() => _PackagePickerScreenState();
+}
+
+class _PackagePickerScreenState extends State<PackagePickerScreen> {
+  Map<Package, int> _selectedPackages = {};
+  final GlobalKey<PackagePickerState> _packagePickerKey = GlobalKey<PackagePickerState>();
+
   void _onSelectionChanged(Map<Package, int> selectedPackages) {
-    // You can handle the selected packages here (e.g., save, show dialog, etc.)
+    setState(() {
+      _selectedPackages = selectedPackages;
+    });
     debugPrint('Selected packages: ${selectedPackages.keys.map((p) => p.name).join(', ')}');
   }
 
+  void _navigateToOverview() {
+    if (_selectedPackages.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select at least one package')),
+      );
+      return;
+    }
+
+    final total = _selectedPackages.entries
+        .fold(0.0, (sum, entry) => sum + (entry.key.price * entry.value));
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => QuoteOverviewScreen(
+          client: widget.client,
+          total: total,
+          packages: _selectedPackages,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,26 +55,52 @@ class PackagePickerScreen extends StatelessWidget {
         actions: [
           IconButton(
             onPressed: () {
-              Navigator.pushNamedAndRemoveUntil(context, '/dashboard', (route) => false);
+              Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
             },
             icon: const Icon(Icons.home),
           ),
-              IconButton(
-            onPressed: () {
-              Navigator.push(
+          IconButton(
+            onPressed: () async {
+              await Navigator.push(
                 context, 
                 MaterialPageRoute(builder: (context)=> const PackageAdd())
-                );
+              );
+              // Reload the package picker when returning
+              if (mounted) {
+                _packagePickerKey.currentState?.reload();
+              }
             },
             icon: const Icon(Icons.indeterminate_check_box_rounded),
-            ),
+          ),
         ],
-        ),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: PackagePicker(
-          onSelectionChanged: _onSelectionChanged,
-          client: client,),
+        child: Column(
+          children: [
+            Expanded(
+              child: PackagePicker(
+                key: _packagePickerKey,
+                onSelectionChanged: _onSelectionChanged,
+                client: widget.client,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: ElevatedButton(
+                onPressed: _navigateToOverview,
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 50),
+                ),
+                child: Text(
+                  _selectedPackages.isEmpty 
+                    ? 'Continue' 
+                    : 'Continue (${_selectedPackages.length} package${_selectedPackages.length != 1 ? 's' : ''} selected)'
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

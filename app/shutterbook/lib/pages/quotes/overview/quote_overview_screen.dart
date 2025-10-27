@@ -48,8 +48,7 @@ final Map<Package, int> packages;
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('Client: ${client.id} ${client.firstName} ${client.lastName}'),
-            Text('Total: ${formatRand(total)}'),
+            Text('Client: ${client.firstName} ${client.lastName}\nTotal: ${formatRand(total)}'),
             const SizedBox(height: 20),
             const Text('Selected Packages:'),
             ...packages.entries.map(
@@ -62,11 +61,12 @@ final Map<Package, int> packages;
               onPressed: () async {
                 try {
                   await _insertQuote();
+                  
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Quote saved successfully')),
                     );
-                    Navigator.of(context).pop(true); // Pop with true to indicate success
+                    Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => true);    // Pop with true to indicate success
                   }
                 } catch (e) {
                   if (context.mounted) {

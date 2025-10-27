@@ -39,6 +39,7 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
 
   Future<void> _loadBookings() async {
     final data = await bookingTable.getAllBookings();
+    if (!mounted) return;
     setState(() {
       bookings = data;
     });
@@ -49,11 +50,12 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
     final map = <String, Client>{};
     for (final c in data) {
       if (c.email.isNotEmpty) map[c.email] = c;
-    }
+    if (!mounted) return;
     setState(() {
       allClients = data;
       clientByEmail = map;
     });
+    };
   }
 
   Booking? getBookingForSlot(DateTime slot) {

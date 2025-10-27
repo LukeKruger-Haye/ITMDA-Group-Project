@@ -83,6 +83,8 @@ class _ManageQuotePageState extends State<ManageQuotePage> {
     }
   }
 
+  
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     if (_quote == null) return;
@@ -149,6 +151,8 @@ class _ManageQuotePageState extends State<ManageQuotePage> {
               if (!_editing) ...[
                 Text('Total: ${formatRand(_quote!.totalPrice)}'),
                 const SizedBox(height: 8),
+                Text('Total: ${_quote!.createdAt}'),
+                const SizedBox(height: 8),
                 Text('Description: ${_quote!.description}'),
               ] else ...[
                 TextFormField(
@@ -207,6 +211,21 @@ class _ManageQuotePageState extends State<ManageQuotePage> {
                     },
                     icon: const Icon(Icons.add_circle_outline),
                     label: const Text('Book'),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton.icon(
+                    onPressed:() async{
+                       final nav = Navigator.of(context);
+                      final created = await nav.push<bool>(
+                        MaterialPageRoute(builder: (_) => PackagePickerEditScreen(quoteNum: _quote?.id ?? 0)),
+                      );
+                      if (created == true) {
+                        if (mounted) nav.pop(true);
+                      }
+
+                    },
+                    icon: const Icon(Icons.edit),
+                    label: const Text('Edit'),
                   ),
                   const SizedBox(width: 12),
                   ElevatedButton.icon(

@@ -5,7 +5,6 @@ import 'package:shutterbook/data/models/package.dart';
 
 
 
-import 'package:shutterbook/pages/quotes/overview/quote_overview_screen.dart';
 
 
 // Simple Package model
@@ -43,6 +42,11 @@ for(Package p in packages)
 {
   debugPrint('Id:${p.id} Name:${p.name} Price:${p.price} Description${p.details}');
 }
+ }
+
+ // Public method to reload packages from outside
+ Future<void> reload() async {
+   await _loadPackages();
  }
 
  void onSelectionChanged(){}
@@ -142,20 +146,7 @@ for(Package p in packages)
          const SizedBox(height: 10),
          Text('Selected: $totalItems items, Total: R${totalPrice.toStringAsFixed(2)}'),
          const SizedBox(height: 10),
-         ElevatedButton(
-           onPressed: () {
-             widget.onSelectionChanged(_selectedPackages);
-             Navigator.push(
-               context,
-               MaterialPageRoute(builder: (context) =>  QuoteOverviewScreen(
-                 client: widget.client,
-                 total: totalPrice,
-                 packages: _selectedPackages,
-               )),
-             );
-           },
-           child: const Text('Confirm Selection'),
-          )
+
         
        ],
      );

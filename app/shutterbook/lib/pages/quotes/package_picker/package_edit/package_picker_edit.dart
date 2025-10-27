@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:shutterbook/data/tables/client_table.dart';
 import 'package:shutterbook/data/tables/package_table.dart';
 import 'package:shutterbook/data/models/package.dart';
-import 'package:shutterbook/pages/quotes/overview/quote_overview_edit_screen.dart';
 
 
 
@@ -55,6 +54,11 @@ clientNameFromQuery = '${client?.firstName} ${client?.lastName}';
 
  }
 
+ // Public method to reload packages from outside
+ Future<void> reload() async {
+   await _loadPackages();
+ }
+
  void onSelectionChanged(){}
 
 
@@ -88,6 +92,10 @@ clientNameFromQuery = '${client?.firstName} ${client?.lastName}';
   int get totalItems => _selectedPackages.values.fold(0, (sum, qty) => sum + qty);
   double get totalPrice => _selectedPackages.entries
       .fold(0, (sum, entry) => sum + entry.key.price * entry.value);
+
+  // Public getters to access from parent screen
+  Map<Package, int> get selectedPackages => _selectedPackages;
+  String get clientName => clientNameFromQuery;
 
   @override
   Widget build(BuildContext context) {
@@ -157,23 +165,7 @@ clientNameFromQuery = '${client?.firstName} ${client?.lastName}';
          const SizedBox(height: 10),
          Text('Selected: $totalItems items, Total: R${totalPrice.toStringAsFixed(2)}'),
          const SizedBox(height: 10),
-         ElevatedButton(
-           onPressed: () {
-             widget.onSelectionChanged(_selectedPackages);
-             Navigator.push(
-               context,
-               MaterialPageRoute(builder: (context) =>  QuoteOverviewEditScreen(
-                 
-                 total: totalPrice,
-                 packages: _selectedPackages,
-                 quoteNum:widget.quoteNum,
-                 clientName: clientNameFromQuery,
-                 
-               )),
-             );
-           },
-           child: const Text('Confirm Selection'),
-          )
+
         
        ],
      );

@@ -63,14 +63,27 @@ final Map<Package, int> packages;
             const Text('Selected Packages:'),
             ...packages.entries.map((entry) => Text('${entry.key.name} x${entry.value} - R${(entry.key.price * entry.value).toStringAsFixed(2)}')),
            const SizedBox(height: 30,),
-           ElevatedButton(onPressed: (){
-             
-             _updateQuote();
-             Navigator.pushNamedAndRemoveUntil(context, '/quotes', (route) => false);     
-             
-             
-                      
-           }, child: const Text("Update")),
+          ElevatedButton(
+              onPressed: () async {
+                try {
+                  await _updateQuote();
+                  
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Quote updated successfully')),
+                    );
+                    Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => true);    // Pop with true to indicate success
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed to save quote: $e')),
+                    );
+                  }
+                }
+              },
+              child: const Text("Save"),
+            ),
            const SizedBox(height: 10),
            ElevatedButton(onPressed: (){
 

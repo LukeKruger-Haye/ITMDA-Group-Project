@@ -16,6 +16,7 @@ import '../bookings/create_booking.dart';
 import '../../widgets/client_search_dialog.dart';
 import 'package:shutterbook/pages/quotes/package_picker/package_picker/package_picker_screen.dart';
 import 'manage/manage_quote_screen.dart';
+import 'overview/quote_overview_screen.dart';
 
 class QuotePage extends StatefulWidget {
   final bool embedded;

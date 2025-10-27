@@ -146,6 +146,7 @@ class MyApp extends StatelessWidget {
 
         // Build a reusable routes map so onGenerateRoute can reference it.
         final routeMap = {
+            '/home': (context) => DashboardHome(authModel: authModel),
             '/quotes': (context) => const QuotePage(),
             '/clients': (context) => const ClientsPage(),
             '/bookings': (context) => const BookingsPage(),
