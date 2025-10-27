@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shutterbook/data/models/client.dart';
 import 'package:shutterbook/data/models/quote.dart';
 import 'package:shutterbook/data/tables/quote_table.dart';
-
+  
 import 'package:shutterbook/data/models/package.dart';
 import 'package:shutterbook/utils/formatters.dart';
 
