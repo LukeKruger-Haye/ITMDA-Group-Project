@@ -1,3 +1,5 @@
+// Shutterbook — Settings
+// App-level settings such as password lock and theme preferences.
 import 'package:flutter/material.dart';
 import '../authentication/models/auth_model.dart';
 import '../authentication/auth_setup.dart';
@@ -184,13 +186,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 strengthLabel = '';
                               } else if (pwd.length < 6) {
                                 strengthLabel = 'Weak';
-                                strengthColor = Colors.red;
+                                strengthColor = Theme.of(context).colorScheme.error;
                               } else if (RegExp(r'(?=.*[A-Z])(?=.*\d)').hasMatch(pwd)) {
                                 strengthLabel = 'Strong';
-                                strengthColor = Colors.green;
+                                strengthColor = Theme.of(context).colorScheme.primary;
                               } else {
                                 strengthLabel = 'Okay';
-                                strengthColor = Colors.orange;
+                                strengthColor = Theme.of(context).colorScheme.secondary;
                               }
                               return strengthLabel.isEmpty
                                   ? const SizedBox.shrink()

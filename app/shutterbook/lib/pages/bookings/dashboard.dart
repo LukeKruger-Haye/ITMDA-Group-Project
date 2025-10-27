@@ -8,6 +8,7 @@ import 'package:shutterbook/pages/bookings/create_booking.dart';
 import 'package:shutterbook/data/models/quote.dart';
 import 'package:shutterbook/data/models/client.dart';
 import 'package:shutterbook/widgets/stat_grid.dart';
+import 'package:shutterbook/theme/ui_styles.dart';
 import 'package:shutterbook/utils/formatters.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -34,6 +35,7 @@ class _DashboardPageState extends State<DashboardPage> {
   int _quotesCount = 0;
   int _inventoryCount = 0;
   bool _statsLoading = true;
+  late Future<List<dynamic>> _dashboardFuture;
 
   // navigation to create booking performed inline where needed
 
@@ -54,6 +56,15 @@ class _DashboardPageState extends State<DashboardPage> {
     }
     _argsProcessed = true;
     _loadStats();
+    _initDashboardFuture();
+  }
+
+  void _initDashboardFuture() {
+    _dashboardFuture = Future.wait([
+      BookingTable().getAllBookings(),
+      QuoteTable().getAllQuotes(),
+      ClientTable().getAllClients(),
+    ]);
   }
 
   Future<void> _loadStats() async {
@@ -73,11 +84,11 @@ class _DashboardPageState extends State<DashboardPage> {
   Color _statusColor(String status, ThemeData theme) {
     switch (status.toLowerCase()) {
       case 'completed':
-        return Colors.green.shade600;
+        return theme.colorScheme.secondary;
       case 'cancelled':
-        return Colors.red.shade600;
+        return theme.colorScheme.error;
       case 'confirmed':
-        return Colors.blue.shade600;
+        return theme.colorScheme.primary;
       default:
         return theme.colorScheme.primaryContainer;
     }
@@ -95,7 +106,7 @@ class _DashboardPageState extends State<DashboardPage> {
     Widget headerSection = Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Card(
-        elevation: 1,
+        elevation: UIStyles.cardElevation,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
@@ -145,7 +156,7 @@ class _DashboardPageState extends State<DashboardPage> {
     // main body content
     // Simplified dashboard: show stats + next 3 upcoming bookings + recent 3 quotes
     Widget bodyContent = FutureBuilder<List<dynamic>>(
-      future: Future.wait([BookingTable().getAllBookings(), QuoteTable().getAllQuotes(), ClientTable().getAllClients()]),
+      future: _dashboardFuture,
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
           return const SizedBox(height: 200, child: Center(child: CircularProgressIndicator()));
@@ -201,7 +212,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       : '#';
                   return Card(
                     margin: EdgeInsets.zero,
-                    elevation: 0,
+                    elevation: UIStyles.cardElevation,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     child: InkWell(
                       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CreateBookingPage(existing: b))).then((_) { if (mounted) setState(() {}); }),
@@ -263,7 +274,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       : '#';
                               return Card(
                     margin: EdgeInsets.zero,
-                    elevation: 0,
+                    elevation: UIStyles.cardElevation,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     child: InkWell(
                       onTap: () => widget.onNavigateToTab?.call(3),
@@ -306,6 +317,8 @@ class _DashboardPageState extends State<DashboardPage> {
     Future<void> refreshAll() async {
       // reload stats and then rebuild to refresh bookings/quotes futures
       await _loadStats();
+      // recreate dashboard future so FutureBuilder refires
+      _initDashboardFuture();
       if (mounted) setState(() {});
     }
 

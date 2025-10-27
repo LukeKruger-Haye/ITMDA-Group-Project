@@ -1,3 +1,7 @@
+// Shutterbook — database_helper.dart
+// Provides a small, cross-platform SQLite helper that initializes the
+// application schema and exposes a singleton Database instance. Used by the
+// table helpers under `data/tables`.
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';

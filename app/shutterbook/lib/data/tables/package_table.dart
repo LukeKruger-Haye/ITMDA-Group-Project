@@ -1,3 +1,5 @@
+// Shutterbook — package_table.dart
+// Database helpers for package records used during quote creation.
 import 'package:sqflite/sqflite.dart';
 import '../db/database_helper.dart';
 import '../models/package.dart';

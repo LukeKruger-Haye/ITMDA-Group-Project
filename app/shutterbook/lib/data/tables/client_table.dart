@@ -1,3 +1,7 @@
+// Shutterbook — client_table.dart
+// Thin wrapper around SQLite for client CRUD operations. Use this class
+// from UI code to fetch, insert and update clients. Keeps SQL details
+// isolated from the UI layer.
 import 'package:sqflite/sqflite.dart';
 import '../db/database_helper.dart';
 import '../models/client.dart';

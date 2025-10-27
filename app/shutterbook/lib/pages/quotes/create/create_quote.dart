@@ -1,11 +1,15 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+// Shutterbook — Create Quote flow
+// Multi-step flow for building a quote (select client, add packages/items,
+// review total). Split into small screens in the create/ directory.
 import 'package:flutter/material.dart';
 import 'package:shutterbook/data/models/client.dart';
 import 'package:shutterbook/data/tables/client_table.dart';
 import 'package:shutterbook/pages/quotes/package_picker/package_picker/package_picker_screen.dart';
 import 'package:shutterbook/data/models/package.dart';
+import 'package:shutterbook/theme/ui_styles.dart';
 import 'package:shutterbook/pages/quotes/overview/quote_overview_screen.dart';
 
 
@@ -147,6 +151,7 @@ class _CreateQuotePageState extends State<CreateQuotePage> {
                 itemBuilder: (context, index) {
                   final client = suggestions[index];
                   return ListTile(
+                    contentPadding: UIStyles.tilePadding,
                     title: Text('${client.firstName} ${client.lastName}'),
                     subtitle: Text(client.email),
                     onTap: () {

@@ -1,3 +1,7 @@
+// Shutterbook — AuthService
+// Thin wrapper around local_auth and SharedPreferences to store a simple
+// password lock and biometric preference. Keep platform-specific logic
+// contained here so the rest of the app uses the high-level AuthModel.
 import 'package:flutter/foundation.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';

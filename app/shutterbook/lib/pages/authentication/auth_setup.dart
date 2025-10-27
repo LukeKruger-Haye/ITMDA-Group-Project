@@ -1,3 +1,6 @@
+// Shutterbook — Auth setup
+// Screen used on first launch to configure a password lock and initial
+// authentication settings.
 import 'package:flutter/material.dart';
 import 'models/auth_model.dart';
 import '../dashboard_home.dart';

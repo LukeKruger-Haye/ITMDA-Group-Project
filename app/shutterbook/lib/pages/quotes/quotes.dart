@@ -1,12 +1,17 @@
+// Shutterbook — Quotes list
+// Shows a list of quotes and provides access to create/manage flows. Keep
+// view-only list logic here and delegate editing to dedicated screens.
 import 'package:flutter/material.dart';
-import 'package:shutterbook/pages/quotes/overview/quote_overview_screen.dart';
+import 'dart:async';
 import '../../data/models/client.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../data/models/quote.dart';
 import '../../data/models/package.dart';
 import '../../utils/formatters.dart';
 import '../../data/tables/quote_table.dart';
 import '../../data/tables/client_table.dart';
 import '../../widgets/section_card.dart';
+import 'package:shutterbook/theme/ui_styles.dart';
 import '../bookings/create_booking.dart';
 import '../../widgets/client_search_dialog.dart';
 import 'package:shutterbook/pages/quotes/package_picker/package_picker/package_picker_screen.dart';
@@ -22,8 +27,12 @@ class QuotePage extends StatefulWidget {
 
 class _QuotePageState extends State<QuotePage> {
   Client? _client;
+  String _clientSearch = '';
+  final TextEditingController _clientSearchController = TextEditingController();
   bool _loading = false;
   List<Quote> _quotes = [];
+  // key pointing to the embedded QuoteList so we can trigger reloads
+  final GlobalKey<_QuoteListState> _quoteListKey = GlobalKey<_QuoteListState>();
 
   @override
   void didChangeDependencies() {
@@ -49,40 +58,177 @@ class _QuotePageState extends State<QuotePage> {
     });
   }
 
+  static const String _kLastClientIdKey = 'quotes_last_client_id';
+  static const String _kLastSearchKey = 'quotes_last_search';
+
+  /// Refresh the page data. Called by parent (e.g. dashboard) when an external
+  /// action (like creating a quote) occurred and the list should reload.
+  Future<void> refresh() async {
+    if (_client != null) {
+      await _loadQuotesForClient();
+    } else {
+      final s = _quoteListKey.currentState;
+      if (s != null) await s.load();
+    }
+  }
+
+  /// Focus this page on a specific client and load that client's quotes.
+  Future<void> focusOnClient(Client client) async {
+    _client = client;
+    // persist selection
+    SharedPreferences.getInstance().then((prefs) async {
+      await prefs.setInt(_kLastClientIdKey, client.id ?? -1);
+    });
+    await _loadQuotesForClient();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _restoreState();
+    _clientSearchController.addListener(() {
+      final v = _clientSearchController.text.trim();
+      if (v != _clientSearch) setState(() => _clientSearch = v);
+    });
+  }
+
+  Future<void> _restoreState() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final lastClientId = prefs.getInt(_kLastClientIdKey);
+      final lastSearch = prefs.getString(_kLastSearchKey) ?? '';
+      if (lastClientId != null && lastClientId > 0) {
+        try {
+          final c = await ClientTable().getClientById(lastClientId);
+          if (c != null) {
+            setState(() {
+              _client = c;
+            });
+            await _loadQuotesForClient();
+          }
+        } catch (_) {}
+      }
+      if (lastSearch.isNotEmpty) {
+        _clientSearchController.text = lastSearch;
+        setState(() => _clientSearch = lastSearch);
+      }
+    } catch (_) {}
+  }
+
+  @override
+  void dispose() {
+    _clientSearchController.removeListener(() {});
+    _clientSearchController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
+    // If focused on a client, expose a small search bar and chip to clear the filter
     final clientBody = _loading
         ? const Center(child: CircularProgressIndicator())
-        : _quotes.isEmpty
-            ? const Center(child: Text('No quotes for this client'))
-            : ListView.separated(
-                itemCount: _quotes.length,
-                separatorBuilder: (_, __) => const Divider(height: 1),
-                itemBuilder: (context, index) {
-                  final q = _quotes[index];
-                  final title = 'Quote #${q.id}';
-                  final subtitle = 'Total: ${formatRand(q.totalPrice)} • ${q.createdAt ?? ''}';
-                  return SectionCard(
-                    child: ListTile(
-                      leading: const Icon(Icons.description_outlined),
-                      title: Text(title),
-                      subtitle: Text(
-                        '${q.description}\n$subtitle',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+        : Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    AnimatedSize(
+                      duration: const Duration(milliseconds: 260),
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 260),
+                        child: _client != null
+                            ? Padding(
+                                key: ValueKey('client-${_client!.id}'),
+                                padding: const EdgeInsets.only(bottom: 8.0),
+                                child: Row(children: [
+                                  Expanded(child: Text('Filtering by client', style: Theme.of(context).textTheme.bodySmall)),
+                                  InputChip(
+                                    label: Text('${_client!.firstName} ${_client!.lastName}'),
+                                    onDeleted: () async {
+                                      final prefs = await SharedPreferences.getInstance();
+                                      await prefs.remove(_kLastClientIdKey);
+                                      await prefs.remove(_kLastSearchKey);
+                                      setState(() {
+                                        _client = null;
+                                        _quotes = [];
+                                      });
+                                    },
+                                  ),
+                                ]),
+                              )
+                            : const SizedBox.shrink(),
                       ),
-                      onTap: () {
-                        // Open manage quote screen for that quote
-                        Navigator.pushNamed(
-                          context,
-                          '/quotes/manage',
-                          arguments: q,
-                        );
+                    ),
+                    TextField(
+                      controller: _clientSearchController,
+                      decoration: InputDecoration(
+                        hintText: _client != null ? 'Search quotes for ${_client!.firstName} ${_client!.lastName}' : 'Search quotes',
+                        prefixIcon: const Icon(Icons.search),
+                        suffixIcon: _clientSearch.isNotEmpty
+                            ? IconButton(icon: const Icon(Icons.clear), onPressed: () => _clientSearchController.clear())
+                            : null,
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                      ),
+                      onChanged: (v) {
+                        setState(() => _clientSearch = v.trim());
+                        // persist search
+                        SharedPreferences.getInstance().then((prefs) async {
+                          if (v.trim().isEmpty) {
+                            await prefs.remove(_kLastSearchKey);
+                          } else {
+                            await prefs.setString(_kLastSearchKey, v.trim());
+                          }
+                        });
                       },
                     ),
-                  );
-                },
-              );
+                  ],
+                ),
+              ),
+              Expanded(
+                child: _quotes.isEmpty
+                    ? const Center(child: Text('No quotes for this client'))
+          : ListView.separated(
+            itemCount: _quotes.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+                          final q = _quotes[index];
+                          final title = 'Quote #${q.id}';
+                          final subtitle = 'Total: ${formatRand(q.totalPrice)} • ${q.createdAt ?? ''}';
+                          // apply client search filter if present
+                          if (_clientSearch.isNotEmpty) {
+                            final s = _clientSearch.toLowerCase();
+                            final joined = '${q.description} ${q.id} ${q.totalPrice}'.toLowerCase();
+                            if (!joined.contains(s)) return const SizedBox.shrink();
+                          }
+                            return SectionCard(
+                                child: ListTile(
+                                  contentPadding: UIStyles.tilePadding,
+                                leading: const Icon(Icons.description_outlined),
+                                title: Text(title),
+                                subtitle: Text(
+                                  '${q.description}\n$subtitle',
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                onTap: () {
+                                  // Open manage quote screen for that quote
+                                  Navigator.pushNamed(
+                                    context,
+                                    '/quotes/manage',
+                                    arguments: q,
+                                  );
+                                },
+                              ),
+                            );
+                        },
+                      ),
+              ),
+            ],
+          );
 
     if (_client != null) {
       return widget.embedded
@@ -96,8 +242,8 @@ class _QuotePageState extends State<QuotePage> {
     }
 
     // Default non-client view — show a list of quotes with actions
-  return widget.embedded
-    ? QuoteList()
+    return widget.embedded
+      ? QuoteList(key: _quoteListKey)
     : Scaffold(
             appBar: AppBar(
               title: const Text('Quotes'),
@@ -161,24 +307,42 @@ class _QuoteListState extends State<QuoteList> {
   List<Quote> _quotes = [];
   bool _loading = true;
   String _filter = '';
+  final TextEditingController _searchController = TextEditingController();
+  Timer? _debounceTimer;
   final Map<int, String> _clientNames = {};
 
   @override
   void initState() {
     super.initState();
-    _load(); // Load quotes immediately when widget is created
-  }
-
-  @override 
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Reload when returning to this screen
-      if (mounted) _load();
+    load();
+    _restoreState();
+    _searchController.addListener(() {
+      final v = _searchController.text.trim();
+      if (v != _filter) setState(() => _filter = v);
+      _debounceTimer?.cancel();
+      _debounceTimer = Timer(const Duration(milliseconds: 300), () async {
+        final prefs = await SharedPreferences.getInstance();
+        if (v.isEmpty) {
+          await prefs.remove(_QuotePageState._kLastSearchKey);
+        } else {
+          await prefs.setString(_QuotePageState._kLastSearchKey, v);
+        }
+      });
     });
   }
 
-  Future<void> _load() async {
+  Future<void> _restoreState() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final lastSearch = prefs.getString(_QuotePageState._kLastSearchKey) ?? '';
+      if (lastSearch.isNotEmpty) {
+        _searchController.text = lastSearch;
+        setState(() => _filter = lastSearch);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> load() async {
     setState(() => _loading = true);
     final data = await _table.getAllQuotes();
     if (!mounted) return;
@@ -197,6 +361,16 @@ class _QuoteListState extends State<QuoteList> {
   }
 
   @override
+  void dispose() {
+    _searchController.removeListener(() {});
+    _searchController.dispose();
+    _debounceTimer?.cancel();
+    super.dispose();
+  }
+
+
+
+  @override
   Widget build(BuildContext context) {
     final filtered = _filter.isEmpty
         ? _quotes
@@ -207,7 +381,15 @@ class _QuoteListState extends State<QuoteList> {
       child: Column(
         children: [
           TextField(
-            decoration: const InputDecoration(prefixIcon: Icon(Icons.search), hintText: 'Search quotes by id or description', border: OutlineInputBorder()),
+            controller: _searchController,
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.search),
+              hintText: 'Search quotes by id or description',
+              suffixIcon: _filter.isNotEmpty
+                  ? IconButton(icon: const Icon(Icons.clear), onPressed: () => _searchController.clear())
+                  : null,
+              border: OutlineInputBorder(),
+            ),
             onChanged: (v) => setState(() => _filter = v.trim()),
           ),
           const SizedBox(height: 12),
@@ -216,16 +398,18 @@ class _QuoteListState extends State<QuoteList> {
                 ? const Center(child: CircularProgressIndicator())
                 : filtered.isEmpty
                     ? const Center(child: Text('No quotes'))
-                    : ListView.separated(
-                        itemCount: filtered.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1),
-                        itemBuilder: (context, index) {
+          : ListView.separated(
+            itemCount: filtered.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
                           final q = filtered[index];
                           final clientName = _clientNames[q.clientId] ?? 'Client ${q.clientId}';
                           final title = 'Quote #${q.id} — $clientName';
                           final subtitle = 'Total: ${formatRand(q.totalPrice)} • ${q.createdAt ?? ''}';
                           return SectionCard(
+                            elevation: UIStyles.cardElevation,
                             child: ListTile(
+                              contentPadding: UIStyles.tilePadding,
                               leading: const Icon(Icons.description_outlined),
                               title: Text(title),
                               subtitle: Text(
@@ -245,7 +429,7 @@ class _QuoteListState extends State<QuoteList> {
                                           MaterialPageRoute(builder: (_) => CreateBookingPage(quote: q)),
                                         );
                                         if (created == true) {
-                                          if (mounted) await _load();
+                                          if (mounted) await load();
                                         }
                                       } catch (e) {
                                         messenger.showSnackBar(SnackBar(content: Text('Failed to book: $e')));
@@ -263,7 +447,7 @@ class _QuoteListState extends State<QuoteList> {
                                         MaterialPageRoute(builder: (_) => const ManageQuotePage(), settings: RouteSettings(arguments: q)),
                                       );
                                       if (mounted) {
-                                        await _load();
+                                        await load();
                                       }
                                     } catch (e) {
                                       messenger.showSnackBar(SnackBar(content: Text('Failed to open quote: $e')));
@@ -279,8 +463,8 @@ class _QuoteListState extends State<QuoteList> {
                                     MaterialPageRoute(builder: (_) => const ManageQuotePage(), settings: RouteSettings(arguments: q)),
                                   );
                                   if (mounted) {
-                                    await _load();
-                                  }
+                                      await load();
+                                    }
                                 } catch (e) {
                                   messenger.showSnackBar(SnackBar(content: Text('Failed to open quote: $e')));
                                 }

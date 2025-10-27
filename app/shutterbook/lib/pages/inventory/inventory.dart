@@ -1,3 +1,5 @@
+// Shutterbook — Inventory screen
+// Manage inventory items (add/edit/remove) used in quotes and bookings.
 import 'package:flutter/material.dart';
 import '../../data/models/item.dart';
 import '../../data/tables/inventory_table.dart';

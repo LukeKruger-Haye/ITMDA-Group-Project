@@ -1,9 +1,10 @@
-// Small formatter helpers used across the app.
-// Kept minimal to avoid adding external dependencies. If you want
-// locale-aware formatting (grouping, locales), consider adding
-// the `intl` package and using NumberFormat.currency.
+// Shutterbook — formatters.dart
+// Tiny, focused formatting helpers used across the app. Kept intentionally
+// minimal to avoid pulling in heavy locale packages. Replace with `intl`
+// if you need locale-aware formatting in the future.
 
+/// Format a numeric value as South African Rand with two decimal places.
 String formatRand(double value) {
-  // Ensure two decimal places and a leading R symbol used in South Africa.
-  return 'R${value.toStringAsFixed(2)}';
+  const currency = 'R';
+  return '$currency${value.toStringAsFixed(2)}';
 }

@@ -1,3 +1,7 @@
+// Shutterbook — booking_table.dart
+// Database access helpers for bookings. CRUD and query helpers used by
+// the bookings UI. Keep business logic out of this file; it should only
+// translate between Booking models and the SQL layer.
 import 'package:sqflite/sqflite.dart';
 import '../db/database_helper.dart';
 import '../models/booking.dart';

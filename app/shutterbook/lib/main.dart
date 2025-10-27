@@ -1,3 +1,9 @@
+// Shutterbook — main.dart
+// Entry point for the Shutterbook app. Sets up theme, routing and the
+// initial authentication flow. Small, focused file — keep app wiring here.
+//
+// Tip: For theme tweaks, edit ThemeController or the ThemeData builders
+// used below rather than changing app wiring.
 import 'package:flutter/material.dart';
 import 'package:shutterbook/data/db/database_helper.dart';
 import 'pages/theme_controller.dart';
@@ -7,6 +13,7 @@ import 'pages/authentication/login.dart';
 import 'pages/authentication/auth_setup.dart';
 import 'pages/dashboard_home.dart';
 import 'pages/quotes/quotes.dart';
+import 'package:shutterbook/theme/ui_styles.dart';
 import 'pages/bookings/bookings.dart';
 import 'pages/clients/clients.dart';
 import 'pages/quotes/create/create_quote.dart';
@@ -56,20 +63,10 @@ class MyApp extends StatelessWidget {
             centerTitle: true,
           ),
           elevatedButtonTheme: ElevatedButtonThemeData(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: lightScheme.primary,
-              foregroundColor: lightScheme.onPrimary,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-            ),
+            style: UIStyles.primaryButton(context),
           ),
           outlinedButtonTheme: OutlinedButtonThemeData(
-            style: OutlinedButton.styleFrom(
-              foregroundColor: lightScheme.primary,
-              side: BorderSide(color: lightScheme.primary.withAlpha((0.16 * 255).round())),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-            ),
+            style: UIStyles.outlineButton(context),
           ),
           textButtonTheme: TextButtonThemeData(
             style: TextButton.styleFrom(foregroundColor: lightScheme.primary),
@@ -83,22 +80,23 @@ class MyApp extends StatelessWidget {
             contentTextStyle: TextStyle(color: lightScheme.onSurface),
           ),
           listTileTheme: ListTileThemeData(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            tileColor: lightScheme.surfaceContainerHighest,
+            // Use transparent ListTile backgrounds — cards provide the elevated surface.
+            shape: null,
+            contentPadding: UIStyles.tilePadding,
+            tileColor: Colors.transparent,
             iconColor: lightScheme.primary,
           ),
-          cardColor: lightScheme.surface,
+          cardTheme: CardThemeData(color: lightScheme.surfaceContainerHighest, elevation: UIStyles.cardElevation, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+          cardColor: lightScheme.surfaceContainerHighest,
           inputDecorationTheme: InputDecorationTheme(
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             filled: true,
             fillColor: lightScheme.surfaceContainerHighest,
           ),
           scaffoldBackgroundColor: lightScheme.surface,
-          textTheme: ThemeData.light().textTheme.apply(
-                bodyColor: lightScheme.onSurface,
-                displayColor: lightScheme.onSurface,
-              ),
+          textTheme: ThemeData.light()
+              .textTheme
+              .apply(bodyColor: lightScheme.onSurface, displayColor: lightScheme.onSurface),
         );
 
         final darkTheme = ThemeData(
@@ -111,20 +109,10 @@ class MyApp extends StatelessWidget {
             centerTitle: true,
           ),
           elevatedButtonTheme: ElevatedButtonThemeData(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: darkScheme.primary,
-              foregroundColor: darkScheme.onPrimary,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-            ),
+            style: UIStyles.primaryButton(context),
           ),
           outlinedButtonTheme: OutlinedButtonThemeData(
-            style: OutlinedButton.styleFrom(
-              foregroundColor: darkScheme.primary,
-              side: BorderSide(color: darkScheme.primary.withAlpha((0.16 * 255).round())),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-            ),
+            style: UIStyles.outlineButton(context),
           ),
           textButtonTheme: TextButtonThemeData(
             style: TextButton.styleFrom(foregroundColor: darkScheme.primary),
@@ -138,22 +126,22 @@ class MyApp extends StatelessWidget {
             contentTextStyle: TextStyle(color: darkScheme.onSurface),
           ),
           listTileTheme: ListTileThemeData(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            tileColor: darkScheme.surfaceContainerHighest,
+            shape: null,
+            contentPadding: UIStyles.tilePadding,
+            tileColor: Colors.transparent,
             iconColor: darkScheme.primary,
           ),
-          cardColor: darkScheme.surface,
+          cardTheme: CardThemeData(color: darkScheme.surfaceContainerHighest, elevation: UIStyles.cardElevation, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+          cardColor: darkScheme.surfaceContainerHighest,
           inputDecorationTheme: InputDecorationTheme(
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             filled: true,
             fillColor: darkScheme.surfaceContainerHighest,
           ),
           scaffoldBackgroundColor: darkScheme.surface,
-          textTheme: ThemeData.dark().textTheme.apply(
-                bodyColor: darkScheme.onSurface,
-                displayColor: darkScheme.onSurface,
-              ),
+          textTheme: ThemeData.dark()
+              .textTheme
+              .apply(bodyColor: darkScheme.onSurface, displayColor: darkScheme.onSurface),
         );
 
         // Build a reusable routes map so onGenerateRoute can reference it.

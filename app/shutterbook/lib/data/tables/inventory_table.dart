@@ -1,3 +1,6 @@
+// Shutterbook — inventory_table.dart
+// Persistence helpers for inventory items. Keeps all SQL interactions
+// related to the Inventory table in one place.
 import 'package:sqflite/sqflite.dart';
 import '../db/database_helper.dart';
 import '../models/item.dart';

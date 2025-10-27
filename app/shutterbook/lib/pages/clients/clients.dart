@@ -1,18 +1,25 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+// Shutterbook — Clients management
+// Lists and edits clients. Keep UI logic here; persistence is in
+// `data/tables/client_table.dart`.
 import 'package:flutter/material.dart';
 import '../../data/models/client.dart';
 import '../../data/tables/client_table.dart';
 import '../../data/tables/quote_table.dart';
 import '../../data/tables/booking_table.dart';
-import '../theme_controller.dart'; // added to react to global theme
+// Use the app-wide ThemeData instead of creating a local Theme so pages
+// remain visually consistent with global styles.
 import '../../widgets/section_card.dart';
+import 'package:shutterbook/utils/dialogs.dart';
+import 'package:shutterbook/theme/ui_styles.dart';
 import '../bookings/bookings.dart';
 
 class ClientsPage extends StatefulWidget {
   final bool embedded; // when true, return content only (no Scaffold)
   final void Function(Client client)? onViewBookings;
-  const ClientsPage({super.key, this.embedded = false, this.onViewBookings});
+  final void Function(Client client)? onViewQuotes;
+  const ClientsPage({super.key, this.embedded = false, this.onViewBookings, this.onViewQuotes});
 
   @override
   State<ClientsPage> createState() => _ClientsPageState();
@@ -91,25 +98,7 @@ class _ClientsPageState extends State<ClientsPage> {
       s.isEmpty ? s : s[0].toUpperCase() + s.substring(1).toLowerCase();
 
   Future<bool> _showConfirmationDialog(String title, String content) async {
-    final nav = Navigator.of(context);
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(content),
-        actions: [
-          TextButton(
-            onPressed: () => nav.pop(false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => nav.pop(true),
-            child: const Text('Confirm'),
-          ),
-        ],
-      ),
-    );
-    return result ?? false;
+    return await showConfirmationDialog(context, title: title, content: content, confirmLabel: 'Confirm', cancelLabel: 'Cancel');
   }
 
   Future<void> _addOrEditClient({Client? client}) async {
@@ -276,7 +265,14 @@ class _ClientsPageState extends State<ClientsPage> {
             onPressed: () {
               final nav = Navigator.of(context);
               nav.pop();
-              // Open the Quotes page and show quotes for this client
+              // Delegate to parent's onViewQuotes if available so we don't push separate views
+              if (widget.onViewQuotes != null) {
+                try {
+                  widget.onViewQuotes!(client);
+                  return;
+                } catch (_) {}
+              }
+              // fallback to opening full Quotes page
               Navigator.pushNamed(nav.context, '/quotes', arguments: client);
             },
             child: const Text('View Quotes'),
@@ -306,88 +302,101 @@ class _ClientsPageState extends State<ClientsPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Wrap the page's Scaffold with a Theme that follows ThemeController so this page shows dark/light
-    return ValueListenableBuilder<bool>(
-      valueListenable: ThemeController.instance.isDark,
-      builder: (context, isDark, _) {
-        final pageTheme = isDark ? ThemeData.dark() : ThemeData.light();
-        final pageBody = Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12.0),
-                child: TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    prefixIcon: const Icon(Icons.search),
-                    suffixIcon: _searchController.text.isNotEmpty
-                        ? IconButton(icon: const Icon(Icons.clear), onPressed: () => _searchController.clear())
-                        : null,
-                    hintText: 'Search clients by name, email or phone',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                    isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-                  ),
-                ),
+    final theme = Theme.of(context);
+
+    final pageBody = Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(icon: const Icon(Icons.clear), onPressed: () => _searchController.clear())
+                    : null,
+                hintText: 'Search clients by name, email or phone',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                isDense: true,
+                contentPadding: UIStyles.tilePadding,
               ),
-              Expanded(
-                child: ListView.separated(
-                  itemCount: _filteredClients.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final client = _filteredClients[index];
-              return SectionCard(
-                child: ListTile(
-                  onTap: () => _showClientDetails(client),
-                  leading: CircleAvatar(
-                    backgroundColor: Theme.of(context).colorScheme.primary.withAlpha((0.12 * 255).round()),
-                    child: Text(
-                      client.firstName.isNotEmpty ? client.firstName[0].toUpperCase() : '?',
-                      style: TextStyle(color: Theme.of(context).colorScheme.primary),
+            ),
+          ),
+          Expanded(
+            child: ListView.separated(
+              itemCount: _filteredClients.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final client = _filteredClients[index];
+                return SectionCard(
+                  child: ListTile(
+                    contentPadding: UIStyles.tilePadding,
+                    onTap: () => _showClientDetails(client),
+                    leading: CircleAvatar(
+                      backgroundColor: theme.colorScheme.primaryContainer,
+                      child: Text(
+                        client.firstName.isNotEmpty ? client.firstName[0].toUpperCase() : '?',
+                        style: TextStyle(color: theme.colorScheme.onPrimaryContainer),
+                      ),
+                    ),
+                    title: Text('${client.firstName} ${client.lastName}'),
+                    subtitle: Text('${client.email} • ${client.phone}'),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit),
+                          onPressed: () => _addOrEditClient(client: client),
+                          tooltip: 'Edit',
+                        ),
+                        IconButton(
+                          color: theme.colorScheme.error,
+                          icon: const Icon(Icons.delete),
+                          onPressed: () => _deleteClient(client),
+                          tooltip: 'Delete',
+                        ),
+                      ],
                     ),
                   ),
-                  title: Text('${client.firstName} ${client.lastName}'),
-                  subtitle: Text('${client.email} • ${client.phone}'),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.edit),
-                        onPressed: () => _addOrEditClient(client: client),
-                        tooltip: 'Edit',
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete),
-                        onPressed: () => _deleteClient(client),
-                        tooltip: 'Delete',
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-                ),
-              ),
-            ],
+                );
+              },
+            ),
           ),
-        );
+        ],
+      ),
+    );
 
-        return Theme(
-          data: pageTheme,
-          child: widget.embedded
-              ? pageBody
-              : Scaffold(
-                  appBar: AppBar(title: const Text('Clients')),
-                  body: pageBody,
-                  floatingActionButton: FloatingActionButton(
-                    onPressed: () => _addOrEditClient(),
-                    tooltip: 'Add Client',
-                    child: const Icon(Icons.person_add),
-                  ),
-                ),
-        );
-      },
+    if (widget.embedded) return pageBody;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Row(
+          children: [
+            Container(
+              width: 6,
+              height: 20,
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.secondary.withAlpha((0.95 * 255).round()),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const Text('Clients'),
+          ],
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(2.0),
+          child: Container(height: 2.0, color: theme.colorScheme.secondary.withAlpha((0.6 * 255).round())),
+        ),
+      ),
+      body: pageBody,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _addOrEditClient(),
+        tooltip: 'Add Client',
+        child: const Icon(Icons.person_add),
+      ),
     );
   }
 }

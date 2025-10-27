@@ -1,6 +1,10 @@
+// Shutterbook — Home screen
+// A simple navigation hub used after login or setup. Keeps the list of
+// top-level links to the main app sections.
 import 'package:flutter/material.dart';
 import 'authentication/models/auth_model.dart';
 import 'settings/settings.dart';
+import 'package:shutterbook/theme/ui_styles.dart';
 
 class HomeScreen extends StatelessWidget {
   final AuthModel authModel;
@@ -44,10 +48,10 @@ class HomeScreen extends StatelessWidget {
           itemBuilder: (context, index) {
             final it = items[index];
             return Card(
-              elevation: 1.5,
+              elevation: UIStyles.cardElevation,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                contentPadding: UIStyles.tilePadding,
                 leading: Icon(it['icon'] as IconData, color: theme.colorScheme.primary, size: 28),
                 title: Text(it['title'] as String, style: theme.textTheme.titleMedium),
                 subtitle: Text(it['subtitle'] as String, style: theme.textTheme.bodyMedium),

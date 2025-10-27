@@ -1,7 +1,10 @@
+// Shutterbook — Dashboard home
+// The embedded-tab dashboard used as the app's landing page. Hosts
+// Bookings, Clients, Quotes and Inventory tabs and exposes quick actions.
+// Keep tab-switching logic here for a compact UX.
 // ignore_for_file: sort_child_properties_last
 import 'package:flutter/material.dart';
 import 'authentication/models/auth_model.dart';
-// dashboard page temporarily removed - using placeholder while redesigning
 import 'bookings/dashboard.dart';
 import 'bookings/bookings.dart';
 import 'clients/clients.dart';
@@ -10,6 +13,7 @@ import 'quotes/create/create_quote.dart';
 import 'bookings/create_booking.dart';
 import 'inventory/inventory.dart';
 import 'settings/settings.dart';
+import '../theme/app_colors.dart';
 
 class DashboardHome extends StatefulWidget {
   final AuthModel authModel;
@@ -22,9 +26,17 @@ class DashboardHome extends StatefulWidget {
 
 class _DashboardHomeState extends State<DashboardHome> {
   int _currentIndex = 0;
+  late final PageController _pageController;
+  // Whether horizontal swiping between pages is enabled. Can be toggled
+  // programmatically (e.g. to lock navigation while a modal flow runs).
+  bool _swipeEnabled = true;
   final GlobalKey _clientsKey = GlobalKey();
   final GlobalKey _bookingsKey = GlobalKey();
   final GlobalKey _inventoryKey = GlobalKey();
+  // key for the embedded quotes page so we can trigger a refresh after creates
+  final GlobalKey _quotesKey = GlobalKey();
+
+  // Use centralized colors from AppColors
 
   static const _labels = [
     'Dashboard',
@@ -34,34 +46,73 @@ class _DashboardHomeState extends State<DashboardHome> {
     'Inventory',
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: _currentIndex);
+    // No fractional page listener needed when indicator is removed.
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
   Widget _buildBody() {
-    return IndexedStack(
-      index: _currentIndex,
+    // PageView provides native horizontal swipe navigation with animation.
+    return PageView(
+      controller: _pageController,
+      physics: _swipeEnabled ? const ClampingScrollPhysics() : const NeverScrollableScrollPhysics(),
+      onPageChanged: (index) => setState(() => _currentIndex = index),
       children: [
         // Use the redesigned DashboardPage as the embedded home dashboard
         DashboardPage(
           embedded: true,
-          onNavigateToTab: (index) => setState(() => _currentIndex = index),
+          onNavigateToTab: (index) {
+            // dashboard can ask to navigate to another tab — animate the page transition
+            _pageController.animateToPage(index, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+          },
         ),
         BookingsPage(key: _bookingsKey, embedded: true),
-        ClientsPage(key: _clientsKey, embedded: true, onViewBookings: (client) {
-          // when a client requests to view bookings, switch to Bookings tab and focus the embedded BookingsPage
-          setState(() {
-            _currentIndex = 1;
-          });
-          // try to call focusOnClient on the embedded bookings page
-          final state = _bookingsKey.currentState;
-          if (state != null) {
-            try {
-              (state as dynamic).focusOnClient(client);
-            } catch (_) {}
-          }
-        }),
-        const QuotePage(embedded: true),
+        ClientsPage(
+          key: _clientsKey,
+          embedded: true,
+          onViewBookings: (client) async {
+            // animate to Bookings tab and focus the embedded BookingsPage
+            await _pageController.animateToPage(1, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+            final state = _bookingsKey.currentState;
+            if (state != null) {
+              try {
+                (state as dynamic).focusOnClient(client);
+              } catch (_) {}
+            }
+          },
+          onViewQuotes: (client) async {
+            // animate to Quotes tab and tell embedded QuotePage to focus on the client
+            await _pageController.animateToPage(3, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+            final state = _quotesKey.currentState;
+            if (state != null) {
+              try {
+                (state as dynamic).focusOnClient(client);
+              } catch (_) {}
+            }
+          },
+        ),
+        QuotePage(key: _quotesKey, embedded: true),
         InventoryPage(key: _inventoryKey, embedded: true),
       ],
     );
   }
+
+  /// Enable or disable swipe navigation. Public so parent widgets or
+  /// embedded pages can lock navigation when needed.
+  void setSwipeEnabled(bool enabled) {
+    if (!mounted) return;
+    setState(() => _swipeEnabled = enabled);
+  }
+
+  // Page indicator removed per UX feedback.
 
   FloatingActionButton? _buildFab() {
     switch (_currentIndex) {
@@ -85,7 +136,16 @@ class _DashboardHomeState extends State<DashboardHome> {
             final created = await nav.push<bool>(
               MaterialPageRoute(builder: (_) => CreateQuotePage()),
             );
-            if (created == true && mounted) setState(() {});
+            if (created == true) {
+              // try to notify the embedded quotes page to refresh its data
+              final state = _quotesKey.currentState;
+              if (state != null) {
+                try {
+                  await (state as dynamic).refresh();
+                } catch (_) {}
+              }
+              if (mounted) setState(() {});
+            }
           },
           child: const Icon(Icons.request_quote),
           tooltip: 'Create ',
@@ -144,9 +204,24 @@ class _DashboardHomeState extends State<DashboardHome> {
 
   @override
   Widget build(BuildContext context) {
+  final Color activeColor = AppColors.colorForIndex(context, _currentIndex);
     return Scaffold(
       appBar: AppBar(
-        title: Text(_labels[_currentIndex]),
+        title: Row(
+          children: [
+            // small left color accent
+            Container(
+              width: 6,
+              height: 20,
+              margin: const EdgeInsets.only(right: 8),
+                decoration: BoxDecoration(
+                color: activeColor.withAlpha((0.95 * 255).round()),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Text(_labels[_currentIndex]),
+          ],
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
@@ -159,6 +234,17 @@ class _DashboardHomeState extends State<DashboardHome> {
             },
           ),
         ],
+         // subtle colored underline to indicate active tab without changing
+         // the AppBar's main color — animate the color change for polish.
+         bottom: PreferredSize(
+           preferredSize: const Size.fromHeight(3.0),
+            child: AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOut,
+            height: 3.0,
+            color: activeColor.withAlpha((0.6 * 255).round()),
+          ),
+         ),
       ),
       body: SafeArea(
         child: _buildBody(),
@@ -166,7 +252,10 @@ class _DashboardHomeState extends State<DashboardHome> {
       floatingActionButton: _buildFab(),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
-        onTap: (i) => setState(() => _currentIndex = i),
+        onTap: (i) {
+          // animate the PageView to the tapped page
+          _pageController.animateToPage(i, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+        },
         type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Home'),

@@ -1,3 +1,7 @@
+// Shutterbook — AuthModel
+// A small ChangeNotifier-based model that wraps auth services and
+// persistable auth settings (password set, biometric enabled, unlocked
+// state). Used to gate access to the app during startup and settings.
 import 'package:flutter/foundation.dart';
 
 import '../services/auth_service.dart';

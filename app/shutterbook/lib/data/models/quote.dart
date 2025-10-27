@@ -1,3 +1,6 @@
+// Shutterbook — data model: Quote
+// Represents a quote created for a client. Small, serializable model used
+// by the quotes UI and persisted via QuoteTable.
 class Quote {
   int? id;
   int clientId;

@@ -1,3 +1,6 @@
+// Shutterbook — data model: Booking
+// Represents a scheduled booking (appointment). Stored via
+// BookingTable; used in the dashboard and bookings screens.
 class Booking {
   int? bookingId;
   int clientId;
