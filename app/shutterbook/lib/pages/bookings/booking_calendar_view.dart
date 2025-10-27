@@ -1,4 +1,8 @@
+// Shutterbook — booking_calendar_view.dart
+// A compact calendar view used in the bookings section to visualise
+// upcoming sessions. It's intentionally small and focused on display logic.
 import 'package:flutter/material.dart';
+import 'package:shutterbook/theme/ui_styles.dart';
 import 'package:shutterbook/data/models/booking.dart';
 import 'package:shutterbook/data/models/client.dart';
 import 'package:shutterbook/data/models/quote.dart';
@@ -93,33 +97,39 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
       }
     }
 
+    if (!mounted) return;
     showDialog(
       context: context,
       builder: (_) => StatefulBuilder(
         builder: (context, setStateDialog) {
+          final NavigatorState dialogNavigator = Navigator.of(context);
+          final ScaffoldMessengerState dialogMessenger = ScaffoldMessenger.of(
+            context,
+          );
           return AlertDialog(
             title: Text(existing == null ? 'New Booking' : 'Edit Booking'),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Autocomplete<String>(
                     optionsBuilder: (TextEditingValue textEditingValue) {
-                      final query = textEditingValue.text.toLowerCase().trim();
+                      final query = textEditingValue.text.toLowerCase();
                       if (query.isEmpty) return const Iterable<String>.empty();
-                      final matches = allClients
+                      return allClients
                           .where((c) {
-                            final full = '${c.firstName} ${c.lastName}'.toLowerCase();
+                            final full = '${c.firstName} ${c.lastName}'
+                                .toLowerCase();
                             return c.firstName.toLowerCase().contains(query) ||
                                 c.lastName.toLowerCase().contains(query) ||
                                 full.contains(query) ||
                                 c.email.toLowerCase().contains(query);
                           })
-                          .map((c) => '${c.firstName} ${c.lastName} (${c.email})')
-                          .toList();
-                      return matches;
+                          .map((c) => '${c.firstName} ${c.lastName} (${c.email})');
                     },
-                    fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                    fieldViewBuilder:
+                        (context, controller, focusNode, onFieldSubmitted) {
                       return TextField(
                         controller: controller,
                         focusNode: focusNode,
@@ -142,7 +152,8 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
 
                       if (client == null) {
                         for (final c in allClients) {
-                          final display = '${c.firstName} ${c.lastName} (${c.email})';
+                          final display =
+                              '${c.firstName} ${c.lastName} (${c.email})';
                           if (display == selection) {
                             client = c;
                             break;
@@ -151,8 +162,11 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                       }
 
                       if (client == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Selected client not found')));
+                        dialogMessenger.showSnackBar(
+                          const SnackBar(
+                            content: Text('Selected client not found'),
+                          ),
+                        );
                         return;
                       }
 
@@ -163,15 +177,24 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                             clientQuotes = [];
                             selectedQuoteId = null;
                           });
-                          ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Selected client is not saved (no id)')));
+                          dialogMessenger.showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Selected client is not saved (no id)',
+                              ),
+                            ),
+                          );
                           return;
                         }
-                        final quotes = await quoteTable.getQuotesByClient(client.id!);
+                        final quotes = await quoteTable.getQuotesByClient(
+                          client.id!,
+                        );
                         setStateDialog(() {
                           selectedClient = client;
                           clientQuotes = quotes;
-                          selectedQuoteId = clientQuotes.isNotEmpty ? clientQuotes.first.id : null;
+                          selectedQuoteId = clientQuotes.isNotEmpty
+                              ? clientQuotes.first.id
+                              : null;
                         });
                       } catch (e) {
                         setStateDialog(() {
@@ -179,11 +202,10 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                           clientQuotes = [];
                           selectedQuoteId = null;
                         });
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Failed loading quotes: $e')),
-                          );
-                        });
+                        // Use captured messenger to avoid using BuildContext after async gaps
+                        dialogMessenger.showSnackBar(
+                          SnackBar(content: Text('Failed loading quotes: $e')),
+                        );
                       }
                     },
                     optionsViewBuilder: (context, onSelected, options) {
@@ -200,14 +222,22 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                               itemBuilder: (BuildContext context, int index) {
                                 final String display = opts[index];
                                 final emailStart = display.lastIndexOf('(');
-                                final namePart =
-                                    emailStart > 0 ? display.substring(0, emailStart).trim() : display;
-                                final emailPart = (emailStart > 0 && display.endsWith(')'))
-                                    ? display.substring(emailStart + 1, display.length - 1)
+                                final namePart = emailStart > 0
+                                    ? display.substring(0, emailStart).trim()
+                                    : display;
+                                final emailPart =
+                                    (emailStart > 0 && display.endsWith(')'))
+                                    ? display.substring(
+                                        emailStart + 1,
+                                        display.length - 1,
+                                      )
                                     : '';
                                 return ListTile(
+                                  contentPadding: UIStyles.tilePadding,
                                   title: Text(namePart),
-                                  subtitle: emailPart.isNotEmpty ? Text(emailPart) : null,
+                                  subtitle: emailPart.isNotEmpty
+                                      ? Text(emailPart)
+                                      : null,
                                   onTap: () => onSelected(display),
                                 );
                               },
@@ -219,12 +249,14 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                   ),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<int>(
-                    value: selectedQuoteId,
+                    initialValue: selectedQuoteId,
                     items: clientQuotes
-                        .map((q) => DropdownMenuItem<int>(
-                              value: q.id!,
-                              child: Text(q.description),
-                            ))
+                        .map(
+                          (q) => DropdownMenuItem<int>(
+                            value: q.id!,
+                            child: Text(q.description),
+                          ),
+                        )
                         .toList(),
                     onChanged: clientQuotes.isEmpty
                         ? null
@@ -240,10 +272,16 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                   ),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
-                    value: status.isEmpty ? 'Scheduled' : status,
+                    initialValue: status.isEmpty ? 'Scheduled' : status,
                     items: const [
-                      DropdownMenuItem(value: 'Scheduled', child: Text('Scheduled')),
-                      DropdownMenuItem(value: 'Finished', child: Text('Finished')),
+                      DropdownMenuItem(
+                        value: 'Scheduled',
+                        child: Text('Scheduled'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Finished',
+                        child: Text('Finished'),
+                      ),
                     ],
                     onChanged: (val) {
                       setStateDialog(() {
@@ -259,35 +297,42 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
             actions: [
               TextButton(
                 onPressed: () {
-                  Navigator.pop(context);
+                  dialogNavigator.pop();
                 },
                 child: const Text('Cancel'),
               ),
               if (existing != null)
                 TextButton(
                   onPressed: () async {
+                    final nav = dialogNavigator;
                     await bookingTable.deleteBooking(existing.bookingId!);
+                    if (nav.mounted) nav.pop();
                     if (!mounted) return;
-                    Navigator.pop(context);
                     _loadBookings();
                   },
-                  child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                  child: Text(
+                    'Delete',
+                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  ),
                 ),
               TextButton(
                 onPressed: () async {
                   if (selectedClient == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    dialogMessenger.showSnackBar(
                       const SnackBar(content: Text('Please select a client.')),
                     );
                     return;
                   }
                   if (selectedQuoteId == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Please select a quote for this client.')),
+                    dialogMessenger.showSnackBar(
+                      const SnackBar(
+                        content: Text('Please select a quote for this client.'),
+                      ),
                     );
                     return;
                   }
 
+                  final nav = dialogNavigator;
                   if (existing != null) {
                     Booking updated = Booking(
                       bookingId: existing.bookingId,
@@ -308,8 +353,8 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                     await bookingTable.insertBooking(newBooking);
                   }
 
+                  if (nav.mounted) nav.pop();
                   if (!mounted) return;
-                  Navigator.pop(context);
                   _loadBookings();
                 },
                 child: const Text('Save'),
@@ -353,9 +398,12 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
         final double whiteCol = isPhone ? 24 : whiteSpaceWidth;
         const double minBlock = 40;
 
-        final double fitBlock = (constraints.maxWidth - timeCol - whiteCol) / 7.0;
+        final double fitBlock =
+            (constraints.maxWidth - timeCol - whiteCol) / 7.0;
         final bool needsHScroll = fitBlock < minBlock;
-        final double blockW = needsHScroll ? minBlock : fitBlock.floorToDouble();
+        final double blockW = needsHScroll
+            ? minBlock
+            : fitBlock.floorToDouble();
         final double contentW = timeCol + whiteCol + (blockW * 7);
 
         Widget buildDateRow() {
@@ -406,9 +454,9 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                 SizedBox(
                   width: blockW,
                   child: Center(
-                    child: Text(
+                      child: Text(
                       getWeekdayName(d),
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                      style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color),
                     ),
                   ),
                 ),
@@ -440,12 +488,7 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                   width: blockW,
                   child: GestureDetector(
                     onTap: () {
-                      final slot = DateTime(
-                        d.year,
-                        d.month,
-                        d.day,
-                        hour,
-                      );
+                      final slot = DateTime(d.year, d.month, d.day, hour);
                       final booking = getBookingForSlot(slot);
                       _editBooking(slot, booking);
                     },
@@ -454,28 +497,18 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                       height: 50,
                       decoration: BoxDecoration(
                         color: (() {
-                          final slot = DateTime(
-                            d.year,
-                            d.month,
-                            d.day,
-                            hour,
-                          );
+                          final slot = DateTime(d.year, d.month, d.day, hour);
                           final booking = getBookingForSlot(slot);
                           if (booking != null) {
-                            return Colors.green[300];
+                            return Theme.of(context).colorScheme.secondaryContainer;
                           }
-                          return Colors.grey[200];
+                          return Theme.of(context).colorScheme.surfaceContainerHighest;
                         })(),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Builder(
                         builder: (context) {
-                          final slot = DateTime(
-                            d.year,
-                            d.month,
-                            d.day,
-                            hour,
-                          );
+                          final slot = DateTime(d.year, d.month, d.day, hour);
                           final booking = getBookingForSlot(slot);
                           if (booking != null) {
                             return Center(

@@ -1,8 +1,11 @@
+import 'package:flutter/foundation.dart';
+// Shutterbook — Package picker
+// Small helper screen that allows selecting pre-defined packages when
+// building a quote.
 import 'package:flutter/material.dart';
+import 'package:shutterbook/utils/formatters.dart';
+import 'package:shutterbook/theme/ui_styles.dart';
 import 'package:shutterbook/data/models/client.dart';
-
-
-import 'package:shutterbook/pages/quotes/create/overview/quote_overview_screen.dart';
 
 
 // Simple Package model
@@ -16,9 +19,12 @@ class Package {
 class PackagePicker extends StatefulWidget {
   final Function(Map<Package, int>) onSelectionChanged;
   final Client client;
-  
 
-  const PackagePicker({super.key, required this.onSelectionChanged, required this.client});
+  const PackagePicker({
+    super.key,
+    required this.onSelectionChanged,
+    required this.client,
+  });
 
   @override
   PackagePickerState createState() => PackagePickerState();
@@ -58,18 +64,24 @@ class PackagePickerState extends State<PackagePicker> {
     widget.onSelectionChanged(_selectedPackages);
   }
 
-  int get totalItems => _selectedPackages.values.fold(0, (sum, qty) => sum + qty);
-  double get totalPrice => _selectedPackages.entries
-      .fold(0, (sum, entry) => sum + entry.key.price * entry.value);
+  int get totalItems =>
+      _selectedPackages.values.fold(0, (sum, qty) => sum + qty);
+  double get totalPrice => _selectedPackages.entries.fold(
+    0,
+    (sum, entry) => sum + entry.key.price * entry.value,
+  );
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
         Center(
-          child: Text('${widget.client.firstName} ${widget.client.lastName}') ,
+          child: Text('${widget.client.firstName} ${widget.client.lastName}'),
         ),
-        const Text('Pick Packages:', style: TextStyle(fontWeight: FontWeight.bold)),
+        const Text(
+          'Pick Packages:',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         Expanded(
           child: ListView.builder(
             itemCount: _packages.length,
@@ -79,7 +91,8 @@ class PackagePickerState extends State<PackagePicker> {
               final quantity = _selectedPackages[package] ?? 1;
               return Card(
                 child: ListTile(
-                  title: Text('${package.name} (R${package.price})'),
+                  contentPadding: UIStyles.tilePadding,
+                  title: Text('${package.name} (${formatRand(package.price)})'),
                   trailing: isSelected
                       ? Row(
                           mainAxisSize: MainAxisSize.min,
@@ -102,7 +115,10 @@ class PackagePickerState extends State<PackagePicker> {
                               },
                             ),
                             IconButton(
-                              icon: const Icon(Icons.check_box, color: Colors.green),
+                              icon: Icon(
+                                Icons.check_box,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
                               onPressed: () => _toggleSelection(package),
                             ),
                           ],
@@ -117,19 +133,19 @@ class PackagePickerState extends State<PackagePicker> {
           ),
         ),
         const SizedBox(height: 10),
-        Text('Selected: $totalItems items, Total: R${totalPrice.toStringAsFixed(2)}'),
+        Text(
+          'Selected: $totalItems items, Total: ${formatRand(totalPrice)}',
+        ),
         const SizedBox(height: 10),
         ElevatedButton(
           onPressed: () {
+            // Return selected packages to the caller so the caller can decide next step
             widget.onSelectionChanged(_selectedPackages);
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => QuoteOverviewScreen(
-                client: widget.client,
-                total: totalPrice,
-                packages: _selectedPackages,
-              )),
-            );
+              try {
+                final names = _selectedPackages.keys.map((p) => p.name).join(', ');
+                if (kDebugMode) debugPrint('PackagePicker confirm selected: $names');
+              } catch (_) {}
+            Navigator.of(context).pop(_selectedPackages);
           },
           child: const Text('Confirm Selection'),
         ),

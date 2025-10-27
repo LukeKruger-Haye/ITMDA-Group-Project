@@ -1,3 +1,6 @@
+// Shutterbook — data model: Package
+// Minor helper model used while building quotes. Kept intentionally
+// lightweight and serializable for ease of persistence.
 class Package {
   int? id;
   String name;
@@ -12,12 +15,7 @@ class Package {
   });
 
   Map<String, dynamic> toMap() {
-    return {
-      'package_id': id,
-      'name': name,
-      'details': details,
-      'price': price,
-    };
+    return {'package_id': id, 'name': name, 'details': details, 'price': price};
   }
 
   factory Package.fromMap(Map<String, dynamic> map) {

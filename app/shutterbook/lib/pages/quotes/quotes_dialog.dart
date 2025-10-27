@@ -1,9 +1,27 @@
+// Shutterbook — Quotes dialog
+// Small modal that lists quotes and allows quick selection for actions
+// such as creating a booking.
 import 'package:flutter/material.dart';
 import 'package:shutterbook/data/models/quote.dart';
 import 'package:shutterbook/data/tables/quote_table.dart';
+import 'package:shutterbook/utils/formatters.dart';
+import 'package:shutterbook/theme/ui_styles.dart';
 
-class QuotesDialog extends StatelessWidget {
+class QuotesDialog extends StatefulWidget {
   const QuotesDialog({super.key});
+
+  @override
+  State<QuotesDialog> createState() => _QuotesDialogState();
+}
+
+class _QuotesDialogState extends State<QuotesDialog> {
+  late Future<List<Quote>> _quotesFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _quotesFuture = QuoteTable().getAllQuotes();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -13,7 +31,7 @@ class QuotesDialog extends StatelessWidget {
         width: double.maxFinite,
         height: 420,
         child: FutureBuilder<List<Quote>>(
-          future: QuoteTable().getAllQuotes(),
+          future: _quotesFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
@@ -25,14 +43,17 @@ class QuotesDialog extends StatelessWidget {
             if (quotes.isEmpty) {
               return const Center(child: Text('No quotes found.'));
             }
-            return ListView.separated(
-              itemCount: quotes.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
-              itemBuilder: (context, index) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: ListView.separated(
+                itemCount: quotes.length,
+                separatorBuilder: (_, __) => const Divider(height: 1),
+                itemBuilder: (context, index) {
                 final q = quotes[index];
                 final title = 'Quote #${q.id}';
-                final subtitle = 'Total: ${q.totalPrice} • ${q.createdAt}';
+                final subtitle = 'Total: ${formatRand(q.totalPrice)} • ${q.createdAt}';
                 return ListTile(
+                  contentPadding: UIStyles.tilePadding,
                   leading: const Icon(Icons.description_outlined),
                   title: Text(title),
                   subtitle: Text(
@@ -41,13 +62,15 @@ class QuotesDialog extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   trailing: ElevatedButton.icon(
+                    style: UIStyles.primaryButton(context),
                     onPressed: () => Navigator.of(context).pop<Quote>(q),
                     icon: const Icon(Icons.add_circle_outline),
                     label: const Text('Book'),
                   ),
                   onTap: () => Navigator.of(context).pop<Quote>(q),
                 );
-              },
+                },
+              ),
             );
           },
         ),

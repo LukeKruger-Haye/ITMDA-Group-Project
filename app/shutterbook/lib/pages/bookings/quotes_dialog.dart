@@ -1,19 +1,42 @@
+// Shutterbook — quotes_dialog (used from bookings)
+// Displays a selectable list of quotes suitable for booking creation.
 import 'package:flutter/material.dart';
 import 'package:shutterbook/data/models/quote.dart';
 import 'package:shutterbook/data/tables/quote_table.dart';
+import 'package:shutterbook/utils/formatters.dart';
+import 'package:shutterbook/theme/ui_styles.dart';
 
-class QuotesDialog extends StatelessWidget {
-  const QuotesDialog({super.key});
+class QuotesDialog extends StatefulWidget {
+  const QuotesDialog({super.key, this.clientId});
+  final int? clientId;
+
+  @override
+  State<QuotesDialog> createState() => _QuotesDialogState();
+}
+
+class _QuotesDialogState extends State<QuotesDialog> {
+  late Future<List<Quote>> _quotesFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.clientId != null) {
+      _quotesFuture = QuoteTable().getQuotesByClient(widget.clientId!);
+    } else {
+      _quotesFuture = QuoteTable().getAllQuotes();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final isClient = widget.clientId != null;
     return AlertDialog(
-      title: const Text('All Quotes'),
+      title: Text(isClient ? 'Client Quotes' : 'All Quotes'),
       content: SizedBox(
         width: double.maxFinite,
         height: 420,
         child: FutureBuilder<List<Quote>>(
-          future: QuoteTable().getAllQuotes(),
+          future: _quotesFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
@@ -31,8 +54,9 @@ class QuotesDialog extends StatelessWidget {
               itemBuilder: (context, index) {
                 final q = quotes[index];
                 final title = 'Quote #${q.id}';
-                final subtitle = 'Total: ${q.totalPrice} • ${q.createdAt}';
+                final subtitle = 'Total: ${formatRand(q.totalPrice)} • ${q.createdAt}';
                 return ListTile(
+                  contentPadding: UIStyles.tilePadding,
                   leading: const Icon(Icons.description_outlined),
                   title: Text(title),
                   subtitle: Text(
@@ -41,6 +65,7 @@ class QuotesDialog extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   trailing: ElevatedButton.icon(
+                    style: UIStyles.primaryButton(context),
                     onPressed: () => Navigator.of(context).pop<Quote>(q),
                     icon: const Icon(Icons.add_circle_outline),
                     label: const Text('Book'),

@@ -1,3 +1,7 @@
+// Shutterbook — database_helper.dart
+// Provides a small, cross-platform SQLite helper that initializes the
+// application schema and exposes a singleton Database instance. Used by the
+// table helpers under `data/tables`.
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
@@ -13,9 +17,10 @@ class DatabaseHelper {
 
   Future<Database> get database async {
     if (_database != null) return _database!;
-    if (!kIsWeb && (defaultTargetPlatform == TargetPlatform.linux || 
-                    defaultTargetPlatform == TargetPlatform.macOS || 
-                    defaultTargetPlatform == TargetPlatform.windows)) {
+    if (!kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.linux ||
+            defaultTargetPlatform == TargetPlatform.macOS ||
+            defaultTargetPlatform == TargetPlatform.windows)) {
       sqfliteFfiInit();
       databaseFactory = databaseFactoryFfi;
     }
@@ -28,9 +33,13 @@ class DatabaseHelper {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, _databaseName);
 
-  if (kDebugMode) debugPrint('Opening database at: $path');
-    
-    return await openDatabase(path, version: _databaseVersion, onCreate: _onCreate);
+    if (kDebugMode) debugPrint('Opening database at: $path');
+
+    return await openDatabase(
+      path,
+      version: _databaseVersion,
+      onCreate: _onCreate,
+    );
   }
 
   Future _onCreate(Database db, int version) async {
@@ -42,8 +51,7 @@ class DatabaseHelper {
         email TEXT NOT NULL,
         phone TEXT NOT NULL
       )
-      '''
-    );
+      ''');
 
     await db.execute('''
       CREATE TABLE Quotes (
@@ -54,8 +62,7 @@ class DatabaseHelper {
         created_at DATETIME DEFAULT (strftime('%Y-%m-%d %H:%M', 'now')),
         FOREIGN KEY (client_id) REFERENCES Clients(client_id) ON DELETE CASCADE
       )
-      '''
-    );
+      ''');
 
     await db.execute('''
       CREATE TABLE Bookings (
@@ -68,8 +75,7 @@ class DatabaseHelper {
         FOREIGN KEY (client_id) REFERENCES Clients(client_id) ON DELETE CASCADE,
         FOREIGN KEY (quote_id) REFERENCES Quotes(quote_id) ON DELETE CASCADE
       )
-      '''
-    );
+      ''');
 
     await db.execute('''
       CREATE TABLE Inventory (
@@ -78,8 +84,7 @@ class DatabaseHelper {
         category TEXT NOT NULL,
         condition TEXT NOT NULL DEFAULT 'New'
       )
-      '''
-    );
+      ''');
 
     await db.execute('''
       CREATE TABLE Packages (
@@ -88,7 +93,6 @@ class DatabaseHelper {
         details TEXT NOT NULL,
         price REAL NOT NULL
       )
-      '''
-    );
+      ''');
   }
-} 
+}

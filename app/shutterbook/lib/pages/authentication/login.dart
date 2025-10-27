@@ -1,6 +1,12 @@
+// Shutterbook — Login screen
+// Lightweight login page used when the app is protected by a password.
+// Authentication is handled by AuthModel and the services under the
+// authentication/services directory.
 import 'package:flutter/material.dart';
 import 'models/auth_model.dart';
-import '../home.dart';
+import '../dashboard_home.dart';
+import '../../widgets/section_card.dart';
+import '../../widgets/password_field.dart';
 
 class LoginScreen extends StatefulWidget {
   final AuthModel authModel;
@@ -14,12 +20,14 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
-  bool _biometricTried = false;
 
   @override
   void initState() {
     super.initState();
-    _tryBiometricLogin();
+    // Attempt biometrics after the first frame so context and platform are ready.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _tryBiometricLogin();
+    });
   }
 
   @override
@@ -29,20 +37,35 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _tryBiometricLogin() async {
-    if (widget.authModel.biometricEnabled && widget.authModel.hasPassword) {
-      setState(() => _isLoading = true);
-      final success = await widget.authModel.authenticate();
+    final shouldTry = widget.authModel.biometricEnabled && widget.authModel.hasPassword;
+    if (shouldTry) {
+      final navigator = Navigator.of(context);
+      // only try authentication if biometrics are available on the device
+      final available = await widget.authModel.isBiometricAvailable();
+      if (!available) return;
+
+      // brief delay to let platform channels settle
+      await Future.delayed(const Duration(milliseconds: 150));
+
       if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-        _biometricTried = true;
-      });
+      setState(() => _isLoading = true);
+      bool success = false;
+      try {
+        success = await widget.authModel.unlockWithBiometrics();
+      } catch (e) {
+        // swallow errors on automatic attempt
+        success = false;
+      }
+      if (!mounted) return;
+      setState(() => _isLoading = false);
 
       if (success) {
-        _goToHome();
+        navigator.pushReplacement(
+          MaterialPageRoute(builder: (_) => DashboardHome(authModel: widget.authModel)),
+        );
       }
     } else {
-      _biometricTried = true;
+      // not using biometrics or no password set; simply continue
     }
   }
 
@@ -50,41 +73,40 @@ class _LoginScreenState extends State<LoginScreen> {
     final password = _passwordController.text.trim();
     if (password.isEmpty) return;
 
-    setState(() => _isLoading = true);
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+
+    if (mounted) setState(() => _isLoading = true);
     final valid = await widget.authModel.verifyPassword(password);
     if (!mounted) return;
     setState(() => _isLoading = false);
 
     if (valid) {
-      _goToHome();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Incorrect password')),
+      navigator.pushReplacement(
+        MaterialPageRoute(builder: (_) => DashboardHome(authModel: widget.authModel)),
       );
+    } else {
+      messenger.showSnackBar(const SnackBar(content: Text('Incorrect password')));
     }
   }
 
-  void _goToHome() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => HomeScreen(authModel: widget.authModel),
-      ),
-    );
-  }
+  // navigation is performed inline to avoid using BuildContext across async gaps
 
   Future<void> _loginWithBiometric() async {
-    setState(() => _isLoading = true);
-    final success = await widget.authModel.authenticate();
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+
+    if (mounted) setState(() => _isLoading = true);
+    final success = await widget.authModel.unlockWithBiometrics();
     if (!mounted) return;
     setState(() => _isLoading = false);
 
     if (success) {
-      _goToHome();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Biometric authentication failed')),
+      navigator.pushReplacement(
+        MaterialPageRoute(builder: (_) => DashboardHome(authModel: widget.authModel)),
       );
+    } else {
+      messenger.showSnackBar(const SnackBar(content: Text('Biometric authentication failed')));
     }
   }
 
@@ -102,21 +124,25 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text(
-                  'Welcome Back!',
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 32),
-                TextField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Enter password',
-                    border: OutlineInputBorder(),
+                const SizedBox(height: 8),
+                SectionCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Text(
+                        'Welcome Back!',
+                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 12),
+                      PasswordField(
+                        controller: _passwordController,
+                        labelText: 'Enter password',
+                      ),
+                      const SizedBox(height: 12),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 16),
                 if (_isLoading)
                   const CircularProgressIndicator()
                 else ...[
@@ -125,11 +151,16 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: const Text('Login'),
                   ),
                   const SizedBox(height: 16),
-                  if (biometricsOn && _biometricTried)
-                    IconButton(
-                      onPressed: _loginWithBiometric,
-                      icon: const Icon(Icons.fingerprint, size: 40),
-                      tooltip: 'Use biometrics',
+                  if (biometricsOn)
+                    Column(
+                      children: [
+                        IconButton(
+                          onPressed: _loginWithBiometric,
+                          icon: const Icon(Icons.fingerprint, size: 40),
+                          tooltip: 'Use biometrics',
+                        ),
+                        const Text('Use biometrics to unlock'),
+                      ],
                     ),
                 ],
               ],

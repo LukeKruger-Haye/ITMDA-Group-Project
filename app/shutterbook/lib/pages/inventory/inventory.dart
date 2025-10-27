@@ -1,9 +1,13 @@
+// Shutterbook — Inventory screen
+// Manage inventory items (add/edit/remove) used in quotes and bookings.
 import 'package:flutter/material.dart';
 import '../../data/models/item.dart';
 import '../../data/tables/inventory_table.dart';
+import '../../widgets/section_card.dart';
 
 class InventoryPage extends StatefulWidget {
-  const InventoryPage({Key? key}) : super(key: key);
+  final bool embedded;
+  const InventoryPage({super.key, this.embedded = false});
 
   @override
   State<InventoryPage> createState() => _InventoryPageState();
@@ -29,12 +33,18 @@ class _InventoryPageState extends State<InventoryPage> {
     });
   }
 
+  // allow parent to refresh items when embedded
+  Future<void> refresh() async => _loadItems();
+
+  // allow parent to open the add dialog when embedded
+  Future<void> openAddDialog() async => _addItem();
+
   void _filterInventory(String query) {
     setState(() {
       _searchQuery = query.toLowerCase();
       _filteredInventory = _inventory.where((item) {
         return item.name.toLowerCase().contains(_searchQuery) ||
-               item.condition.toLowerCase().contains(_searchQuery);
+            item.condition.toLowerCase().contains(_searchQuery);
       }).toList();
     });
   }
@@ -51,18 +61,22 @@ class _InventoryPageState extends State<InventoryPage> {
           title: const Text('Add Inventory Item'),
           content: SingleChildScrollView(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                TextField(
+                TextFormField(
                   decoration: const InputDecoration(labelText: 'Item Name'),
                   onChanged: (val) => name = val,
                 ),
-                TextField(
+                const SizedBox(height: 12),
+                TextFormField(
                   decoration: const InputDecoration(labelText: 'Category'),
                   onChanged: (val) => category = val,
                 ),
+                const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   decoration: const InputDecoration(labelText: 'Condition'),
-                  value: 'Good',
+                  initialValue: 'Good',
                   items: ['New', 'Excellent', 'Good', 'Needs Repair']
                       .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                       .toList(),
@@ -78,13 +92,14 @@ class _InventoryPageState extends State<InventoryPage> {
             ),
             ElevatedButton(
               onPressed: () async {
+                final nav = Navigator.of(context);
                 final newItem = Item(
                   name: name,
                   category: category,
                   condition: condition,
                 );
                 await _inventoryTable.insertItem(newItem);
-                Navigator.pop(context);
+                if (nav.mounted) nav.pop();
                 _loadItems();
               },
               child: const Text('Add'),
@@ -107,20 +122,24 @@ class _InventoryPageState extends State<InventoryPage> {
           title: const Text('Edit Item'),
           content: SingleChildScrollView(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                TextField(
+                TextFormField(
                   controller: TextEditingController(text: name),
                   decoration: const InputDecoration(labelText: 'Item Name'),
                   onChanged: (val) => name = val,
                 ),
-                TextField(
+                const SizedBox(height: 12),
+                TextFormField(
                   controller: TextEditingController(text: category),
                   decoration: const InputDecoration(labelText: 'Category'),
                   onChanged: (val) => category = val,
                 ),
+                const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   decoration: const InputDecoration(labelText: 'Condition'),
-                  value: condition,
+                  initialValue: condition,
                   items: ['New', 'Excellent', 'Good', 'Needs Repair']
                       .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                       .toList(),
@@ -136,6 +155,7 @@ class _InventoryPageState extends State<InventoryPage> {
             ),
             ElevatedButton(
               onPressed: () async {
+                final nav = Navigator.of(context);
                 final updatedItem = Item(
                   id: item.id,
                   name: name,
@@ -143,7 +163,7 @@ class _InventoryPageState extends State<InventoryPage> {
                   condition: condition,
                 );
                 await _inventoryTable.updateItem(updatedItem);
-                Navigator.pop(context);
+                if (nav.mounted) nav.pop();
                 _loadItems();
               },
               child: const Text('Save'),
@@ -161,91 +181,101 @@ class _InventoryPageState extends State<InventoryPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Inventory'),
-        backgroundColor: Colors.teal,
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(10),
-            child: TextField(
-              decoration: const InputDecoration(
-                labelText: 'Search by name or condition',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
-              ),
-              onChanged: _filterInventory,
+    final theme = Theme.of(context);
+
+    final pageBody = Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(10),
+          child: TextField(
+            decoration: InputDecoration(
+              labelText: 'Search by name or condition',
+              prefixIcon: const Icon(Icons.search),
+              border: const OutlineInputBorder(),
+              filled: true,
+              fillColor: theme.inputDecorationTheme.fillColor,
             ),
+            onChanged: _filterInventory,
           ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: GridView.builder(
-                itemCount: _filteredInventory.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  childAspectRatio: 3 / 4,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
-                ),
-                itemBuilder: (context, index) {
-                  final item = _filteredInventory[index];
-                  return Card(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 3,
-                    child: Padding(
-                      padding: const EdgeInsets.all(10),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(item.name,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 16)),
-                          const SizedBox(height: 6),
-                          Text('Category: ${item.category}'),
-                          Text(
-                            'Condition: ${item.condition}',
-                            style: TextStyle(
-                              color: item.condition == 'Needs Repair'
-                                  ? Colors.red
-                                  : Colors.green,
+        ),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: GridView.builder(
+              itemCount: _filteredInventory.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 3 / 4,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+              ),
+              itemBuilder: (context, index) {
+                final item = _filteredInventory[index];
+                return SectionCard(
+                  child: Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.name,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text('Category: ${item.category}'),
+                        Text(
+                          'Condition: ${item.condition}',
+                          style: TextStyle(
+                            color: item.condition == 'Needs Repair'
+                                ? theme.colorScheme.error
+                                : theme.colorScheme.primary,
+                          ),
+                        ),
+                        const Spacer(),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            IconButton(
+                              icon: Icon(
+                                Icons.edit,
+                                color: theme.colorScheme.primary,
+                              ),
+                              onPressed: () => _editItem(item),
                             ),
-                          ),
-                          const Spacer(),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.edit,
-                                    color: Colors.blueAccent),
-                                onPressed: () => _editItem(item),
+                            IconButton(
+                              icon: Icon(
+                                Icons.delete,
+                                color: theme.colorScheme.error,
                               ),
-                              IconButton(
-                                icon: const Icon(Icons.delete,
-                                    color: Colors.redAccent),
-                                onPressed: () => _deleteItem(item.id!),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+                              onPressed: () => _deleteItem(item.id!),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                  );
-                },
-              ),
+                  ),
+                );
+              },
             ),
           ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _addItem,
-        backgroundColor: Colors.teal,
-        child: const Icon(Icons.add),
-      ),
+        ),
+      ],
     );
+
+    return widget.embedded
+        ? pageBody
+        : Scaffold(
+            appBar: AppBar(
+              title: const Text('Inventory'),
+            ),
+            body: pageBody,
+            floatingActionButton: FloatingActionButton(
+              onPressed: _addItem,
+              tooltip: 'Add',
+              child: const Icon(Icons.add),
+            ),
+          );
   }
 }
