@@ -56,6 +56,19 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
     });
   }
 
+  Color getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'scheduled':
+        return Colors.lightBlue.shade200;
+      case 'finished':
+      case 'completed':
+        return Colors.green.shade300;
+      case 'cancelled':
+        return Colors.red.shade300;
+      default:
+        return Colors.grey.shade300;
+    }
+  }
   Booking? getBookingForSlot(DateTime slot) {
     try {
       return bookings.firstWhere(
@@ -65,6 +78,14 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
             b.bookingDate.day == slot.day &&
             b.bookingDate.hour == slot.hour,
       );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Client? getClientForBooking(Booking booking) {
+    try {
+      return allClients.firstWhere((c) => c.id == booking.clientId);
     } catch (_) {
       return null;
     }
@@ -134,7 +155,7 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                         controller: controller,
                         focusNode: focusNode,
                         decoration: const InputDecoration(
-                          labelText: 'Search client by name or email',
+                          labelText: 'Client name or email',
                           prefixIcon: Icon(Icons.search),
                         ),
                       );
@@ -202,7 +223,6 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                           clientQuotes = [];
                           selectedQuoteId = null;
                         });
-                        // Use captured messenger to avoid using BuildContext after async gaps
                         dialogMessenger.showSnackBar(
                           SnackBar(content: Text('Failed loading quotes: $e')),
                         );
@@ -227,11 +247,11 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                                     : display;
                                 final emailPart =
                                     (emailStart > 0 && display.endsWith(')'))
-                                    ? display.substring(
-                                        emailStart + 1,
-                                        display.length - 1,
-                                      )
-                                    : '';
+                                        ? display.substring(
+                                            emailStart + 1,
+                                            display.length - 1,
+                                          )
+                                        : '';
                                 return ListTile(
                                   contentPadding: UIStyles.tilePadding,
                                   title: Text(namePart),
@@ -282,6 +302,10 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                         value: 'Finished',
                         child: Text('Finished'),
                       ),
+                      DropdownMenuItem(
+                        value: 'Cancelled',
+                        child: Text('Cancelled'),
+                      ),
                     ],
                     onChanged: (val) {
                       setStateDialog(() {
@@ -304,15 +328,33 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
               if (existing != null)
                 TextButton(
                   onPressed: () async {
-                    final nav = dialogNavigator;
-                    await bookingTable.deleteBooking(existing.bookingId!);
-                    if (nav.mounted) nav.pop();
-                    if (!mounted) return;
-                    _loadBookings();
-                  },
-                  child: Text(
+                    final confirm = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Confirm Deletion'),
+      content: const Text('Are you sure you want to delete this booking?'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(false),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(true),
+          child: const Text('Delete', style: TextStyle(color: Colors.red)),
+        ),
+      ],
+    ),
+  );if (confirm != true) return;
+
+  final nav = dialogNavigator;
+  await bookingTable.deleteBooking(existing.bookingId!);
+  if (nav.mounted) nav.pop();
+  if (!mounted) return;
+  _loadBookings();
+},
+                  child: const Text(
                     'Delete',
-                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                    style: TextStyle(color: Colors.red),
                   ),
                 ),
               TextButton(
@@ -326,7 +368,8 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                   if (selectedQuoteId == null) {
                     dialogMessenger.showSnackBar(
                       const SnackBar(
-                        content: Text('Please select a quote for this client.'),
+                        content:
+                            Text('Please select a quote for this client.'),
                       ),
                     );
                     return;
@@ -388,7 +431,6 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
     final days = List.generate(7, (i) => weekStart.add(Duration(days: i)));
 
     const double timeColumnWidth = 60;
-    // const double blockColumnWidth = 44; // responsive below
     const double whiteSpaceWidth = 40;
 
     return LayoutBuilder(
@@ -401,9 +443,8 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
         final double fitBlock =
             (constraints.maxWidth - timeCol - whiteCol) / 7.0;
         final bool needsHScroll = fitBlock < minBlock;
-        final double blockW = needsHScroll
-            ? minBlock
-            : fitBlock.floorToDouble();
+        final double blockW =
+            needsHScroll ? minBlock : fitBlock.floorToDouble();
         final double contentW = timeCol + whiteCol + (blockW * 7);
 
         Widget buildDateRow() {
@@ -454,9 +495,15 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                 SizedBox(
                   width: blockW,
                   child: Center(
-                      child: Text(
+                    child: Text(
                       getWeekdayName(d),
-                      style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.color,
+                      ),
                     ),
                   ),
                 ),
@@ -500,9 +547,9 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                           final slot = DateTime(d.year, d.month, d.day, hour);
                           final booking = getBookingForSlot(slot);
                           if (booking != null) {
-                            return Theme.of(context).colorScheme.secondaryContainer;
+                            return getStatusColor(booking.status);
                           }
-                          return Theme.of(context).colorScheme.surfaceContainerHighest;
+                          return Colors.grey.shade300;
                         })(),
                         borderRadius: BorderRadius.circular(4),
                       ),
@@ -511,16 +558,32 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                           final slot = DateTime(d.year, d.month, d.day, hour);
                           final booking = getBookingForSlot(slot);
                           if (booking != null) {
-                            return Center(
-                              child: Text(
-                                "Client: ${booking.clientId}\nQuote: ${booking.quoteId}\n${booking.status}",
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
+                            final client = getClientForBooking(booking);
+                            if (client != null) {
+                              return Center(
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        client.firstName,
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 10,
+                                        ),
+                                      ),
+                                      Text(
+                                        client.lastName,
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(fontSize: 9),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            );
+                              );
+                            }
                           }
                           return const SizedBox.shrink();
                         },
