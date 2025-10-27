@@ -36,8 +36,6 @@ class _BookingsPageState extends State<BookingsPage> {
 
   Future<void> _loadBookings() async {
     final data = await bookingTable.getAllBookings();
-
-    // Preload quotes referenced by bookings to avoid DB calls in the build loop
     final quoteIds = data.map((b) => b.quoteId).toSet().toList();
     final qMap = <int, Quote>{};
     for (final id in quoteIds) {
@@ -93,7 +91,6 @@ class _BookingsPageState extends State<BookingsPage> {
 
     // Controller to auto-fill client field
     TextEditingController clientController = TextEditingController();
-
     // If editing a booking, select client and load quotes
     if (existing != null) {
       if (allClients.isNotEmpty) {
@@ -106,9 +103,7 @@ class _BookingsPageState extends State<BookingsPage> {
           clientController.text =
               '${selectedClient.firstName} ${selectedClient.lastName} (${selectedClient.email})';
         }
-
-        // load quotes defensively
-        try {
+        try { //defensive client load
           clientQuotes = await quoteTable.getQuotesByClient(selectedClient!.id!);
           if (clientQuotes.isNotEmpty &&
               (selectedQuoteId == null ||
