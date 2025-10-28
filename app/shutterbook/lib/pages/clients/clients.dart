@@ -19,7 +19,8 @@ class ClientsPage extends StatefulWidget {
   final bool embedded; // when true, return content only (no Scaffold)
   final void Function(Client client)? onViewBookings;
   final void Function(Client client)? onViewQuotes;
-  const ClientsPage({super.key, this.embedded = false, this.onViewBookings, this.onViewQuotes});
+  const ClientsPage({super.key, this.embedded = false, this.onViewBookings, this.onViewQuotes, this.openAddOnLoad = false});
+  final bool openAddOnLoad;
 
   @override
   State<ClientsPage> createState() => _ClientsPageState();
@@ -40,6 +41,12 @@ class _ClientsPageState extends State<ClientsPage> {
     super.initState();
     _loadClients();
     _searchController.addListener(_onSearchChanged);
+    if (widget.openAddOnLoad) {
+      // open add dialog after first frame so page is mounted
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _addOrEditClient();
+      });
+    }
   }
 
   Future<void> _loadClients() async {
@@ -242,7 +249,31 @@ class _ClientsPageState extends State<ClientsPage> {
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('${client.firstName} ${client.lastName}'),
+        title: Row(
+          children: [
+            Expanded(child: Text('${client.firstName} ${client.lastName}')),
+            // overflow menu in the title (top-right) for less-accessible destructive actions
+            PopupMenuButton<int>(
+              icon: const Icon(Icons.more_vert),
+              onSelected: (v) async {
+                // close details dialog first so subsequent flows use root navigator context
+                Navigator.pop(context);
+                if (v == 1) {
+                  await _addOrEditClient(client: client);
+                } else if (v == 2) {
+                  await _deleteClient(client);
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem<int>(value: 1, child: Text('Edit')),
+                PopupMenuItem<int>(
+                  value: 2,
+                  child: Text('Delete', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                ),
+              ],
+            ),
+          ],
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -350,12 +381,6 @@ class _ClientsPageState extends State<ClientsPage> {
                           icon: const Icon(Icons.edit),
                           onPressed: () => _addOrEditClient(client: client),
                           tooltip: 'Edit',
-                        ),
-                        IconButton(
-                          color: theme.colorScheme.error,
-                          icon: const Icon(Icons.delete),
-                          onPressed: () => _deleteClient(client),
-                          tooltip: 'Delete',
                         ),
                       ],
                     ),

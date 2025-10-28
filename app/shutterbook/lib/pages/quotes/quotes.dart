@@ -93,6 +93,41 @@ class _QuotePageState extends State<QuotePage> {
     });
   }
 
+  /// Start the guided Create Quote flow when the page is embedded.
+  /// Mirrors the non-embedded FAB behavior so dashboard can request it.
+  Future<void> startCreateQuoteFlow() async {
+    final nav = Navigator.of(context);
+    final client = await showDialog<Client?>(context: context, builder: (_) => const ClientSearchDialog());
+    if (!mounted) return;
+    if (client == null) return;
+    final packages = await nav.push<dynamic>(
+      MaterialPageRoute(builder: (_) => PackagePickerScreen(client: client)),
+    );
+    if (!mounted) return;
+    if (packages == null) return;
+    double total = 0.0;
+    if (packages is Map) {
+      for (final entry in packages.entries) {
+        final key = entry.key;
+        final val = entry.value;
+        double price = 0.0;
+        if (key is Package) {
+          price = key.price;
+        } else if (key is Map && key['price'] != null) {
+          price = (key['price'] as num).toDouble();
+        }
+        final int qty = val is int ? val : int.tryParse(val.toString()) ?? 0;
+        total += price * qty;
+      }
+    }
+    final saved = await nav.push<bool?>(
+      MaterialPageRoute(
+        builder: (_) => QuoteOverviewScreen(client: client, total: total, packages: packages),
+      ),
+    );
+    if (saved == true && mounted) setState(() {});
+  }
+
   Future<void> _restoreState() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -420,35 +455,17 @@ class _QuoteListState extends State<QuoteList> {
                                   icon: const Icon(Icons.add_circle_outline),
                                   tooltip: 'Book from quote',
                                   onPressed: () async {
-                                      final nav = Navigator.of(context);
-                                      final messenger = ScaffoldMessenger.of(context);
-                                      try {
-                                        final created = await nav.push<bool>(
-                                          MaterialPageRoute(builder: (_) => CreateBookingPage(quote: q)),
-                                        );
-                                        if (created == true) {
-                                          if (mounted) await load();
-                                        }
-                                      } catch (e) {
-                                        messenger.showSnackBar(SnackBar(content: Text('Failed to book: $e')));
-                                      }
-                                    },
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.open_in_new),
-                                  tooltip: 'View',
-                                  onPressed: () async {
                                     final nav = Navigator.of(context);
                                     final messenger = ScaffoldMessenger.of(context);
                                     try {
-                                      await nav.push(
-                                        MaterialPageRoute(builder: (_) => ManageQuotePage(), settings: RouteSettings(arguments: q)),
+                                      final created = await nav.push<bool>(
+                                        MaterialPageRoute(builder: (_) => CreateBookingPage(quote: q)),
                                       );
-                                      if (mounted) {
-                                        await load();
+                                      if (created == true) {
+                                        if (mounted) await load();
                                       }
                                     } catch (e) {
-                                      messenger.showSnackBar(SnackBar(content: Text('Failed to open quote: $e')));
+                                      messenger.showSnackBar(SnackBar(content: Text('Failed to book: $e')));
                                     }
                                   },
                                 ),
