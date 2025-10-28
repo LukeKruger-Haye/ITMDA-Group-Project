@@ -35,11 +35,12 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
     weekStart = now.subtract(Duration(days: now.weekday - 1));
     _loadBookings();
     _loadClients();
-    @override
-void dispose() {
-  // Space for later timers
-  super.dispose();
-}
+  }
+
+  @override
+  void dispose() {
+    // Space for later timers
+    super.dispose();
   }
 
 Future<void> _loadBookings() async {
