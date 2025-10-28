@@ -35,19 +35,27 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
     weekStart = now.subtract(Duration(days: now.weekday - 1));
     _loadBookings();
     _loadClients();
+
     @override
-void dispose() {
-  // Space for later timers
-  super.dispose();
-}
+    void dispose() {
+      // Space for later timers
+      super.dispose();
+    }
   }
 
-  Future<void> _loadBookings() async {
-    final data = await bookingTable.getAllBookings();
-    if (!mounted) return;
-    setState(() {
-      bookings = data;
-    });
+Future<void> _loadBookings() async {
+  final data = await bookingTable.getAllBookings();
+  if (!mounted) return;
+  setState(() {
+    bookings = data;
+  });
+}
+
+Future<void> _loadClients() async {
+  final data = await clientTable.getAllClients();
+  final map = <String, Client>{};
+  for (final c in data) {
+    if (c.email.isNotEmpty) map[c.email] = c;
   }
   if (!mounted) return;
   setState(() {
@@ -56,17 +64,17 @@ void dispose() {
   });
 }
 
-  Future<void> _loadClients() async {
-    final data = await clientTable.getAllClients();
-    final map = <String, Client>{};
-    for (final c in data) {
-      if (c.email.isNotEmpty) map[c.email] = c;
-    if (!mounted) return;
-    setState(() {
-      allClients = data;
-      clientByEmail = map;
-    });
-    };
+  Color getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'scheduled':
+        return Colors.lightBlue.shade200;
+      case 'completed':
+        return Colors.green.shade300;
+      case 'cancelled':
+        return Colors.red.shade300;
+      default:
+        return Colors.grey.shade300;
+    }
   }
   Booking? getBookingForSlot(DateTime slot) {
     try {
