@@ -67,7 +67,6 @@ Future<void> _loadClients() async {
     switch (status.toLowerCase()) {
       case 'scheduled':
         return Colors.lightBlue.shade200;
-      case 'finished':
       case 'completed':
         return Colors.green.shade300;
       case 'cancelled':
@@ -141,21 +140,24 @@ Future<void> _loadClients() async {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Autocomplete<String>(
-                    optionsBuilder: (TextEditingValue textEditingValue) {
-                      final query = textEditingValue.text.toLowerCase();
-                      if (query.isEmpty) return const Iterable<String>.empty();
-                      return allClients
-                          .where((c) {
-                            final full = '${c.firstName} ${c.lastName}'
-                                .toLowerCase();
-                            return c.firstName.toLowerCase().contains(query) ||
-                                c.lastName.toLowerCase().contains(query) ||
-                                full.contains(query) ||
-                                c.email.toLowerCase().contains(query);
-                          })
-                          .map((c) => '${c.firstName} ${c.lastName} (${c.email})');
-                    },
+Autocomplete<String>(
+  initialValue: existing != null && selectedClient != null
+      ? TextEditingValue(
+          text:
+              '${selectedClient!.firstName} ${selectedClient!.lastName} (${selectedClient!.email})',
+        )
+      : const TextEditingValue(),
+  optionsBuilder: (TextEditingValue textEditingValue) {
+    final query = textEditingValue.text.toLowerCase();
+    if (query.isEmpty) return const Iterable<String>.empty();
+    return allClients.where((c) {
+      final full = '${c.firstName} ${c.lastName}'.toLowerCase();
+      return c.firstName.toLowerCase().contains(query) ||
+          c.lastName.toLowerCase().contains(query) ||
+          full.contains(query) ||
+          c.email.toLowerCase().contains(query);
+    }).map((c) => '${c.firstName} ${c.lastName} (${c.email})');
+  },
                     fieldViewBuilder:
                         (context, controller, focusNode, onFieldSubmitted) {
                       return TextField(
@@ -306,8 +308,8 @@ Future<void> _loadClients() async {
                         child: Text('Scheduled'),
                       ),
                       DropdownMenuItem(
-                        value: 'Finished',
-                        child: Text('Finished'),
+                        value: 'Completed',
+                        child: Text('Completed'),
                       ),
                       DropdownMenuItem(
                         value: 'Cancelled',
