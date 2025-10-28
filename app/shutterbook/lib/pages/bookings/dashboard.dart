@@ -123,7 +123,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                             Text('Welcome back', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
                             const SizedBox(height: 6),
-                            Text('Your studio overview', style: theme.textTheme.bodyMedium),
+                            Text('Your Shutterbook Overview', style: theme.textTheme.bodyMedium),
                           ]),
                         ),
                         // use a neutral stats icon instead of camera
