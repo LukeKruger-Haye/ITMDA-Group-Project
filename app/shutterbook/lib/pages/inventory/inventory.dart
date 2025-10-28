@@ -7,7 +7,9 @@ import '../../widgets/section_card.dart';
 
 class InventoryPage extends StatefulWidget {
   final bool embedded;
-  const InventoryPage({super.key, this.embedded = false});
+  // if true, open the add dialog automatically after the page loads
+  final bool openAddOnLoad;
+  const InventoryPage({super.key, this.embedded = false, this.openAddOnLoad = false});
 
   @override
   State<InventoryPage> createState() => _InventoryPageState();
@@ -23,6 +25,11 @@ class _InventoryPageState extends State<InventoryPage> {
   void initState() {
     super.initState();
     _loadItems();
+    if (widget.openAddOnLoad) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _addItem();
+      });
+    }
   }
 
   Future<void> _loadItems() async {

@@ -5,6 +5,7 @@ import '../authentication/models/auth_model.dart';
 import '../authentication/auth_setup.dart';
 import '../theme_controller.dart';
 import '../../widgets/section_card.dart';
+import 'package:shutterbook/theme/ui_styles.dart';
 
 class SettingsScreen extends StatefulWidget {
   final AuthModel authModel;
@@ -225,6 +226,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               children: [
                                 Expanded(
                                   child: ElevatedButton(
+                                    style: UIStyles.primaryButton(context),
                                     onPressed: () async {
                                       if (!(_pwFormKey.currentState?.validate() ?? false)) return;
                                       final messenger = ScaffoldMessenger.of(context);
@@ -262,6 +264,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           ElevatedButton(
+                            style: UIStyles.primaryButton(context),
                             onPressed: () {
                               setState(() => _showPasswordEditor = true);
                             },

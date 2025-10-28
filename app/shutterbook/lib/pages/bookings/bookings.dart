@@ -51,6 +51,14 @@ class _BookingsPageState extends State<BookingsPage> {
     _searchController.addListener(_onSearchTextChanged);
   }
 
+  /// Open the Create Booking flow from the embedded bookings page.
+  /// If a [quote] is provided, the Create flow will preselect it.
+  Future<void> openCreateBooking({Quote? quote}) async {
+    final nav = Navigator.of(context);
+    await nav.push<bool>(MaterialPageRoute(builder: (_) => CreateBookingPage(quote: quote)));
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
     _debounceTimer?.cancel();
