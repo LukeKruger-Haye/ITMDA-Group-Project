@@ -205,7 +205,7 @@ class _QuotePageState extends State<QuotePage> {
                         suffixIcon: _clientSearch.isNotEmpty
                             ? IconButton(icon: const Icon(Icons.clear), onPressed: () => _clientSearchController.clear())
                             : null,
-                        border: OutlineInputBorder(),
+                        border: const OutlineInputBorder(),
                         isDense: true,
                         contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
                       ),
@@ -284,7 +284,7 @@ class _QuotePageState extends State<QuotePage> {
             appBar: AppBar(
               title: const Text('Quotes'),
             ),
-            body: QuoteList(),
+            body: const QuoteList(),
             floatingActionButton: FloatingActionButton(
               onPressed: () async {
                 // Start guided create flow: pick client -> package -> overview
@@ -421,7 +421,7 @@ class _QuoteListState extends State<QuoteList> {
               suffixIcon: _filter.isNotEmpty
                   ? IconButton(icon: const Icon(Icons.clear), onPressed: () => _searchController.clear())
                   : null,
-              border: OutlineInputBorder(),
+              border: const OutlineInputBorder(),
             ),
             onChanged: (v) => setState(() => _filter = v.trim()),
           ),
@@ -438,7 +438,7 @@ class _QuoteListState extends State<QuoteList> {
                           final q = filtered[index];
                           final clientName = _clientNames[q.clientId] ?? 'Client ${q.clientId}';
                           final title = 'Quote #${q.id} — $clientName';
-                          final subtitle = 'Total: ${formatRand(q.totalPrice)} • ${q.createdAt ?? ''}';
+                          final subtitle = 'Total: ${formatRand(q.totalPrice)} \n${formatDateTime(q.createdAt)}';
                           return SectionCard(
                             elevation: UIStyles.cardElevation,
                             child: ListTile(
@@ -447,7 +447,7 @@ class _QuoteListState extends State<QuoteList> {
                               title: Text(title),
                               subtitle: Text(
                                 '${q.description}\n$subtitle',
-                                maxLines: 2,
+                                maxLines: 3,
                                 overflow: TextOverflow.ellipsis,
                               ),
                               trailing: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -475,7 +475,7 @@ class _QuoteListState extends State<QuoteList> {
                                 final messenger = ScaffoldMessenger.of(context);
                                 try {
                                   await nav.push(
-                                    MaterialPageRoute(builder: (_) => ManageQuotePage(), settings: RouteSettings(arguments: q)),
+                                    MaterialPageRoute(builder: (_) => const ManageQuotePage(), settings: RouteSettings(arguments: q)),
                                   );
                                   if (mounted) {
                                       await load();
