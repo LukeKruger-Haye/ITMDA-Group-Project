@@ -42,19 +42,12 @@ void dispose() {
 }
   }
 
-Future<void> _loadBookings() async {
-  final data = await bookingTable.getAllBookings();
-  if (!mounted) return;
-  setState(() {
-    bookings = data;
-  });
-}
-
-Future<void> _loadClients() async {
-  final data = await clientTable.getAllClients();
-  final map = <String, Client>{};
-  for (final c in data) {
-    if (c.email.isNotEmpty) map[c.email] = c;
+  Future<void> _loadBookings() async {
+    final data = await bookingTable.getAllBookings();
+    if (!mounted) return;
+    setState(() {
+      bookings = data;
+    });
   }
   if (!mounted) return;
   setState(() {
@@ -63,17 +56,17 @@ Future<void> _loadClients() async {
   });
 }
 
-  Color getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'scheduled':
-        return Colors.lightBlue.shade200;
-      case 'completed':
-        return Colors.green.shade300;
-      case 'cancelled':
-        return Colors.red.shade300;
-      default:
-        return Colors.grey.shade300;
-    }
+  Future<void> _loadClients() async {
+    final data = await clientTable.getAllClients();
+    final map = <String, Client>{};
+    for (final c in data) {
+      if (c.email.isNotEmpty) map[c.email] = c;
+    if (!mounted) return;
+    setState(() {
+      allClients = data;
+      clientByEmail = map;
+    });
+    };
   }
   Booking? getBookingForSlot(DateTime slot) {
     try {

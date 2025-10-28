@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shutterbook/data/models/quote.dart';
 import 'package:shutterbook/data/tables/quote_table.dart';
 import 'package:shutterbook/pages/bookings/create_booking.dart';
+import 'package:shutterbook/pages/quotes/package_picker/package_edit/package_picker_edit_screen.dart';
 import 'package:shutterbook/utils/formatters.dart';
 import 'package:shutterbook/theme/ui_styles.dart';
 
@@ -82,6 +83,8 @@ class _ManageQuotePageState extends State<ManageQuotePage> {
     }
   }
 
+  
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     if (_quote == null) return;
@@ -148,6 +151,8 @@ class _ManageQuotePageState extends State<ManageQuotePage> {
               if (!_editing) ...[
                 Text('Total: ${formatRand(_quote!.totalPrice)}'),
                 const SizedBox(height: 8),
+                Text('Total: ${_quote!.createdAt}'),
+                const SizedBox(height: 8),
                 Text('Description: ${_quote!.description}'),
               ] else ...[
                 TextFormField(
@@ -209,6 +214,21 @@ class _ManageQuotePageState extends State<ManageQuotePage> {
                   ),
                   const SizedBox(width: 12),
                   ElevatedButton.icon(
+                    onPressed:() async{
+                       final nav = Navigator.of(context);
+                      final created = await nav.push<bool>(
+                        MaterialPageRoute(builder: (_) => PackagePickerEditScreen(quoteNum: _quote?.id ?? 0)),
+                      );
+                      if (created == true) {
+                        if (mounted) nav.pop(true);
+                      }
+
+                    },
+                    icon: const Icon(Icons.edit),
+                    label: const Text('Edit'),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton.icon(
                     style: UIStyles.destructiveButton(context),
                     onPressed: _delete,
                     icon: const Icon(Icons.delete),
@@ -219,7 +239,9 @@ class _ManageQuotePageState extends State<ManageQuotePage> {
             ],
           ),
         ),
-      ),
-    );
+     
+        ),
+      );
+    
   }
 }
