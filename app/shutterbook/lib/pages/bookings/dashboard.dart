@@ -307,26 +307,22 @@ class _DashboardPageState extends State<DashboardPage> {
           // Link to full sections
           Row(children: [
             Expanded(
-                child: OutlinedButton.icon(
-              onPressed: () => widget.onNavigateToTab?.call(1),
-              icon: const Icon(Icons.calendar_today),
-              label: const Text('Open Bookings'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: theme.colorScheme.onSurface,
-                side: BorderSide(color: theme.colorScheme.onSurface.withAlpha((0.12 * 255).round())),
+              child: OutlinedButton.icon(
+                onPressed: () => widget.onNavigateToTab?.call(1),
+                icon: const Icon(Icons.calendar_today),
+                label: const Text('Open Bookings'),
+                style: UIStyles.outlineButton(context),
               ),
-            )),
+            ),
             const SizedBox(width: 8),
             Expanded(
-                child: OutlinedButton.icon(
-              onPressed: () => widget.onNavigateToTab?.call(3),
-              icon: const Icon(Icons.request_quote),
-              label: const Text('Open Quotes'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: theme.colorScheme.onSurface,
-                side: BorderSide(color: theme.colorScheme.onSurface.withAlpha((0.12 * 255).round())),
+              child: OutlinedButton.icon(
+                onPressed: () => widget.onNavigateToTab?.call(3),
+                icon: const Icon(Icons.request_quote),
+                label: const Text('Open Quotes'),
+                style: UIStyles.outlineButton(context),
               ),
-            )),
+            ),
           ]),
         ]);
       },
