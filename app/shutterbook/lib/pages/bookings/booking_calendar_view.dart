@@ -1,4 +1,5 @@
 // Shutterbook — booking_calendar_view.dart
+// ignore_for_file: use_build_context_synchronously
 // A compact calendar view used in the bookings section to visualise
 // upcoming sessions. It's intentionally small and focused on display logic.
 import 'package:flutter/material.dart';
@@ -338,27 +339,24 @@ Autocomplete<String>(
               if (existing != null)
                 TextButton(
                   onPressed: () async {
-                    // Capture navigator context before awaiting dialogs
-                    final dialogNav = Navigator.of(context);
+                    // Use captured dialogNavigator for a stable NavigatorState
                     final confirm = await showDialog<bool>(
-    // Using the captured Navigator's context is safe here.
-    // ignore: use_build_context_synchronously
-    context: dialogNav.context,
-    builder: (ctx) => AlertDialog(
-      title: const Text('Confirm Deletion'),
-      content: const Text('Are you sure you want to delete this booking?'),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(ctx).pop(false),
-          child: const Text('Cancel'),
-        ),
-        TextButton(
-          onPressed: () => Navigator.of(ctx).pop(true),
-          child: const Text('Delete', style: TextStyle(color: Colors.red)),
-        ),
-      ],
-    ),
-  );
+                      context: dialogNavigator.context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('Confirm Deletion'),
+                        content: const Text('Are you sure you want to delete this booking?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(ctx).pop(false),
+                            child: const Text('Cancel'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.of(ctx).pop(true),
+                            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                          ),
+                        ],
+                      ),
+                    );
                     if (confirm != true) return;
 
                     final nav = dialogNavigator;
@@ -366,7 +364,7 @@ Autocomplete<String>(
                     if (nav.mounted) nav.pop();
                     if (!mounted) return;
                     _loadBookings();
-},
+                  },
                   child: const Text(
                     'Delete',
                     style: TextStyle(color: Colors.red),
@@ -397,27 +395,26 @@ Autocomplete<String>(
                     excludeBookingId: existing?.bookingId,
                   );
                   if (conflicts.isNotEmpty) {
-        final proceed = await showDialog<bool>(
-          // use captured dialogNavigator.context (stable) for dialog creation
-          // ignore: use_build_context_synchronously
-          context: dialogNavigator.context,
-                          builder: (innerCtx) => AlertDialog(
-                            title: const Text('Possible double booking'),
-                            content: Text(
-                              'There is already ${conflicts.length} booking(s) in this time slot (hour).\n\nYou can edit the time or proceed and allow a double booking.',
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.of(innerCtx).pop(false),
-                                child: const Text('Edit time'),
-                              ),
-                              TextButton(
-                                onPressed: () => Navigator.of(innerCtx).pop(true),
-                                child: const Text('Proceed'),
-                              ),
-                            ],
+                    // Prompt using the stable dialogNavigator context captured earlier
+                    final proceed = await showDialog<bool>(
+                      context: dialogNavigator.context,
+                      builder: (innerCtx) => AlertDialog(
+                        title: const Text('Possible double booking'),
+                        content: Text(
+                          'There is already ${conflicts.length} booking(s) in this time slot (hour).\n\nYou can edit the time or proceed and allow a double booking.',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(innerCtx).pop(false),
+                            child: const Text('Edit time'),
                           ),
-                        ) ??
+                          TextButton(
+                            onPressed: () => Navigator.of(innerCtx).pop(true),
+                            child: const Text('Proceed'),
+                          ),
+                        ],
+                      ),
+                    ) ??
                         false;
                     if (!proceed) return;
                   }
