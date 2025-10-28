@@ -189,6 +189,7 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
                               heroTag: 'fab_quote',
                               onPressed: () async {
                                 _closeFab();
+                                final nav = Navigator.of(context);
                                 // switch to Quotes tab and trigger embedded create flow if available
                                 await _pageController.animateToPage(3, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
                                 final state = _quotesKey.currentState;
@@ -199,7 +200,6 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
                                   } catch (_) {}
                                 }
                                 // fallback to full CreateQuote page if embedded not available
-                                final nav = Navigator.of(context);
                                 final created = await nav.push<bool>(MaterialPageRoute(builder: (_) => const CreateQuotePage()));
                                 if (created == true) {
                                   final s = _quotesKey.currentState;
@@ -228,6 +228,7 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
                               heroTag: 'fab_booking',
                               onPressed: () async {
                                 _closeFab();
+                                final nav = Navigator.of(context);
                                 // switch to Bookings tab and trigger embedded create flow if available
                                 await _pageController.animateToPage(1, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
                                 final state = _bookingsKey.currentState;
@@ -238,7 +239,6 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
                                   } catch (_) {}
                                 }
                                 // fallback
-                                final nav = Navigator.of(context);
                                 final created = await nav.push<bool>(MaterialPageRoute(builder: (_) => CreateBookingPage()));
                                 if (created == true && mounted) setState(() {});
                               },
@@ -259,6 +259,7 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
                               heroTag: 'fab_client',
                               onPressed: () async {
                                 _closeFab();
+                                final nav = Navigator.of(context);
                                 await _pageController.animateToPage(2, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
                                 final state = _clientsKey.currentState;
                                 if (state != null) {
@@ -270,7 +271,6 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
                                     return;
                                   } catch (_) {}
                                 }
-                                final nav = Navigator.of(context);
                                 await nav.push<bool>(MaterialPageRoute(builder: (_) => const ClientsPage(embedded: false, openAddOnLoad: true)));
                                 if (mounted) setState(() {});
                               },
@@ -291,6 +291,7 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
                               heroTag: 'fab_item',
                               onPressed: () async {
                                 _closeFab();
+                                final nav = Navigator.of(context);
                                 await _pageController.animateToPage(4, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
                                 final state = _inventoryKey.currentState;
                                 if (state != null) {
@@ -302,7 +303,6 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
                                     return;
                                   } catch (_) {}
                                 }
-                                final nav = Navigator.of(context);
                                 await nav.push<bool>(MaterialPageRoute(builder: (_) => const InventoryPage(embedded: false, openAddOnLoad: true)));
                                 if (mounted) setState(() {});
                               },

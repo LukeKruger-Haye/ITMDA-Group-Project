@@ -313,7 +313,7 @@ class _DashboardPageState extends State<DashboardPage> {
               label: const Text('Open Bookings'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: theme.colorScheme.onSurface,
-                side: BorderSide(color: theme.colorScheme.onSurface.withOpacity(0.12)),
+                side: BorderSide(color: theme.colorScheme.onSurface.withAlpha((0.12 * 255).round())),
               ),
             )),
             const SizedBox(width: 8),
@@ -324,7 +324,7 @@ class _DashboardPageState extends State<DashboardPage> {
               label: const Text('Open Quotes'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: theme.colorScheme.onSurface,
-                side: BorderSide(color: theme.colorScheme.onSurface.withOpacity(0.12)),
+                side: BorderSide(color: theme.colorScheme.onSurface.withAlpha((0.12 * 255).round())),
               ),
             )),
           ]),
