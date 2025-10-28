@@ -333,6 +333,34 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                   }
 
                   final nav = dialogNavigator;
+                  // Double-booking check for this hour slot
+                  final conflicts = await bookingTable.findHourConflicts(
+                    slot,
+                    excludeBookingId: existing?.bookingId,
+                  );
+                  if (conflicts.isNotEmpty) {
+                    final proceed = await showDialog<bool>(
+                          context: context,
+                          builder: (innerCtx) => AlertDialog(
+                            title: const Text('Possible double booking'),
+                            content: Text(
+                              'There is already ${conflicts.length} booking(s) in this time slot (hour).\n\nYou can edit the time or proceed and allow a double booking.',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(innerCtx).pop(false),
+                                child: const Text('Edit time'),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.of(innerCtx).pop(true),
+                                child: const Text('Proceed'),
+                              ),
+                            ],
+                          ),
+                        ) ??
+                        false;
+                    if (!proceed) return;
+                  }
                   if (existing != null) {
                     Booking updated = Booking(
                       bookingId: existing.bookingId,
