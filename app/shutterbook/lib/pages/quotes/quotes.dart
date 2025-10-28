@@ -455,35 +455,17 @@ class _QuoteListState extends State<QuoteList> {
                                   icon: const Icon(Icons.add_circle_outline),
                                   tooltip: 'Book from quote',
                                   onPressed: () async {
-                                      final nav = Navigator.of(context);
-                                      final messenger = ScaffoldMessenger.of(context);
-                                      try {
-                                        final created = await nav.push<bool>(
-                                          MaterialPageRoute(builder: (_) => CreateBookingPage(quote: q)),
-                                        );
-                                        if (created == true) {
-                                          if (mounted) await load();
-                                        }
-                                      } catch (e) {
-                                        messenger.showSnackBar(SnackBar(content: Text('Failed to book: $e')));
-                                      }
-                                    },
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.open_in_new),
-                                  tooltip: 'View',
-                                  onPressed: () async {
                                     final nav = Navigator.of(context);
                                     final messenger = ScaffoldMessenger.of(context);
                                     try {
-                                      await nav.push(
-                                        MaterialPageRoute(builder: (_) => ManageQuotePage(), settings: RouteSettings(arguments: q)),
+                                      final created = await nav.push<bool>(
+                                        MaterialPageRoute(builder: (_) => CreateBookingPage(quote: q)),
                                       );
-                                      if (mounted) {
-                                        await load();
+                                      if (created == true) {
+                                        if (mounted) await load();
                                       }
                                     } catch (e) {
-                                      messenger.showSnackBar(SnackBar(content: Text('Failed to open quote: $e')));
+                                      messenger.showSnackBar(SnackBar(content: Text('Failed to book: $e')));
                                     }
                                   },
                                 ),
