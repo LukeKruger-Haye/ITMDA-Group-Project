@@ -27,6 +27,7 @@ class BookingsPage extends StatefulWidget {
 class _BookingsPageState extends State<BookingsPage> {
   // 0 = calendar, 1 = list
   int _view = 0;
+  int _prevView = 0;
   Client? _clientFilter;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
@@ -121,21 +122,43 @@ class _BookingsPageState extends State<BookingsPage> {
     final header = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
       child: LayoutBuilder(builder: (context, constraints) {
-        // Allocate up to 40% of the width (max 240) for the toggle controls on the right
-        final maxToggleWidth = (constraints.maxWidth * 0.4).clamp(120.0, 240.0);
+  // Allocate up to 40% of the width (max 240) for the toggle controls on the right
+  final maxToggleWidth = (constraints.maxWidth * 0.4).clamp(120.0, 240.0);
         final gap = 6.0; // space between two buttons
         final buttonWidth = (maxToggleWidth - gap) / 2;
         final btnConstraints = BoxConstraints(minWidth: buttonWidth, minHeight: 36);
 
-        final viewLabel = _view == 0 ? 'Calendar' : 'List';
+  final viewLabel = _view == 0 ? 'Calendar' : 'List';
+        // Prevent label width jumps when switching by giving the label a stable max width
+        final labelMaxWidth = (constraints.maxWidth - maxToggleWidth - 32).clamp(80.0, constraints.maxWidth * 0.6);
         return Row(children: [
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 250),
-            transitionBuilder: (child, anim) {
-              final offsetAnim = Tween<Offset>(begin: const Offset(0, 0.2), end: Offset.zero).animate(anim);
-              return FadeTransition(opacity: anim, child: SlideTransition(position: offsetAnim, child: child));
-            },
-            child: Text(viewLabel, key: ValueKey(viewLabel), style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+          SizedBox(
+            width: labelMaxWidth,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  transitionBuilder: (child, anim) {
+                    // Direction-aware animation with tuned offset and curves to reduce jank.
+                    final isIncoming = child.key == ValueKey(viewLabel);
+                    final isForward = _view > _prevView;
+                    // smaller offset when moving forward (to List) for gentler motion
+                    final offsetMag = isForward ? 0.06 : 0.12;
+                    if (isIncoming) {
+                      final offsetAnim = Tween<Offset>(begin: Offset(offsetMag * (isForward ? 1 : -1), 0), end: Offset.zero)
+                          .animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic));
+                      final fade = CurvedAnimation(parent: anim, curve: Curves.easeOut);
+                      return FadeTransition(opacity: fade, child: SlideTransition(position: offsetAnim, child: child));
+                    } else {
+                      final offsetAnim = Tween<Offset>(begin: Offset.zero, end: Offset(-offsetMag * (isForward ? 1 : -1), 0))
+                          .animate(CurvedAnimation(parent: anim, curve: Curves.easeInCubic));
+                      final fade = CurvedAnimation(parent: ReverseAnimation(anim), curve: Curves.easeIn);
+                      return FadeTransition(opacity: fade, child: SlideTransition(position: offsetAnim, child: child));
+                    }
+                  },
+                child: Text(viewLabel, key: ValueKey(viewLabel), style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+              ),
+            ),
           ),
           const SizedBox(width: 12),
           const Spacer(),
@@ -143,7 +166,10 @@ class _BookingsPageState extends State<BookingsPage> {
             width: maxToggleWidth,
             child: ToggleButtons(
               isSelected: [_view == 0, _view == 1],
-              onPressed: (i) => setState(() => _view = i),
+              onPressed: (i) => setState(() {
+                _prevView = _view;
+                _view = i;
+              }),
               borderRadius: BorderRadius.circular(8),
               constraints: btnConstraints,
               color: Theme.of(context).colorScheme.onSurface,
