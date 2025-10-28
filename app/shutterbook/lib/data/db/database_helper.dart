@@ -59,7 +59,7 @@ class DatabaseHelper {
         client_id INTEGER NOT NULL, 
         total_price REAL NOT NULL,
         description TEXT NOT NULL,
-        created_at DATETIME DEFAULT (strftime('YYYY-MM-DD HH:MM', 'now')),
+        created_at DATETIME DEFAULT (strftime('%Y-%m-%d %H:%M', 'now')),
         FOREIGN KEY (client_id) REFERENCES Clients(client_id) ON DELETE CASCADE
       )
       ''');
@@ -71,7 +71,7 @@ class DatabaseHelper {
         client_id INTEGER NOT NULL, 
         booking_date DATE NOT NULL,
         status TEXT DEFAULT 'Scheduled',
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        created_at DATETIME DEFAULT (strftime('%Y-%m-%d %H:%M', 'now')),
         FOREIGN KEY (client_id) REFERENCES Clients(client_id) ON DELETE CASCADE,
         FOREIGN KEY (quote_id) REFERENCES Quotes(quote_id) ON DELETE CASCADE
       )
