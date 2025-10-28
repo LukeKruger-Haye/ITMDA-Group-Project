@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shutterbook/data/models/quote.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:shutterbook/pages/quotes/manage/manage_quote_screen.dart';
 
 class FakeQuoteTable {
@@ -18,6 +19,11 @@ class FakeQuoteTable {
 }
 
 void main() {
+  setUpAll(() {
+    // Initialize sqflite for tests running on the Dart VM
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  });
   testWidgets('ManageQuotePage edit and save flow', (tester) async {
     final quote = Quote(id: 42, clientId: 7, totalPrice: 120.0, description: 'Initial', createdAt: DateTime.now());
     final fake = FakeQuoteTable();
@@ -25,9 +31,10 @@ void main() {
     await tester.pumpWidget(MaterialApp(home: ManageQuotePage(initialQuote: quote, quoteTable: fake)));
     await tester.pumpAndSettle();
 
-    // open edit
-    expect(find.text('Quote #42'), findsOneWidget);
-    await tester.tap(find.byIcon(Icons.edit));
+  // open edit (disambiguate when multiple edit icons exist)
+  expect(find.text('Quote #42'), findsOneWidget);
+  // Tap the AppBar edit icon (it's an IconButton) to enter edit mode
+  await tester.tap(find.widgetWithIcon(IconButton, Icons.edit).first);
     await tester.pumpAndSettle();
 
     // change values
