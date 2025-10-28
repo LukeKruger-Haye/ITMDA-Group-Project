@@ -24,7 +24,7 @@ class DashboardHome extends StatefulWidget {
   State<DashboardHome> createState() => _DashboardHomeState();
 }
 
-class _DashboardHomeState extends State<DashboardHome> {
+class _DashboardHomeState extends State<DashboardHome> with SingleTickerProviderStateMixin {
   int _currentIndex = 0;
   late final PageController _pageController;
   // Whether horizontal swiping between pages is enabled. Can be toggled
@@ -51,11 +51,51 @@ class _DashboardHomeState extends State<DashboardHome> {
     super.initState();
     _pageController = PageController(initialPage: _currentIndex);
     // No fractional page listener needed when indicator is removed.
+    // Initialize FAB animation controller and staggered animations here
+    _fabController = AnimationController(vsync: this, duration: const Duration(milliseconds: 320));
+    // create staggered intervals for 4 mini FABs
+    _fabSlideAnims = List.generate(4, (i) {
+      final start = (i * 0.08).clamp(0.0, 0.9);
+      final end = (0.45 + i * 0.1).clamp(0.0, 1.0);
+      return Tween<Offset>(begin: const Offset(0, 0.4), end: Offset.zero).animate(CurvedAnimation(parent: _fabController, curve: Interval(start, end, curve: Curves.easeOut)));
+    });
+    _fabScaleAnims = List.generate(4, (i) {
+      final start = (i * 0.08).clamp(0.0, 0.9);
+      final end = (0.5 + i * 0.1).clamp(0.0, 1.0);
+      return Tween<double>(begin: 0.7, end: 1.0).animate(CurvedAnimation(parent: _fabController, curve: Interval(start, end, curve: Curves.easeOutBack)));
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+  }
+
+  // Animation controller and staggered animations for the dashboard mini FABs
+  late final AnimationController _fabController;
+  late final List<Animation<Offset>> _fabSlideAnims;
+  late final List<Animation<double>> _fabScaleAnims;
+
+  void _toggleFab() {
+    if (_fabController.isDismissed) {
+      // animate in
+      _fabController.forward();
+    } else {
+      // animate out
+      _fabController.reverse();
+    }
+  }
+
+  void _closeFab() {
+    if (!_fabController.isDismissed) {
+      _fabController.reverse();
+    }
   }
 
   @override
   void dispose() {
     _pageController.dispose();
+    _fabController.dispose();
     super.dispose();
   }
 
@@ -64,7 +104,11 @@ class _DashboardHomeState extends State<DashboardHome> {
     return PageView(
       controller: _pageController,
       physics: _swipeEnabled ? const ClampingScrollPhysics() : const NeverScrollableScrollPhysics(),
-      onPageChanged: (index) => setState(() => _currentIndex = index),
+      onPageChanged: (index) => setState(() {
+        _currentIndex = index;
+        // close the dashboard FAB when navigating away or between pages
+        if (!_fabController.isDismissed) _fabController.reverse();
+      }),
       children: [
         // Use the redesigned DashboardPage as the embedded home dashboard
         DashboardPage(
@@ -114,20 +158,178 @@ class _DashboardHomeState extends State<DashboardHome> {
 
   // Page indicator removed per UX feedback.
 
-  FloatingActionButton? _buildFab() {
+  Widget? _buildFab() {
     switch (_currentIndex) {
       case 1: // Bookings
-      case 0: // Dashboard - convenient to create bookings
-        return FloatingActionButton(
-          onPressed: () async {
-            final nav = Navigator.of(context);
-            final created = await nav.push<bool>(
-              MaterialPageRoute(builder: (_) => CreateBookingPage()),
-            );
-            if (created == true && mounted) setState(() {});
-          },
-          child: const Icon(Icons.add),
-          tooltip: 'Create booking',
+      case 0: // Dashboard - show an expanding FAB with quick-create options
+        // Use a Column so mini FABs stack above the main FAB. AnimatedSwitcher/AnimatedOpacity
+        // provide a smooth transition when toggling.
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // mini action buttons (appear when expanded) — slide & scale with stagger
+            AnimatedBuilder(
+              animation: _fabController,
+              builder: (context, child) {
+                final show = _fabController.isAnimating || _fabController.value > 0.001;
+                if (!show) return const SizedBox.shrink();
+                return Opacity(
+                  opacity: (_fabController.value).clamp(0.0, 1.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Quote
+                      SlideTransition(
+                        position: _fabSlideAnims[0],
+                        child: ScaleTransition(
+                          scale: _fabScaleAnims[0],
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 8.0),
+                            child: FloatingActionButton.small(
+                              heroTag: 'fab_quote',
+                              onPressed: () async {
+                                _closeFab();
+                                final nav = Navigator.of(context);
+                                // switch to Quotes tab and trigger embedded create flow if available
+                                await _pageController.animateToPage(3, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+                                final state = _quotesKey.currentState;
+                                if (state != null) {
+                                  try {
+                                    await (state as dynamic).startCreateQuoteFlow();
+                                    return;
+                                  } catch (_) {}
+                                }
+                                // fallback to full CreateQuote page if embedded not available
+                                final created = await nav.push<bool>(MaterialPageRoute(builder: (_) => const CreateQuotePage()));
+                                if (created == true) {
+                                  final s = _quotesKey.currentState;
+                                  if (s != null) {
+                                    try {
+                                      await (s as dynamic).refresh();
+                                    } catch (_) {}
+                                  }
+                                  if (mounted) setState(() {});
+                                }
+                              },
+                              tooltip: 'Create quote',
+                              child: const Icon(Icons.request_quote, size: 20),
+                            ),
+                          ),
+                        ),
+                      ),
+                      // Booking
+                      SlideTransition(
+                        position: _fabSlideAnims[1],
+                        child: ScaleTransition(
+                          scale: _fabScaleAnims[1],
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 8.0),
+                            child: FloatingActionButton.small(
+                              heroTag: 'fab_booking',
+                              onPressed: () async {
+                                _closeFab();
+                                final nav = Navigator.of(context);
+                                // switch to Bookings tab and trigger embedded create flow if available
+                                await _pageController.animateToPage(1, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+                                final state = _bookingsKey.currentState;
+                                if (state != null) {
+                                  try {
+                                    await (state as dynamic).openCreateBooking();
+                                    return;
+                                  } catch (_) {}
+                                }
+                                // fallback
+                                final created = await nav.push<bool>(MaterialPageRoute(builder: (_) => CreateBookingPage()));
+                                if (created == true && mounted) setState(() {});
+                              },
+                              tooltip: 'Create booking',
+                              child: const Icon(Icons.calendar_today, size: 20),
+                            ),
+                          ),
+                        ),
+                      ),
+                      // Client (direct to add page)
+                      SlideTransition(
+                        position: _fabSlideAnims[2],
+                        child: ScaleTransition(
+                          scale: _fabScaleAnims[2],
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 8.0),
+                            child: FloatingActionButton.small(
+                              heroTag: 'fab_client',
+                              onPressed: () async {
+                                _closeFab();
+                                final nav = Navigator.of(context);
+                                await _pageController.animateToPage(2, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+                                final state = _clientsKey.currentState;
+                                if (state != null) {
+                                  try {
+                                    await (state as dynamic).openAddDialog();
+                                    try {
+                                      await (state as dynamic).refresh();
+                                    } catch (_) {}
+                                    return;
+                                  } catch (_) {}
+                                }
+                                await nav.push<bool>(MaterialPageRoute(builder: (_) => const ClientsPage(embedded: false, openAddOnLoad: true)));
+                                if (mounted) setState(() {});
+                              },
+                              tooltip: 'Add client',
+                              child: const Icon(Icons.person_add, size: 20),
+                            ),
+                          ),
+                        ),
+                      ),
+                      // Inventory (direct to add page)
+                      SlideTransition(
+                        position: _fabSlideAnims[3],
+                        child: ScaleTransition(
+                          scale: _fabScaleAnims[3],
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 8.0),
+                            child: FloatingActionButton.small(
+                              heroTag: 'fab_item',
+                              onPressed: () async {
+                                _closeFab();
+                                final nav = Navigator.of(context);
+                                await _pageController.animateToPage(4, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+                                final state = _inventoryKey.currentState;
+                                if (state != null) {
+                                  try {
+                                    await (state as dynamic).openAddDialog();
+                                    try {
+                                      await (state as dynamic).refresh();
+                                    } catch (_) {}
+                                    return;
+                                  } catch (_) {}
+                                }
+                                await nav.push<bool>(MaterialPageRoute(builder: (_) => const InventoryPage(embedded: false, openAddOnLoad: true)));
+                                if (mounted) setState(() {});
+                              },
+                              tooltip: 'Add inventory',
+                              child: const Icon(Icons.inventory, size: 20),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                  ),
+                );
+              },
+            ),
+            // main FAB toggles the mini buttons
+            FloatingActionButton(
+              onPressed: _toggleFab,
+              child: AnimatedBuilder(
+                animation: _fabController,
+                builder: (context, _) {
+                  return Icon(_fabController.value > 0.5 ? Icons.close : Icons.add);
+                },
+              ),
+              tooltip: 'Create',
+            ),
+          ],
         );
       case 3: // Quotes
         return FloatingActionButton(
