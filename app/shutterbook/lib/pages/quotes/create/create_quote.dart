@@ -11,6 +11,7 @@ import 'package:shutterbook/pages/quotes/package_picker/package_picker/package_p
 import 'package:shutterbook/data/models/package.dart';
 import 'package:shutterbook/theme/ui_styles.dart';
 import 'package:shutterbook/pages/quotes/overview/quote_overview_screen.dart';
+import '../../clients/clients.dart';
 
 
 class CreateQuotePage extends StatefulWidget {
@@ -21,12 +22,16 @@ class CreateQuotePage extends StatefulWidget {
 }
 
 class _CreateQuotePageState extends State<CreateQuotePage> {
+  
   List<Client> allClients = [];
   List<Client> suggestions = [];
   String searchText = '';
+  final GlobalKey _clientsKey = GlobalKey();
 
   final TextEditingController myEditor = TextEditingController();
   bool showIcon = false;
+
+
 
   @override
   void initState() {
@@ -42,6 +47,10 @@ class _CreateQuotePageState extends State<CreateQuotePage> {
     });
     suggestions = data;
   }
+
+  Future<void> reload() async {
+   await  _loadClients();
+ }
 
   void _onSearchChanged(String value) {
     setState(() {
@@ -70,7 +79,37 @@ class _CreateQuotePageState extends State<CreateQuotePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Create Quote')),
+      appBar: AppBar(title: const Text('Create Quote'),
+      actions: [
+        IconButton(
+          onPressed: () async {
+            final nav = Navigator.of(context);
+            final state = _clientsKey.currentState;
+            if (state != null) {
+              try {
+                await (state as dynamic).openAddDialog();
+                try {
+                  await (state as dynamic).refresh();
+                } catch (_) {}
+                // Reload the client list after adding from embedded dialog
+                await reload();
+                return;
+              } catch (_) {}
+            }
+            // Navigate to full ClientsPage
+            await nav.push<bool>(
+              MaterialPageRoute(
+                builder: (_) => const ClientsPage(embedded: false, openAddOnLoad: true)
+              )
+            );
+            // Reload the client list when returning from ClientsPage
+            if (mounted) {
+              await reload();
+            }
+          },
+          icon: const Icon(Icons.person_add),
+        )
+      ],),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(

@@ -13,8 +13,8 @@ import '../../widgets/section_card.dart';
 import 'package:shutterbook/theme/ui_styles.dart';
 import '../bookings/create_booking.dart';
 import '../../widgets/client_search_dialog.dart';
-import 'create/package_picker/package_picker_screen.dart';
-import 'create/package_picker/package_picker.dart';
+import 'package_picker/package_picker/package_picker_screen.dart';
+import '../../data/models/package.dart';
 import 'overview/quote_overview_screen.dart';
 import 'manage/manage_quote_screen.dart';
 
