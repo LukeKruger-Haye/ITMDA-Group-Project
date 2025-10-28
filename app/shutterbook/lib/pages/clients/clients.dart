@@ -19,7 +19,8 @@ class ClientsPage extends StatefulWidget {
   final bool embedded; // when true, return content only (no Scaffold)
   final void Function(Client client)? onViewBookings;
   final void Function(Client client)? onViewQuotes;
-  const ClientsPage({super.key, this.embedded = false, this.onViewBookings, this.onViewQuotes});
+  const ClientsPage({super.key, this.embedded = false, this.onViewBookings, this.onViewQuotes, this.openAddOnLoad = false});
+  final bool openAddOnLoad;
 
   @override
   State<ClientsPage> createState() => _ClientsPageState();
@@ -40,6 +41,12 @@ class _ClientsPageState extends State<ClientsPage> {
     super.initState();
     _loadClients();
     _searchController.addListener(_onSearchChanged);
+    if (widget.openAddOnLoad) {
+      // open add dialog after first frame so page is mounted
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _addOrEditClient();
+      });
+    }
   }
 
   Future<void> _loadClients() async {
