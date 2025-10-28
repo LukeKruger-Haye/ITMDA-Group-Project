@@ -1,3 +1,7 @@
+import 'package:flutter/foundation.dart';
+// Shutterbook — Package picker screen
+// Screen wrapper used to show the package picker as a full screen flow
+// when needed.
 import 'package:flutter/material.dart';
 import 'package:shutterbook/data/models/client.dart';
 import 'package:shutterbook/pages/quotes/create/package_picker/package_picker.dart';
@@ -9,9 +13,12 @@ class PackagePickerScreen extends StatelessWidget {
 
   void _onSelectionChanged(Map<Package, int> selectedPackages) {
     // You can handle the selected packages here (e.g., save, show dialog, etc.)
-    debugPrint('Selected packages: ${selectedPackages.keys.map((p) => p.name).join(', ')}');
+    if (kDebugMode) {
+      debugPrint(
+        'Selected packages: ${selectedPackages.keys.map((p) => p.name).join(', ')}',
+      );
+    }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +28,8 @@ class PackagePickerScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         child: PackagePicker(
           onSelectionChanged: _onSelectionChanged,
-          client: client,),
+          client: client,
+        ),
       ),
     );
   }

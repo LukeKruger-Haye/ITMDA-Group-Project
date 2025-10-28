@@ -45,5 +45,8 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- Reason for Face ID usage when authenticating users -->
+	<key>NSFaceIDUsageDescription</key>
+	<string>Use Face ID to quickly and securely unlock the app</string>
 </dict>
 </plist>

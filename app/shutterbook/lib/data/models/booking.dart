@@ -1,7 +1,10 @@
+// Shutterbook — data model: Booking
+// Represents a scheduled booking (appointment). Stored via
+// BookingTable; used in the dashboard and bookings screens.
 class Booking {
   int? bookingId;
   int clientId;
-  int quoteId;
+  int? quoteId;
   DateTime bookingDate;
   String status;
   DateTime? createdAt;
@@ -10,7 +13,7 @@ class Booking {
     this.bookingId,
     required this.clientId,
     required this.bookingDate,
-    required this.quoteId,
+    this.quoteId,
     this.status = 'Scheduled',
     this.createdAt,
   });
@@ -28,12 +31,14 @@ class Booking {
 
   factory Booking.fromMap(Map<String, dynamic> map) {
     return Booking(
-      bookingId: map['booking_id'],
-      clientId: map['client_id'],
-      quoteId: map['quote_id'],
+  bookingId: map['booking_id'],
+  clientId: map['client_id'],
+  quoteId: map['quote_id'],
       bookingDate: DateTime.parse(map['booking_date']),
       status: map['status'] ?? 'Scheduled',
-      createdAt: map['created_at'] != null ? DateTime.tryParse(map['created_at']) : null,
+      createdAt: map['created_at'] != null
+          ? DateTime.tryParse(map['created_at'])
+          : null,
     );
   }
 }

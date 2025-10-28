@@ -1,25 +1,29 @@
+// Shutterbook — client_table.dart
+// Thin wrapper around SQLite for client CRUD operations. Use this class
+// from UI code to fetch, insert and update clients. Keeps SQL details
+// isolated from the UI layer.
 import 'package:sqflite/sqflite.dart';
 import '../db/database_helper.dart';
 import '../models/client.dart';
 
-class ClientTable{
+class ClientTable {
   final dbHelper = DatabaseHelper.instance;
 
   Future<int> insertClient(Client client) async {
     Database db = await dbHelper.database;
     return await db.insert(
-      'Clients', 
+      'Clients',
       client.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace 
+      conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
 
   Future<Client?> getClientById(int id) async {
     Database db = await dbHelper.database;
     final maps = await db.query(
-      'Clients', 
+      'Clients',
       where: 'client_id = ?',
-      whereArgs: [id]
+      whereArgs: [id],
     );
 
     if (maps.isNotEmpty) {
@@ -32,26 +36,29 @@ class ClientTable{
   Future<Client?> getClientByEmail(String email) async {
     Database db = await dbHelper.database;
     final maps = await db.query(
-      'Clients', 
+      'Clients',
       where: 'email = ?',
-      whereArgs: [email]
+      whereArgs: [email],
     );
 
     if (maps.isNotEmpty) {
-            return Client.fromMap(maps.first);
-        }
+      return Client.fromMap(maps.first);
+    }
 
     return null;
   }
 
   Future<Client?> getClientByQuoteId(int quoteId) async {
     Database db = await dbHelper.database;
-    final List<Map<String, dynamic>> result = await db.rawQuery('''
+    final List<Map<String, dynamic>> result = await db.rawQuery(
+      '''
         SELECT Clients.* 
         FROM Clients 
         INNER JOIN Quotes ON Clients.client_id = Quotes.client_id 
         WHERE Quotes.quote_id = ?
-      ''', [quoteId]);
+      ''',
+      [quoteId],
+    );
 
     if (result.isNotEmpty) {
       return Client.fromMap(result.first);
@@ -83,17 +90,13 @@ class ClientTable{
       'Clients',
       client.toMap(),
       where: 'client_id = ?',
-      whereArgs: [client.id]
+      whereArgs: [client.id],
     );
   }
 
   Future<int> deleteClient(int id) async {
     final db = await dbHelper.database;
-    return await db.delete(
-      'Clients',
-      where: 'client_id = ?',
-      whereArgs: [id]
-    );
+    return await db.delete('Clients', where: 'client_id = ?', whereArgs: [id]);
   }
 
   Future<int> getClientCount() async {

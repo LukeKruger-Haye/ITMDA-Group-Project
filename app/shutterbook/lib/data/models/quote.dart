@@ -1,3 +1,6 @@
+// Shutterbook — data model: Quote
+// Represents a quote created for a client. Small, serializable model used
+// by the quotes UI and persisted via QuoteTable.
 class Quote {
   int? id;
   int clientId;
@@ -14,13 +17,18 @@ class Quote {
   });
 
   Map<String, dynamic> toMap() {
-    return {
+    final map = {
       'quote_id': id,
       'client_id': clientId,
       'total_price': totalPrice,
       'description': description,
-      'created_at': createdAt?.toString()
     };
+
+    if (createdAt != null) {
+      map['created_at'] = createdAt?.toString();
+    }
+
+    return map;
   }
 
   factory Quote.fromMap(Map<String, dynamic> map) {
@@ -29,7 +37,9 @@ class Quote {
       clientId: map['client_id'],
       totalPrice: map['total_price'],
       description: map['description'],
-      createdAt: map['created_at'] != null ? DateTime.tryParse(map['created_at']) : null
+      createdAt: map['created_at'] != null
+          ? DateTime.tryParse(map['created_at'])
+          : null,
     );
   }
 }

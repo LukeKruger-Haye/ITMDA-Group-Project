@@ -1,12 +1,18 @@
+// Shutterbook — Inventory screen
+// Manage inventory items (add/edit/remove) used in quotes and bookings.
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../data/models/item.dart';
 import '../../data/tables/inventory_table.dart';
 import 'dart:io';
 import '../../pages/inventory/items_details_page.dart';
+import '../../widgets/section_card.dart';
 
 class InventoryPage extends StatefulWidget {
-  const InventoryPage({Key? key}) : super(key: key);
+  final bool embedded;
+  // if true, open the add dialog automatically after the page loads
+  final bool openAddOnLoad;
+  const InventoryPage({super.key, this.embedded = false, this.openAddOnLoad = false});
 
   @override
   State<InventoryPage> createState() => _InventoryPageState();
@@ -22,6 +28,11 @@ class _InventoryPageState extends State<InventoryPage> {
   void initState() {
     super.initState();
     _loadItems();
+    if (widget.openAddOnLoad) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _addItem();
+      });
+    }
   }
 
   Future<void> _loadItems() async {

@@ -1,3 +1,6 @@
+// Shutterbook — data model: Client
+// Simple container for client data. Used by the UI and persisted via
+// the ClientTable helper in `data/tables/client_table.dart`.
 class Client {
   int? id;
   String firstName;
@@ -10,7 +13,7 @@ class Client {
     required this.firstName,
     required this.lastName,
     required this.email,
-    required this.phone
+    required this.phone,
   });
 
   Map<String, dynamic> toMap() {

@@ -1,3 +1,6 @@
+// Shutterbook — data model: Item
+// Represents an inventory item. Simple serializable model consumed by the
+// inventory screens and persisted by InventoryTable.
 class Item {
   int? id;
   String name;

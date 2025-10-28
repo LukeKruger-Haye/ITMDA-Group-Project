@@ -1,3 +1,7 @@
+// Shutterbook — booking_table.dart
+// Database access helpers for bookings. CRUD and query helpers used by
+// the bookings UI. Keep business logic out of this file; it should only
+// translate between Booking models and the SQL layer.
 import 'package:sqflite/sqflite.dart';
 import '../db/database_helper.dart';
 import '../models/booking.dart';
@@ -28,10 +32,7 @@ class BookingTable {
 
   Future<List<Booking>> getAllBookings() async {
     final db = await dbHelper.database;
-    final maps = await db.query(
-      'Bookings', 
-      orderBy: 'booking_date DESC'
-    );
+    final maps = await db.query('Bookings', orderBy: 'booking_date DESC');
     return maps.map((m) => Booking.fromMap(m)).toList();
   }
 

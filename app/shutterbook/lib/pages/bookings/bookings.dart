@@ -1,543 +1,405 @@
+import 'dart:async';
+// Shutterbook — Bookings list page
+// Displays a paginated list or calendar of bookings and provides
+// entry points to create or edit bookings.
 import 'package:flutter/material.dart';
-import 'package:shutterbook/data/models/booking.dart';
-import 'package:shutterbook/data/tables/booking_table.dart';
-import 'package:shutterbook/data/models/quote.dart';
-import 'package:shutterbook/data/tables/quote_table.dart';
-import 'package:shutterbook/data/models/client.dart';
-import 'package:shutterbook/data/tables/client_table.dart';
+import 'package:shutterbook/theme/ui_styles.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'booking_calendar_view.dart';
+import '../../widgets/section_card.dart';
+import '../../data/models/booking.dart';
+import '../../data/models/client.dart';
+import '../../data/models/quote.dart';
+import '../../data/tables/booking_table.dart';
+import '../../data/tables/client_table.dart';
+import '../../data/tables/quote_table.dart';
+import 'create_booking.dart';
 
 class BookingsPage extends StatefulWidget {
-  const BookingsPage({super.key});
+  final bool embedded;
+  final Client? initialClient;
+  const BookingsPage({super.key, this.embedded = false, this.initialClient});
 
   @override
   State<BookingsPage> createState() => _BookingsPageState();
 }
 
 class _BookingsPageState extends State<BookingsPage> {
-  final bookingTable = BookingTable();
-  final quoteTable = QuoteTable();
-  final clientTable = ClientTable();
-
-  List<Booking> bookings = [];
-  List<Client> allClients = [];
-  Map<String, Client> clientByEmail = {};
-
-  late DateTime weekStart;
-  bool _handledInitialArg = false; // <-- new flag
+  // 0 = calendar, 1 = list
+  int _view = 0;
+  int _prevView = 0;
+  Client? _clientFilter;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  Timer? _debounceTimer;
+  bool _restoring = false;
+  static const String _kLastClientIdKey = 'bookings_last_client_id';
+  static const String _kLastSearchKey = 'bookings_last_search';
 
   @override
   void initState() {
     super.initState();
-    final now = DateTime.now();
-    weekStart = now.subtract(Duration(days: now.weekday - 1));
-    _loadBookings();
-    _loadClients();
+    // If an initial client was passed explicitly, prefer that (e.g., programmatic navigation)
+    if (widget.initialClient != null) {
+      _clientFilter = widget.initialClient;
+      _prevView = _view;
+      _view = 1; // show list when opened for a client
+    }
+
+    // Restore persisted client/search if no explicit initial client provided
+    _restoreState();
+
+    // Debounced listener to avoid filtering on every keystroke
+    _searchController.addListener(_onSearchTextChanged);
+  }
+
+  /// Open the Create Booking flow from the embedded bookings page.
+  /// If a [quote] is provided, the Create flow will preselect it.
+  Future<void> openCreateBooking({Quote? quote}) async {
+    final nav = Navigator.of(context);
+    await nav.push<bool>(MaterialPageRoute(builder: (_) => CreateBookingPage(quote: quote)));
+    if (mounted) setState(() {});
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_handledInitialArg) {
-      _handledInitialArg = true;
-      final args = ModalRoute.of(context)?.settings.arguments;
-      if (args != null) {
-        _handleInitialArgs(args);
-      }
-    }
+  void dispose() {
+    _debounceTimer?.cancel();
+    _searchController.removeListener(_onSearchTextChanged);
+    _searchController.dispose();
+    super.dispose();
   }
 
-  Future<void> _handleInitialArgs(Object args) async {
-    int? openBookingId;
-    if (args is int) {
-      openBookingId = args;
-    } else if (args is Map) {
-      if (args['open_booking_id'] is int) openBookingId = args['open_booking_id'];
-      if (openBookingId == null && args['booking_id'] is int) openBookingId = args['booking_id'];
-    } else if (args is Booking) {
-      openBookingId = args.bookingId;
-    }
+  void _onSearchTextChanged() {
+    _debounceTimer?.cancel();
+    // If we're restoring initial values, skip handling to avoid persisting while restoring
+    if (_restoring) return;
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () async {
+      final txt = _searchController.text.trim();
+      setState(() {
+        _searchQuery = txt;
+      });
+      final prefs = await SharedPreferences.getInstance();
+      if (txt.isEmpty) {
+        await prefs.remove(_kLastSearchKey);
+      } else {
+        await prefs.setString(_kLastSearchKey, txt);
+      }
+    });
+  }
 
-    if (openBookingId == null) return;
-
-    // Ensure data loaded
-    await _loadClients();
-    await _loadBookings();
-
+  Future<void> _restoreState() async {
+    _restoring = true;
     try {
-      final booking = await bookingTable.getBookingById(openBookingId);
-      if (booking != null) {
-        // open the edit dialog on next frame
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _editBooking(booking.bookingDate, booking);
+      final prefs = await SharedPreferences.getInstance();
+      if (widget.initialClient == null) {
+        final clientId = prefs.getInt(_kLastClientIdKey);
+          if (clientId != null) {
+          try {
+            final c = await ClientTable().getClientById(clientId);
+            if (c != null) {
+              setState(() {
+                _clientFilter = c;
+                  _prevView = _view;
+                  _view = 1;
+              });
+            }
+          } catch (_) {}
+        }
+      }
+      final lastSearch = prefs.getString(_kLastSearchKey) ?? '';
+      if (lastSearch.isNotEmpty) {
+        _searchController.text = lastSearch;
+        // ensure the debounced handler picks it up after restoring
+        setState(() {
+          _searchQuery = lastSearch;
         });
       }
-    } catch (e) {
-      debugPrint('Failed to open booking: $e');
+    } finally {
+      _restoring = false;
     }
-  }
-
-  Future<void> _loadBookings() async {
-    final data = await bookingTable.getAllBookings();
-    setState(() {
-      bookings = data;
-    });
-  }
-
-  Future<void> _loadClients() async {
-    final data = await clientTable.getAllClients();
-    // build email -> client cache for fast lookup in autocomplete
-    final map = <String, Client>{};
-
-    for (final c in data) {
-      if (c.email.isNotEmpty) map[c.email] = c;
-    }
-
-    setState(() {
-      allClients = data;
-      clientByEmail = map;
-    });
-  }
-
-  Booking? getBookingForSlot(DateTime slot) {
-    try {
-      return bookings.firstWhere(
-        (b) =>
-            b.bookingDate.year == slot.year &&
-            b.bookingDate.month == slot.month &&
-            b.bookingDate.day == slot.day &&
-            b.bookingDate.hour == slot.hour,
-      );
-    } catch (_) {
-      return null;
-    }
-  }
-
-  Future<void> _editBooking(DateTime slot, [Booking? existing]) async {
-    Client? selectedClient;
-    int? selectedQuoteId = existing?.quoteId;
-    List<Quote> clientQuotes = [];
-    String status = existing?.status ?? '';
-
-    // If editing, preselect client and load quotes
-    if (existing != null) {
-      if (allClients.isNotEmpty) {
-        selectedClient = allClients.firstWhere(
-          (c) => c.id == existing.clientId,
-          orElse: () => allClients.first,
-        );
-        // load quotes defensively
-        try {
-          clientQuotes = await quoteTable.getQuotesByClient(selectedClient.id!);
-          if (clientQuotes.isNotEmpty &&
-              (selectedQuoteId == null ||
-                  !clientQuotes.any((q) => q.id == selectedQuoteId))) {
-            selectedQuoteId = clientQuotes.first.id;
-          }
-        } catch (e) {
-          // If quote lookup fails, keep client selected but show no quotes
-          clientQuotes = [];
-          // ignore or log
-          // print('Error loading quotes for client ${selectedClient.id}: $e');
-        }
-      } else {
-        selectedClient = null;
-      }
-    }
-
-    showDialog(
-      context: context,
-      builder: (_) => StatefulBuilder(
-        builder: (context, setStateDialog) {
-          return AlertDialog(
-            title: Text(existing == null ? 'New Booking' : 'Edit Booking'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Single autocomplete search field for clients (string-based, uses cache)
-                  Autocomplete<String>(
-
-                    optionsBuilder: (TextEditingValue textEditingValue) {
-                      final query = textEditingValue.text.toLowerCase().trim();
-                      if (query.isEmpty) return const Iterable<String>.empty();
-                      final matches = allClients.where((c) {
-                        final full = '${c.firstName} ${c.lastName}'.toLowerCase();
-                        return c.firstName.toLowerCase().contains(query) ||
-                            c.lastName.toLowerCase().contains(query) ||
-                            full.contains(query) ||
-                            c.email.toLowerCase().contains(query);
-                      }).map((c) => '${c.firstName} ${c.lastName} (${c.email})').toList();
-                      return matches;
-                    },
-                    fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-                      return TextField(
-                        controller: controller,
-                        focusNode: focusNode,
-                        decoration: const InputDecoration(
-                          labelText: 'Search client by name or email',
-                          prefixIcon: Icon(Icons.search),
-                        ),
-                      );
-                    },
-                    onSelected: (String selection) async {
-                      // extract email from selection (format: First Last (email))
-                      final start = selection.lastIndexOf('(');
-                      final end = selection.lastIndexOf(')');
-                      String? email;
-                      if (start != -1 && end != -1 && end > start) {
-                        email = selection.substring(start + 1, end);
-                      }
-
-                      Client? client;
-                      if (email != null) client = clientByEmail[email];
-
-                      if (client == null) {
-                        // fallback: search list for exact display string
-                        for (final c in allClients) {
-                          final display = '${c.firstName} ${c.lastName} (${c.email})';
-                          if (display == selection) {
-                            client = c;
-                            break;
-                          }
-                        }
-                      }
-
-                      if (client == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Selected client not found')));
-                        return;
-                      }
-
-                      try {
-                        if (client.id == null) {
-                          setStateDialog(() {
-                            selectedClient = client;
-                            clientQuotes = [];
-                            selectedQuoteId = null;
-                          });
-                          ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Selected client is not saved (no id)')));
-                          return;
-                        }
-                        final quotes = await quoteTable.getQuotesByClient(client.id!);
-                        setStateDialog(() {
-                          selectedClient = client;
-                          clientQuotes = quotes;
-                          selectedQuoteId = clientQuotes.isNotEmpty ? clientQuotes.first.id : null;
-                        });
-                      } catch (e) {
-                        setStateDialog(() {
-                          selectedClient = client;
-                          clientQuotes = [];
-                          selectedQuoteId = null;
-                        });
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Failed loading quotes: $e')),
-                          );
-                        });
-                      }
-                    },
-                    optionsViewBuilder: (context, onSelected, options) {
-                      final opts = options.toList();
-                      return Align(
-                        alignment: Alignment.topLeft,
-                        child: Material(
-                          elevation: 4.0,
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxHeight: 200),
-                            child: ListView.builder(
-                              padding: EdgeInsets.zero,
-                              itemCount: opts.length,
-                              itemBuilder: (BuildContext context, int index) {
-                                final String display = opts[index];
-                                final emailStart = display.lastIndexOf('(');
-                                final namePart = emailStart > 0 ? display.substring(0, emailStart).trim() : display;
-                                final emailPart = (emailStart > 0 && display.endsWith(')')) ? display.substring(emailStart + 1, display.length - 1) : '';
-                                return ListTile(
-                                  title: Text(namePart),
-                                  subtitle: emailPart.isNotEmpty ? Text(emailPart) : null,
-                                  onTap: () => onSelected(display),
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  // Dropdown for quotes
-                  DropdownButtonFormField<int>(
-                    value: selectedQuoteId,
-                    items: clientQuotes
-                        .map((q) => DropdownMenuItem<int>(
-                              value: q.id!,
-                              child: Text(q.description),
-                            ))
-                        .toList(),
-                    onChanged: clientQuotes.isEmpty
-                        ? null
-                        : (val) {
-                            setStateDialog(() {
-                              selectedQuoteId = val;
-                            });
-                          },
-                    decoration: const InputDecoration(labelText: 'Quote'),
-                    hint: const Text('Select Quote'),
-                    isExpanded: true,
-                    disabledHint: const Text('Select a client first'),
-                  ),
-                  const SizedBox(height: 8),
-                  // Status dropdown
-                  DropdownButtonFormField<String>(
-                    value: status.isEmpty ? 'Scheduled' : status,
-                    items: const [
-                      DropdownMenuItem(value: 'Scheduled', child: Text('Scheduled')),
-                      DropdownMenuItem(value: 'Finished', child: Text('Finished')),
-                    ],
-                    onChanged: (val) {
-                      setStateDialog(() {
-                        status = val ?? 'Scheduled';
-                      });
-                    },
-                    decoration: const InputDecoration(labelText: 'Status'),
-                    isExpanded: true,
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: const Text('Cancel'),
-              ),
-              if (existing != null)
-                TextButton(
-                  onPressed: () async {
-                    await bookingTable.deleteBooking(existing.bookingId!);
-                    Navigator.pop(context);
-                    _loadBookings();
-                  },
-                  child:
-                      const Text('Delete', style: TextStyle(color: Colors.red)),
-                ),
-              TextButton(
-                onPressed: () async {
-                  if (selectedClient == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Please select a client.')),
-
-                    );
-                    return;
-                  }
-                  if (selectedQuoteId == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content:
-                              Text('Please select a quote for this client.')),
-
-                    );
-                    return;
-                  }
-
-                    if (existing != null) {
-                    Booking updated = Booking(
-                      bookingId: existing.bookingId,
-                      quoteId: selectedQuoteId!,
-                      clientId: selectedClient!.id!,
-                      bookingDate: slot,
-                      status: status.isEmpty ? "Scheduled" : status,
-                      createdAt: existing.createdAt,
-                    );
-                    await bookingTable.updateBooking(updated);
-                  } else {
-                    Booking newBooking = Booking(
-                      quoteId: selectedQuoteId!,
-                      clientId: selectedClient!.id!,
-                      bookingDate: slot,
-                      status: status.isEmpty ? "Scheduled" : status,
-                    );
-                    await bookingTable.insertBooking(newBooking);
-                  }
-
-                  Navigator.pop(context);
-                  _loadBookings();
-                },
-                child: const Text('Save'),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  void _previousWeek() {
-    setState(() {
-      weekStart = weekStart.subtract(const Duration(days: 7));
-    });
-  }
-
-  void _nextWeek() {
-    setState(() {
-      weekStart = weekStart.add(const Duration(days: 7));
-    });
-  }
-
-  String getWeekdayName(DateTime date) {
-    return ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][date.weekday - 1];
   }
 
   @override
   Widget build(BuildContext context) {
-    final hours = List.generate(10, (i) => 8 + i);
-    final days = List.generate(7, (i) => weekStart.add(Duration(days: i)));
+    final header = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
+      child: LayoutBuilder(builder: (context, constraints) {
+  // Allocate up to 40% of the width (max 240) for the toggle controls on the right
+  final maxToggleWidth = (constraints.maxWidth * 0.4).clamp(120.0, 240.0);
+        final gap = 6.0; // space between two buttons
+        final buttonWidth = (maxToggleWidth - gap) / 2;
+        final btnConstraints = BoxConstraints(minWidth: buttonWidth, minHeight: 36);
 
-    const double timeColumnWidth = 60;
-    const double blockColumnWidth = 44;
-    const double whiteSpaceWidth = 40;
-
-    return Scaffold(
-      appBar: AppBar(title: const Text('Booking Calendar')),
-      body: Column(
-        children: [
-          // Date row with arrows
-          Row(
-            children: [
-              SizedBox(
-                width: timeColumnWidth,
-                child: IconButton(
-                  icon: const Icon(Icons.arrow_back),
-                  onPressed: _previousWeek,
-                  tooltip: 'Previous Week',
-                ),
-              ),
-              for (int i = 0; i < days.length; i++)
-                SizedBox(
-                  width: blockColumnWidth,
-                  child: Center(
-                    child: Text(
-                      "${days[i].day.toString().padLeft(2, '0')}/${days[i].month.toString().padLeft(2, '0')}",
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-              SizedBox(
-                width: whiteSpaceWidth,
-                child: IconButton(
-                  icon: const Icon(Icons.arrow_forward),
-                  onPressed: _nextWeek,
-                  tooltip: 'Next Week',
-                ),
-              ),
-            ],
-          ),
-          // Days row
-          Row(
-            children: [
-              SizedBox(width: timeColumnWidth),
-              for (final d in days)
-                SizedBox(
-                  width: blockColumnWidth,
-                  child: Center(
-                    child: Text(
-                      getWeekdayName(d),
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                  ),
-                ),
-              SizedBox(width: whiteSpaceWidth),
-            ],
-          ),
-          const Divider(),
-          Expanded(
-            child: ListView.builder(
-              itemCount: hours.length,
-              itemBuilder: (_, row) {
-                final hour = hours[row];
-                return Row(
-                  children: [
-                    SizedBox(
-                      width: timeColumnWidth,
-                      child: Text(
-                        "$hour:00",
-                        style: const TextStyle(fontSize: 12),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    for (final d in days)
-                      SizedBox(
-                        width: blockColumnWidth,
-                        child: GestureDetector(
-                          onTap: () {
-                            final slot = DateTime(
-                              d.year,
-                              d.month,
-                              d.day,
-                              hour,
-                            );
-                            final booking = getBookingForSlot(slot);
-                            _editBooking(slot, booking);
-                          },
-                          child: Container(
-                            margin: const EdgeInsets.all(2),
-                            height: 50,
-                            decoration: BoxDecoration(
-                              color: (() {
-                                final slot = DateTime(
-                                  d.year,
-                                  d.month,
-                                  d.day,
-                                  hour,
-                                );
-                                final booking = getBookingForSlot(slot);
-                                if (booking != null) {
-                                  return Colors.green[300];
-                                }
-                                return Colors.grey[200];
-                              })(),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Builder(
-                              builder: (context) {
-                                final slot = DateTime(
-                                  d.year,
-                                  d.month,
-                                  d.day,
-                                  hour,
-                                );
-                                final booking = getBookingForSlot(slot);
-                                if (booking != null) {
-                                  return Center(
-                                    child: Text(
-                                      "Client: ${booking.clientId}\nQuote: ${booking.quoteId}\n${booking.status}",
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  );
-                                }
-                                return const SizedBox.shrink();
-                              },
-                            ),
-                          ),
-                        ),
-                      ),
-                    // White space column at the end
-                    SizedBox(width: whiteSpaceWidth),
-                  ],
+  final viewLabel = _view == 0 ? 'Calendar' : 'List';
+        // Prevent label width jumps when switching by giving the label a stable max width
+        final labelMaxWidth = (constraints.maxWidth - maxToggleWidth - 32).clamp(80.0, constraints.maxWidth * 0.6);
+        return Row(children: [
+          SizedBox(
+            width: labelMaxWidth,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Builder(builder: (context) {
+                final reduceMotion = MediaQuery.of(context).accessibleNavigation;
+                final duration = reduceMotion ? Duration.zero : const Duration(milliseconds: 220);
+                final direction = _view >= _prevView ? 1.0 : -1.0;
+                final offsetMag = reduceMotion ? 0.0 : 0.04;
+                return AnimatedSwitcher(
+                  duration: duration,
+                  transitionBuilder: (child, anim) {
+                    // Simple direction-aware slide + fade tuned for smoothness.
+                    final offsetAnim = Tween<Offset>(begin: Offset(offsetMag * direction, 0), end: Offset.zero)
+                        .animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic));
+                    return SlideTransition(position: offsetAnim, child: FadeTransition(opacity: anim, child: child));
+                  },
+                  child: Text(viewLabel, key: ValueKey(viewLabel), style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
                 );
-              },
+              }),
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Spacer(),
+          SizedBox(
+            width: maxToggleWidth,
+            child: ToggleButtons(
+              isSelected: [_view == 0, _view == 1],
+              onPressed: (i) => setState(() {
+                _prevView = _view;
+                _view = i;
+              }),
+              borderRadius: BorderRadius.circular(8),
+              constraints: btnConstraints,
+              color: Theme.of(context).colorScheme.onSurface,
+              selectedColor: Theme.of(context).colorScheme.onPrimary,
+              fillColor: Theme.of(context).colorScheme.primary,
+              borderColor: Theme.of(context).dividerColor,
+              selectedBorderColor: Theme.of(context).colorScheme.primary,
+              children: const [
+                Padding(padding: EdgeInsets.symmetric(horizontal: 4), child: Icon(Icons.calendar_today)),
+                Padding(padding: EdgeInsets.symmetric(horizontal: 4), child: Icon(Icons.list)),
+              ],
+            ),
+          ),
+        ]);
+      }),
+    );
+
+    final bodyContent = AnimatedSize(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 360),
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeInCubic,
+        layoutBuilder: (currentChild, previousChildren) {
+          return Stack(children: <Widget>[...previousChildren, if (currentChild != null) currentChild]);
+        },
+        transitionBuilder: (child, anim) {
+          final offsetAnim = Tween<Offset>(begin: const Offset(0.12, 0), end: Offset.zero).animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic));
+          return FadeTransition(opacity: anim, child: SlideTransition(position: offsetAnim, child: child));
+        },
+        child: SectionCard(
+          key: ValueKey<int>(_view),
+          child: _view == 0
+              ? const BookingCalendarView()
+              : BookingListView(
+                  searchQuery: _searchQuery.isEmpty ? null : _searchQuery,
+                  clientId: _clientFilter?.id,
+                ),
+        ),
+      ),
+    );
+
+    final searchBar = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AnimatedSize(
+            duration: const Duration(milliseconds: 260),
+            curve: Curves.easeInOut,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 260),
+              switchInCurve: Curves.easeOut, 
+              switchOutCurve: Curves.easeIn,
+              child: _clientFilter != null
+                  ? Padding(
+                      key: ValueKey('client-${_clientFilter!.id}'),
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: Row(children: [
+                        Expanded(child: Text('Filtering by client', style: Theme.of(context).textTheme.bodySmall)),
+                        InputChip(
+                          label: Text('${_clientFilter!.firstName} ${_clientFilter!.lastName}'),
+                          onDeleted: () async {
+                            setState(() {
+                              _clientFilter = null;
+                              _searchController.clear();
+                              _searchQuery = '';
+                            });
+                            final prefs = await SharedPreferences.getInstance();
+                            await prefs.remove(_kLastClientIdKey);
+                            await prefs.remove(_kLastSearchKey);
+                          },
+                        ),
+                      ]),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ),
+          TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: _clientFilter != null ? 'Search bookings for ${_clientFilter!.firstName} ${_clientFilter!.lastName}' : 'Search bookings (name, status, date)',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _searchQuery.isNotEmpty
+                  ? IconButton(icon: const Icon(Icons.clear), onPressed: () => _searchController.clear())
+                  : null,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
             ),
           ),
         ],
       ),
+    );
+
+    final bodyChildren = <Widget>[header, const SizedBox(height: 8)];
+    // show search only on list view
+    if (_view == 1) {
+      bodyChildren.addAll([searchBar, const SizedBox(height: 8)]);
+    }
+    bodyChildren.add(Expanded(child: bodyContent));
+
+    final body = Padding(padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0), child: Column(children: bodyChildren));
+
+  return widget.embedded
+    ? Column(children: [header, const SizedBox(height: 8), if (_view == 1) searchBar, const SizedBox(height: 8), Expanded(child: bodyContent)])
+        : Scaffold(
+            appBar: AppBar(
+              title: const Text('Bookings'),
+              actions: [
+                IconButton(
+                  tooltip: 'Dashboard',
+                  icon: const Icon(Icons.dashboard),
+                  onPressed: () => Navigator.pushNamed(context, '/dashboard'),
+                ),
+              ],
+            ),
+            body: body,
+          );
+  }
+
+  /// Set the active client filter, switch to list view and optionally prefill the search
+  void focusOnClient(Client client, {String? query}) {
+    setState(() {
+      _clientFilter = client;
+      _prevView = _view;
+      _view = 1;
+      _searchController.text = query ?? '';
+      _searchQuery = _searchController.text.trim();
+    });
+    // persist selection
+    SharedPreferences.getInstance().then((prefs) async {
+      await prefs.setInt(_kLastClientIdKey, client.id ?? -1);
+      if (_searchQuery.isNotEmpty) await prefs.setString(_kLastSearchKey, _searchQuery);
+    });
+  }
+}
+
+class BookingListView extends StatefulWidget {
+  final String? searchQuery;
+  final int? clientId;
+  const BookingListView({super.key, this.searchQuery, this.clientId});
+
+  @override
+  State<BookingListView> createState() => _BookingListViewState();
+}
+
+class _BookingListViewState extends State<BookingListView> {
+  final BookingTable _bookingTable = BookingTable();
+  final ClientTable _clientTable = ClientTable();
+  final QuoteTable _quoteTable = QuoteTable();
+
+  late Future<List<Booking>> _bookingsFuture;
+  late Future<List<Client>> _clientsFuture;
+  late Future<List<Quote>> _quotesFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _bookingsFuture = _bookingTable.getAllBookings();
+    _clientsFuture = _clientTable.getAllClients();
+    _quotesFuture = _quoteTable.getAllQuotes();
+  }
+
+  String _fmt(DateTime d) {
+    final dt = d.toLocal();
+    final day = dt.day.toString().padLeft(2, '0');
+    final month = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][dt.month-1];
+    final hour = dt.hour.toString().padLeft(2, '0');
+    final minute = dt.minute.toString().padLeft(2, '0');
+    return '$day $month $hour:$minute';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return FutureBuilder<List<dynamic>>(
+      future: Future.wait([_bookingsFuture, _clientsFuture, _quotesFuture]),
+      builder: (context, snap) {
+        if (snap.connectionState != ConnectionState.done) return const Center(child: CircularProgressIndicator());
+        final data = snap.data ?? <dynamic>[];
+  final bookings = data.isNotEmpty ? (data[0] as List<Booking>) : <Booking>[];
+  final clients = data.length > 1 ? (data[1] as List<Client>) : <Client>[];
+  final widgetSearch = widget.searchQuery?.toLowerCase();
+  final widgetClientId = widget.clientId;
+  final clientById = {for (var c in clients) (c.id ?? -1): c};
+  // quotes are available in `quotes` if needed later
+
+
+        // Apply client filter and search filter if provided
+        var filtered = bookings;
+        if (widgetClientId != null) {
+          filtered = filtered.where((b) => b.clientId == widgetClientId).toList();
+        }
+        if (widgetSearch != null && widgetSearch.isNotEmpty) {
+          filtered = filtered.where((b) {
+            final client = clients.firstWhere((c) => c.id == b.clientId, orElse: () => Client(id: -1, firstName: '', lastName: '', email: '', phone: ''));
+            final clientName = '${client.firstName} ${client.lastName}'.toLowerCase();
+            final status = b.status.toLowerCase();
+            final dateStr = _fmt(b.bookingDate).toLowerCase();
+            return clientName.contains(widgetSearch) || status.contains(widgetSearch) || dateStr.contains(widgetSearch) || '${b.bookingId}'.contains(widgetSearch);
+          }).toList();
+        }
+
+        if (filtered.isEmpty) return const Center(child: Text('No bookings'));
+
+        filtered.sort((a, b) => a.bookingDate.compareTo(b.bookingDate));
+
+        return ListView.separated(
+          itemCount: filtered.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 8),
+          itemBuilder: (context, index) {
+            final b = filtered[index];
+            final client = clientById[b.clientId];
+            final title = client != null ? '${client.firstName} ${client.lastName}' : 'Client #${b.clientId}';
+            final subtitle = '${_fmt(b.bookingDate)} • ${b.status}';
+            final initials = client != null && (client.firstName.isNotEmpty || client.lastName.isNotEmpty)
+                ? '${client.firstName.isNotEmpty ? client.firstName[0] : ''}${client.lastName.isNotEmpty ? client.lastName[0] : ''}'.toUpperCase()
+                : '#';
+
+            return SectionCard(
+              child: ListTile(
+                contentPadding: UIStyles.tilePadding,
+                leading: CircleAvatar(child: Text(initials, style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold))),
+                title: Text(title, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                subtitle: Text(subtitle, style: theme.textTheme.bodySmall),
+                trailing: IconButton(icon: const Icon(Icons.open_in_new), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CreateBookingPage(existing: b))).then((_) { if (mounted) setState(() {}); })),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CreateBookingPage(existing: b))).then((_) { if (mounted) setState(() {}); }),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }
