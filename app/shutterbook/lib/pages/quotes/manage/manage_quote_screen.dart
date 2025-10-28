@@ -151,7 +151,7 @@ class _ManageQuotePageState extends State<ManageQuotePage> {
               if (!_editing) ...[
                 Text('Total: ${formatRand(_quote!.totalPrice)}'),
                 const SizedBox(height: 8),
-                Text('Total: ${_quote!.createdAt}'),
+                Text('Created: ${formatDateTime(_quote!.createdAt)}'),
                 const SizedBox(height: 8),
                 Text('Description: ${_quote!.description}'),
               ] else ...[
