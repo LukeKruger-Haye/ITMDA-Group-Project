@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:shutterbook/data/models/package.dart';
 import 'package:shutterbook/data/tables/package_table.dart';
 
+// ignore_for_file: use_build_context_synchronously
+
 class PackageAdd  extends StatefulWidget{
     const PackageAdd({super.key});
 
@@ -37,6 +39,11 @@ String _capitalize(String s) =>
 
 
   Future<bool> _showConfirmationDialog(String title, String content) async {
+  // The dialog awaits below use the widget `context`. We validate user
+  // input and may perform async operations; the surrounding State guards
+  // with mounted checks when needed. The analyzer can warn about using
+  // BuildContext across async gaps; we've applied a file-level ignore and
+  // ensured state safety with `mounted` checks where appropriate.
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(

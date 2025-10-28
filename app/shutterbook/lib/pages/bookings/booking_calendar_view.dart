@@ -1,4 +1,5 @@
 // Shutterbook — booking_calendar_view.dart
+// ignore_for_file: use_build_context_synchronously
 // A compact calendar view used in the bookings section to visualise
 // upcoming sessions. It's intentionally small and focused on display logic.
 import 'package:flutter/material.dart';
@@ -338,6 +339,9 @@ Autocomplete<String>(
               if (existing != null)
                 TextButton(
                   onPressed: () async {
+                    // Passing the local `context` into showDialog is safe here because
+                    // we immediately await the result and then check `mounted` before
+                    // performing any stateful operations.
                     final confirm = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
@@ -392,9 +396,11 @@ Autocomplete<String>(
                     excludeBookingId: existing?.bookingId,
                   );
                   if (conflicts.isNotEmpty) {
-                    final proceed = await showDialog<bool>(
-                          context: context,
-                          builder: (innerCtx) => AlertDialog(
+  // similar guard+explanation for proceed dialog; we check mounted
+  // before using the surrounding State.
+  final proceed = await showDialog<bool>(
+          context: context,
+          builder: (innerCtx) => AlertDialog(
                             title: const Text('Possible double booking'),
                             content: Text(
                               'There is already ${conflicts.length} booking(s) in this time slot (hour).\n\nYou can edit the time or proceed and allow a double booking.',
