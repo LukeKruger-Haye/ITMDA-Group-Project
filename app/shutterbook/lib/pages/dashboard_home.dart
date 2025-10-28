@@ -190,15 +190,7 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
                               onPressed: () async {
                                 _closeFab();
                                 final nav = Navigator.of(context);
-                                // switch to Quotes tab and trigger embedded create flow if available
-                                await _pageController.animateToPage(3, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
-                                final state = _quotesKey.currentState;
-                                if (state != null) {
-                                  try {
-                                    await (state as dynamic).startCreateQuoteFlow();
-                                    return;
-                                  } catch (_) {}
-                                }
+                               
                                 // fallback to full CreateQuote page if embedded not available
                                 final created = await nav.push<bool>(MaterialPageRoute(builder: (_) => const CreateQuotePage()));
                                 if (created == true) {
@@ -350,7 +342,7 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
             }
           },
           child: const Icon(Icons.request_quote),
-          tooltip: 'Create quote',
+          tooltip: 'Create ',
         );
       case 2: // Clients - open add client dialog by delegating to page
         return FloatingActionButton(

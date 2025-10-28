@@ -15,7 +15,7 @@ import '../bookings/create_booking.dart';
 import '../../widgets/client_search_dialog.dart';
 import 'create/package_picker/package_picker_screen.dart';
 import 'create/package_picker/package_picker.dart';
-import 'create/overview/quote_overview_screen.dart';
+import 'overview/quote_overview_screen.dart';
 import 'manage/manage_quote_screen.dart';
 
 class QuotePage extends StatefulWidget {
