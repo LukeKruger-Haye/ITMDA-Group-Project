@@ -66,13 +66,14 @@ final Map<Package, int> packages;
           ElevatedButton(
               onPressed: () async {
                 try {
+                  final nav = Navigator.of(context);
+                  final messenger = ScaffoldMessenger.of(context);
+
                   await _updateQuote();
                   
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Quote updated successfully')),
-                    );
-                    Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => true);    // Pop with true to indicate success
+                  if (nav.mounted) {
+                    messenger.showSnackBar(const SnackBar(content: Text('Quote updated')));
+                    nav.pushNamedAndRemoveUntil( '/home', (route) => false);
                   }
                 } catch (e) {
                   if (context.mounted) {
@@ -82,16 +83,23 @@ final Map<Package, int> packages;
                   }
                 }
               },
-              child: const Text("Save"),
+              child: const Text("Update"),
             ),
            const SizedBox(height: 10),
-           ElevatedButton(onPressed: (){
+           ElevatedButton( onPressed: () async {
+                {
+                  final nav = Navigator.of(context);
+                  
+                  if (nav.mounted) {
+                    nav.pushNamedAndRemoveUntil( '/home', (route) => false); // Pop with true to indicate success
+                  }
+                }},
 
-             Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);     
+            
 
-
-           }, child: const Text("Cancel"))
-
+            child: const Text("Cancel")
+           ),
+           
           ],
         ),
       ),

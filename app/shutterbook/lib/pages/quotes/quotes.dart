@@ -6,7 +6,6 @@ import 'dart:async';
 import '../../data/models/client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../data/models/quote.dart';
-import '../../data/models/package.dart';
 import '../../utils/formatters.dart';
 import '../../data/tables/quote_table.dart';
 import '../../data/tables/client_table.dart';
@@ -14,9 +13,10 @@ import '../../widgets/section_card.dart';
 import 'package:shutterbook/theme/ui_styles.dart';
 import '../bookings/create_booking.dart';
 import '../../widgets/client_search_dialog.dart';
-import 'package:shutterbook/pages/quotes/package_picker/package_picker/package_picker_screen.dart';
-import 'manage/manage_quote_screen.dart';
+import 'create/package_picker/package_picker_screen.dart';
+import 'create/package_picker/package_picker.dart';
 import 'overview/quote_overview_screen.dart';
+import 'manage/manage_quote_screen.dart';
 
 class QuotePage extends StatefulWidget {
   final bool embedded;
@@ -315,10 +315,7 @@ class _QuotePageState extends State<QuotePage> {
                 }
                 final saved = await nav.push<bool?>(
                   MaterialPageRoute(
-                    builder: (_) => QuoteOverviewScreen(
-                      client: client,
-                      total: total,
-                      packages: packages),
+                    builder: (_) => QuoteOverviewScreen(client: client, total: total, packages: packages),
                   ),
                 );
                 if (saved == true && mounted) setState(() {});
@@ -458,35 +455,17 @@ class _QuoteListState extends State<QuoteList> {
                                   icon: const Icon(Icons.add_circle_outline),
                                   tooltip: 'Book from quote',
                                   onPressed: () async {
-                                      final nav = Navigator.of(context);
-                                      final messenger = ScaffoldMessenger.of(context);
-                                      try {
-                                        final created = await nav.push<bool>(
-                                          MaterialPageRoute(builder: (_) => CreateBookingPage(quote: q)),
-                                        );
-                                        if (created == true) {
-                                          if (mounted) await load();
-                                        }
-                                      } catch (e) {
-                                        messenger.showSnackBar(SnackBar(content: Text('Failed to book: $e')));
-                                      }
-                                    },
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.open_in_new),
-                                  tooltip: 'View',
-                                  onPressed: () async {
                                     final nav = Navigator.of(context);
                                     final messenger = ScaffoldMessenger.of(context);
                                     try {
-                                      await nav.push(
-                                        MaterialPageRoute(builder: (_) => const ManageQuotePage(), settings: RouteSettings(arguments: q)),
+                                      final created = await nav.push<bool>(
+                                        MaterialPageRoute(builder: (_) => CreateBookingPage(quote: q)),
                                       );
-                                      if (mounted) {
-                                        await load();
+                                      if (created == true) {
+                                        if (mounted) await load();
                                       }
                                     } catch (e) {
-                                      messenger.showSnackBar(SnackBar(content: Text('Failed to open quote: $e')));
+                                      messenger.showSnackBar(SnackBar(content: Text('Failed to book: $e')));
                                     }
                                   },
                                 ),
@@ -496,7 +475,7 @@ class _QuoteListState extends State<QuoteList> {
                                 final messenger = ScaffoldMessenger.of(context);
                                 try {
                                   await nav.push(
-                                    MaterialPageRoute(builder: (_) => const ManageQuotePage(), settings: RouteSettings(arguments: q)),
+                                    MaterialPageRoute(builder: (_) => ManageQuotePage(), settings: RouteSettings(arguments: q)),
                                   );
                                   if (mounted) {
                                       await load();

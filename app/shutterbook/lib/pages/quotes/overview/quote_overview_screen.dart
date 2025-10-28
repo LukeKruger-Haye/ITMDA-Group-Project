@@ -57,27 +57,28 @@ final Map<Package, int> packages;
               ),
             ),
             const SizedBox(height: 30),
-            ElevatedButton(
+             ElevatedButton(
               onPressed: () async {
-                try {
-                  await _insertQuote();
-                  
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Quote saved successfully')),
-                    );
-                    Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => true);    // Pop with true to indicate success
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Failed to save quote: $e')),
-                    );
-                  }
+                final nav = Navigator.of(context);
+                final messenger = ScaffoldMessenger.of(context);
+                await _insertQuote();
+                if (nav.mounted) {
+                  messenger.showSnackBar(const SnackBar(content: Text('Quote saved')));
+                  nav.pushNamedAndRemoveUntil( '/home', (route) => false);
                 }
               },
               child: const Text("Save"),
             ),
+             ElevatedButton( onPressed: () async {
+                {
+                  final nav = Navigator.of(context);
+                  if (nav.mounted) {
+                    nav.pushNamedAndRemoveUntil( '/home', (route) => false); // Pop with true to indicate success
+                  }
+                }},
+
+            child: const Text("Cancel")
+             )
           ],
         ),
       ),
