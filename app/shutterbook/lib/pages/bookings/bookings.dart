@@ -42,6 +42,7 @@ class _BookingsPageState extends State<BookingsPage> {
     // If an initial client was passed explicitly, prefer that (e.g., programmatic navigation)
     if (widget.initialClient != null) {
       _clientFilter = widget.initialClient;
+      _prevView = _view;
       _view = 1; // show list when opened for a client
     }
 
@@ -92,13 +93,14 @@ class _BookingsPageState extends State<BookingsPage> {
       final prefs = await SharedPreferences.getInstance();
       if (widget.initialClient == null) {
         final clientId = prefs.getInt(_kLastClientIdKey);
-        if (clientId != null) {
+          if (clientId != null) {
           try {
             final c = await ClientTable().getClientById(clientId);
             if (c != null) {
               setState(() {
                 _clientFilter = c;
-                _view = 1;
+                  _prevView = _view;
+                  _view = 1;
               });
             }
           } catch (_) {}
@@ -136,28 +138,22 @@ class _BookingsPageState extends State<BookingsPage> {
             width: labelMaxWidth,
             child: Align(
               alignment: Alignment.centerLeft,
-              child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
+              child: Builder(builder: (context) {
+                final reduceMotion = MediaQuery.of(context).accessibleNavigation;
+                final duration = reduceMotion ? Duration.zero : const Duration(milliseconds: 220);
+                final direction = _view >= _prevView ? 1.0 : -1.0;
+                final offsetMag = reduceMotion ? 0.0 : 0.04;
+                return AnimatedSwitcher(
+                  duration: duration,
                   transitionBuilder: (child, anim) {
-                    // Direction-aware animation with tuned offset and curves to reduce jank.
-                    final isIncoming = child.key == ValueKey(viewLabel);
-                    final isForward = _view > _prevView;
-                    // smaller offset when moving forward (to List) for gentler motion
-                    final offsetMag = isForward ? 0.06 : 0.12;
-                    if (isIncoming) {
-                      final offsetAnim = Tween<Offset>(begin: Offset(offsetMag * (isForward ? 1 : -1), 0), end: Offset.zero)
-                          .animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic));
-                      final fade = CurvedAnimation(parent: anim, curve: Curves.easeOut);
-                      return FadeTransition(opacity: fade, child: SlideTransition(position: offsetAnim, child: child));
-                    } else {
-                      final offsetAnim = Tween<Offset>(begin: Offset.zero, end: Offset(-offsetMag * (isForward ? 1 : -1), 0))
-                          .animate(CurvedAnimation(parent: anim, curve: Curves.easeInCubic));
-                      final fade = CurvedAnimation(parent: ReverseAnimation(anim), curve: Curves.easeIn);
-                      return FadeTransition(opacity: fade, child: SlideTransition(position: offsetAnim, child: child));
-                    }
+                    // Simple direction-aware slide + fade tuned for smoothness.
+                    final offsetAnim = Tween<Offset>(begin: Offset(offsetMag * direction, 0), end: Offset.zero)
+                        .animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic));
+                    return SlideTransition(position: offsetAnim, child: FadeTransition(opacity: anim, child: child));
                   },
-                child: Text(viewLabel, key: ValueKey(viewLabel), style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
-              ),
+                  child: Text(viewLabel, key: ValueKey(viewLabel), style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                );
+              }),
             ),
           ),
           const SizedBox(width: 12),
@@ -296,6 +292,7 @@ class _BookingsPageState extends State<BookingsPage> {
   void focusOnClient(Client client, {String? query}) {
     setState(() {
       _clientFilter = client;
+      _prevView = _view;
       _view = 1;
       _searchController.text = query ?? '';
       _searchQuery = _searchController.text.trim();
