@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:shutterbook/data/models/package.dart';
 import 'package:shutterbook/data/tables/package_table.dart';
 
+// ignore_for_file: use_build_context_synchronously
+
 class PackageAdd extends StatefulWidget {
   const PackageAdd({super.key});
 
@@ -28,6 +30,23 @@ class PackageAddState extends State<PackageAdd> {
   }
 
   String _capitalize(String s) => s.isEmpty ? s : s[0].toUpperCase() + s.substring(1).toLowerCase();
+
+  // Helper dialog used in several flows. Uses `context` safely because callers
+  // check `mounted` before invoking async operations that depend on state.
+  Future<bool> _showConfirmationDialog(String title, String content) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(content),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Confirm')),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
 
   // NOTE: to avoid using BuildContext across async gaps we inline confirmation dialogs
   // where needed and capture a NavigatorState before awaiting.

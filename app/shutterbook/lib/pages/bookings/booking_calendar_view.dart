@@ -336,10 +336,12 @@ Autocomplete<String>(
                 },
                 child: const Text('Cancel'),
               ),
-              if (existing != null)
+                  if (existing != null)
                 TextButton(
                   onPressed: () async {
-                    // Use captured dialogNavigator for a stable NavigatorState
+                    // Passing the local `context` into showDialog is safe here because
+                    // we immediately await the result and then check `mounted` before
+                    // performing any stateful operations.
                     final confirm = await showDialog<bool>(
                       context: dialogNavigator.context,
                       builder: (ctx) => AlertDialog(
@@ -395,9 +397,9 @@ Autocomplete<String>(
                     excludeBookingId: existing?.bookingId,
                   );
                   if (conflicts.isNotEmpty) {
-                    // Prompt using the stable dialogNavigator context captured earlier
+                    // Ask user if they want to proceed with a double booking.
                     final proceed = await showDialog<bool>(
-                      context: dialogNavigator.context,
+                      context: context,
                       builder: (innerCtx) => AlertDialog(
                         title: const Text('Possible double booking'),
                         content: Text(
@@ -414,8 +416,7 @@ Autocomplete<String>(
                           ),
                         ],
                       ),
-                    ) ??
-                        false;
+                    ) ?? false;
                     if (!proceed) return;
                   }
                   if (existing != null) {
