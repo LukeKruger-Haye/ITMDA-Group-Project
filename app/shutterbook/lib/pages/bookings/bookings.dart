@@ -13,7 +13,7 @@ import '../../widgets/section_card.dart';
 import '../../data/models/booking.dart';
 import '../../data/models/client.dart';
 import '../../data/models/quote.dart';
-import '../../data/tables/booking_table.dart';
+import '../../data/services/data_cache.dart';
 import '../../data/tables/client_table.dart';
 import '../../data/tables/quote_table.dart';
 import 'create_booking.dart';
@@ -320,8 +320,6 @@ class BookingListView extends StatefulWidget {
 }
 
 class _BookingListViewState extends State<BookingListView> {
-  final BookingTable _bookingTable = BookingTable();
-  final ClientTable _clientTable = ClientTable();
   final QuoteTable _quoteTable = QuoteTable();
 
   late Future<List<Booking>> _bookingsFuture;
@@ -331,8 +329,8 @@ class _BookingListViewState extends State<BookingListView> {
   @override
   void initState() {
     super.initState();
-    _bookingsFuture = _bookingTable.getAllBookings();
-    _clientsFuture = _clientTable.getAllClients();
+    _bookingsFuture = DataCache.instance.getBookings();
+    _clientsFuture = DataCache.instance.getClients();
     _quotesFuture = _quoteTable.getAllQuotes();
   }
 

@@ -9,6 +9,7 @@ import 'package:shutterbook/data/models/client.dart';
 import 'package:shutterbook/data/models/quote.dart';
 import 'package:shutterbook/data/tables/booking_table.dart';
 import 'package:shutterbook/data/tables/client_table.dart';
+import 'package:shutterbook/data/services/data_cache.dart';
 import 'package:shutterbook/data/tables/quote_table.dart';
 
 class BookingCalendarView extends StatefulWidget {
@@ -21,6 +22,7 @@ class BookingCalendarView extends StatefulWidget {
 class _BookingCalendarViewState extends State<BookingCalendarView> {
   final bookingTable = BookingTable();
   final quoteTable = QuoteTable();
+  // clientTable retained for writes; reads should use DataCache for better perf
   final clientTable = ClientTable();
 
   List<Booking> bookings = [];
@@ -34,8 +36,8 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
     super.initState();
     final now = DateTime.now();
     weekStart = now.subtract(Duration(days: now.weekday - 1));
-    _loadBookings();
-    _loadClients();
+  _loadBookings();
+  _loadClients();
   }
 
   @override
@@ -45,24 +47,28 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
   }
 
 Future<void> _loadBookings() async {
-  final data = await bookingTable.getAllBookings();
-  if (!mounted) return;
-  setState(() {
-    bookings = data;
-  });
+  try {
+    final data = await DataCache.instance.getBookings();
+    if (!mounted) return;
+    setState(() {
+      bookings = data;
+    });
+  } catch (_) {}
 }
 
 Future<void> _loadClients() async {
-  final data = await clientTable.getAllClients();
-  final map = <String, Client>{};
-  for (final c in data) {
-    if (c.email.isNotEmpty) map[c.email] = c;
-  }
-  if (!mounted) return;
-  setState(() {
-    allClients = data;
-    clientByEmail = map;
-  });
+  try {
+    final data = await DataCache.instance.getClients();
+    final map = <String, Client>{};
+    for (final c in data) {
+      if (c.email.isNotEmpty) map[c.email] = c;
+    }
+    if (!mounted) return;
+    setState(() {
+      allClients = data;
+      clientByEmail = map;
+    });
+  } catch (_) {}
 }
 
   // Determine a background color for a booking status using the current theme
@@ -368,6 +374,8 @@ Autocomplete<String>(
 
                         final nav = dialogNavigator;
                         await bookingTable.deleteBooking(existing.bookingId!);
+                        // Clear shared cache so lists refresh elsewhere
+                        DataCache.instance.clearBookings();
                         if (nav.mounted) nav.pop();
                         if (!mounted) return;
                         _loadBookings();
@@ -434,6 +442,7 @@ Autocomplete<String>(
                       createdAt: existing.createdAt,
                     );
                     await bookingTable.updateBooking(updated);
+                    DataCache.instance.clearBookings();
                   } else {
                     Booking newBooking = Booking(
                       quoteId: selectedQuoteId!,
@@ -442,6 +451,7 @@ Autocomplete<String>(
                       status: status.isEmpty ? "Scheduled" : status,
                     );
                     await bookingTable.insertBooking(newBooking);
+                    DataCache.instance.clearBookings();
                   }
 
                   if (nav.mounted) nav.pop();

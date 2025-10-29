@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../data/models/client.dart';
 import '../../data/tables/client_table.dart';
+import '../../data/services/data_cache.dart';
 import '../../data/tables/quote_table.dart';
 import '../../data/tables/booking_table.dart';
 // Use the app-wide ThemeData instead of creating a local Theme so pages
@@ -207,6 +208,8 @@ class _ClientsPageState extends State<ClientsPage> {
       } else {
         await _clientTable.updateClient(result);
       }
+      // Clear shared clients cache so other pages pick up changes
+      DataCache.instance.clearClients();
       _loadClients();
     }
   }
@@ -218,6 +221,7 @@ class _ClientsPageState extends State<ClientsPage> {
     );
     if (confirmed && client.id != null) {
       await _clientTable.deleteClient(client.id!);
+      DataCache.instance.clearClients();
       _loadClients();
     }
   }
@@ -232,102 +236,135 @@ class _ClientsPageState extends State<ClientsPage> {
 
   // show client details dialog with actions to view quotes or bookings (shows counts)
   Future<void> _showClientDetails(Client client) async {
-    int quotesCount = 0;
-    int bookingsCount = 0;
-
-    if (client.id != null) {
-      try {
-        final quotes = await _quoteTable.getQuotesByClient(client.id!);
-        final bookings = await _bookingTable.getBookingsByClient(client.id!);
-        quotesCount = quotes.length;
-        bookingsCount = bookings.length;
-      } catch (e) {
-        if (kDebugMode) debugPrint('Error fetching client counts: $e');
-      }
-    }
-
+    // Show dialog immediately and fetch counts asynchronously to avoid
+    // blocking the first frame and causing jank.
     if (!mounted) return;
     await showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Expanded(child: Text('${client.firstName} ${client.lastName}')),
-            // overflow menu in the title (top-right) for less-accessible destructive actions
-            PopupMenuButton<int>(
-              icon: const Icon(Icons.more_vert),
-              onSelected: (v) async {
-                // close details dialog first so subsequent flows use root navigator context
-                Navigator.pop(context);
-                if (v == 1) {
-                  await _addOrEditClient(client: client);
-                } else if (v == 2) {
-                  await _deleteClient(client);
-                }
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem<int>(value: 1, child: Text('Edit')),
-                PopupMenuItem<int>(
-                  value: 2,
-                  child: Text('Delete', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateDialog) {
+          // local mutable holders for counts; null => loading
+          int? quotesCount;
+          int? bookingsCount;
+
+          // Kick off async fetch after the first frame of the dialog so the
+          // dialog appears immediately and updates when data arrives.
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
+            if (!mounted) return;
+            try {
+              if (client.id != null) {
+                final qFut = _quoteTable.getQuotesByClient(client.id!);
+                final bFut = _bookingTable.getBookingsByClient(client.id!);
+                final results = await Future.wait([qFut, bFut]);
+                if (!mounted) return;
+                setStateDialog(() {
+                  quotesCount = (results[0] as List).length;
+                  bookingsCount = (results[1] as List).length;
+                });
+              } else {
+                setStateDialog(() {
+                  quotesCount = 0;
+                  bookingsCount = 0;
+                });
+              }
+            } catch (e) {
+              if (kDebugMode) debugPrint('Error fetching client counts: $e');
+              try {
+                setStateDialog(() {
+                  quotesCount = 0;
+                  bookingsCount = 0;
+                });
+              } catch (_) {}
+            }
+          });
+
+          return AlertDialog(
+            title: Row(
+              children: [
+                Expanded(child: Text('${client.firstName} ${client.lastName}')),
+                // overflow menu in the title (top-right) for less-accessible destructive actions
+                PopupMenuButton<int>(
+                  icon: const Icon(Icons.more_vert),
+                  onSelected: (v) async {
+                    // close details dialog first so subsequent flows use root navigator context
+                    Navigator.pop(context);
+                    if (v == 1) {
+                      await _addOrEditClient(client: client);
+                    } else if (v == 2) {
+                      await _deleteClient(client);
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem<int>(value: 1, child: Text('Edit')),
+                    PopupMenuItem<int>(
+                      value: 2,
+                      child: Text('Delete', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Email: ${client.email}'),
-            const SizedBox(height: 8),
-            Text('Phone: ${client.phone}'),
-            const SizedBox(height: 12),
-            Text('Quotes: $quotesCount'),
-            const SizedBox(height: 6),
-            Text('Bookings: $bookingsCount'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final nav = Navigator.of(context);
-              nav.pop();
-              // Delegate to parent's onViewQuotes if available so we don't push separate views
-              if (widget.onViewQuotes != null) {
-                try {
-                  widget.onViewQuotes!(client);
-                  return;
-                } catch (_) {}
-              }
-              // fallback to opening full Quotes page
-              Navigator.pushNamed(nav.context, '/quotes', arguments: client);
-            },
-            child: const Text('View Quotes'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final nav = Navigator.of(context);
-              nav.pop();
-              // Delegate to parent's onViewBookings if available so we don't push separate views
-              if (widget.onViewBookings != null) {
-                try {
-                  widget.onViewBookings!(client);
-                } catch (_) {
-                  // fallback to opening full Bookings page
-                  Navigator.push(nav.context, MaterialPageRoute(builder: (_) => BookingsPage(initialClient: client)));
-                }
-              } else {
-                Navigator.push(nav.context, MaterialPageRoute(builder: (_) => BookingsPage(initialClient: client)));
-              }
-            },
-            child: const Text('View Bookings'),
-          ),
-        ],
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Email: ${client.email}'),
+                const SizedBox(height: 8),
+                Text('Phone: ${client.phone}'),
+                const SizedBox(height: 12),
+                Row(children: [
+                  const Text('Quotes: '),
+                  if (quotesCount == null) const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) else Text('$quotesCount'),
+                ]),
+                const SizedBox(height: 6),
+                Row(children: [
+                  const Text('Bookings: '),
+                  if (bookingsCount == null) const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) else Text('$bookingsCount'),
+                ]),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Close'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final nav = Navigator.of(context);
+                  nav.pop();
+                  // Delegate to parent's onViewQuotes if available so we don't push separate views
+                  if (widget.onViewQuotes != null) {
+                    try {
+                      widget.onViewQuotes!(client);
+                      return;
+                    } catch (_) {}
+                  }
+                  // fallback to opening full Quotes page
+                  Navigator.pushNamed(nav.context, '/quotes', arguments: client);
+                },
+                child: const Text('View Quotes'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final nav = Navigator.of(context);
+                  nav.pop();
+                  // Delegate to parent's onViewBookings if available so we don't push separate views
+                  if (widget.onViewBookings != null) {
+                    try {
+                      widget.onViewBookings!(client);
+                    } catch (_) {
+                      // fallback to opening full Bookings page
+                      Navigator.push(nav.context, MaterialPageRoute(builder: (_) => BookingsPage(initialClient: client)));
+                    }
+                  } else {
+                    Navigator.push(nav.context, MaterialPageRoute(builder: (_) => BookingsPage(initialClient: client)));
+                  }
+                },
+                child: const Text('View Bookings'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

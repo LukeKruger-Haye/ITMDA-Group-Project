@@ -15,6 +15,63 @@ import 'inventory/inventory.dart';
 import 'settings/settings.dart';
 import '../theme/app_colors.dart';
 
+// Custom scroll physics that reduces the fractional threshold required
+// to snap to the next page. The default PageScrollPhysics uses ~50%.
+// This lowers it to 20% so shorter swipes will move pages.
+// Kept as a top-level helper so it can be reused elsewhere.
+class _FastPageScrollPhysics extends PageScrollPhysics {
+  const _FastPageScrollPhysics({super.parent});
+
+  @override
+  _FastPageScrollPhysics applyTo(ScrollPhysics? ancestor) {
+    return _FastPageScrollPhysics(parent: buildParent(ancestor));
+  }
+
+  double getTargetPixels(ScrollMetrics position, double velocity) {
+    final double page = position.pixels / position.viewportDimension;
+    double targetPage;
+
+    // If the user flings quickly, follow the velocity direction.
+    final t = toleranceFor(position);
+    if (velocity.abs() > t.velocity) {
+      targetPage = velocity > 0 ? page.ceilToDouble() : page.floorToDouble();
+    } else {
+      // Lower threshold (12%) for deciding whether to move to next page.
+      // This makes short swipes more likely to switch pages.
+      final double frac = page - page.floorToDouble();
+      if (frac > 0.08) {
+        targetPage = page.floorToDouble() + 1.0;
+      } else {
+        targetPage = page.floorToDouble();
+      }
+    }
+
+    return targetPage * position.viewportDimension;
+  }
+}
+
+/// Lightweight wrapper that keeps its child alive when used inside scrollables
+/// like PageView. This prevents the child from being disposed/rebuilt on
+/// page transitions and reduces jank on repeated navigation.
+class _KeepAliveWrapper extends StatefulWidget {
+  final Widget child;
+  const _KeepAliveWrapper({required this.child});
+
+  @override
+  State<_KeepAliveWrapper> createState() => _KeepAliveWrapperState();
+}
+
+class _KeepAliveWrapperState extends State<_KeepAliveWrapper> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.child;
+  }
+}
+
 class DashboardHome extends StatefulWidget {
   final AuthModel authModel;
 
@@ -35,6 +92,10 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
   final GlobalKey _inventoryKey = GlobalKey();
   // key for the embedded quotes page so we can trigger a refresh after creates
   final GlobalKey _quotesKey = GlobalKey();
+  // Throttle drag->jump updates to avoid excessive controller updates that
+  // can cause jank. We'll allow updates at ~60Hz.
+  DateTime? _lastDragJumpTime;
+  static const int _dragThrottleMs = 16;
 
   // Use centralized colors from AppColors
 
@@ -100,52 +161,59 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
     super.dispose();
   }
 
+  
+
   Widget _buildBody() {
     // PageView provides native horizontal swipe navigation with animation.
     return PageView(
       controller: _pageController,
-      physics: _swipeEnabled ? const ClampingScrollPhysics() : const NeverScrollableScrollPhysics(),
+      physics: _swipeEnabled ? const _FastPageScrollPhysics(parent: ClampingScrollPhysics()) : const NeverScrollableScrollPhysics(),
       onPageChanged: (index) => setState(() {
         _currentIndex = index;
         // close the dashboard FAB when navigating away or between pages
         if (!_fabController.isDismissed) _fabController.reverse();
       }),
       children: [
-        // Use the redesigned DashboardPage as the embedded home dashboard
-        DashboardPage(
-          embedded: true,
-          onNavigateToTab: (index) {
-            // dashboard can ask to navigate to another tab — animate the page transition
-            _pageController.animateToPage(index, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
-          },
-        ),
-        BookingsPage(key: _bookingsKey, embedded: true),
-        ClientsPage(
-          key: _clientsKey,
-          embedded: true,
-          onViewBookings: (client) async {
-            // animate to Bookings tab and focus the embedded BookingsPage
-            await _pageController.animateToPage(1, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
-            final state = _bookingsKey.currentState;
-            if (state != null) {
-              try {
-                (state as dynamic).focusOnClient(client);
-              } catch (_) {}
-            }
-          },
-          onViewQuotes: (client) async {
-            // animate to Quotes tab and tell embedded QuotePage to focus on the client
-            await _pageController.animateToPage(3, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
-            final state = _quotesKey.currentState;
-            if (state != null) {
-              try {
-                (state as dynamic).focusOnClient(client);
-              } catch (_) {}
-            }
-          },
-        ),
-        QuotePage(key: _quotesKey, embedded: true),
-        InventoryPage(key: _inventoryKey, embedded: true),
+        // Use RepaintBoundary around the kept-alive children to reduce repaint
+        // work when other parts of the screen update.
+        RepaintBoundary(child: _KeepAliveWrapper(
+          child: DashboardPage(
+            embedded: true,
+            onNavigateToTab: (index) {
+              // dashboard can ask to navigate to another tab — animate the page transition
+              _pageController.animateToPage(index, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+            },
+          ),
+        )),
+        RepaintBoundary(child: _KeepAliveWrapper(child: BookingsPage(key: _bookingsKey, embedded: true))),
+        RepaintBoundary(child: _KeepAliveWrapper(
+          child: ClientsPage(
+            key: _clientsKey,
+            embedded: true,
+            onViewBookings: (client) async {
+              // animate to Bookings tab and focus the embedded BookingsPage
+              await _pageController.animateToPage(1, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+              final state = _bookingsKey.currentState;
+              if (state != null) {
+                try {
+                  (state as dynamic).focusOnClient(client);
+                } catch (_) {}
+              }
+            },
+            onViewQuotes: (client) async {
+              // animate to Quotes tab and tell embedded QuotePage to focus on the client
+              await _pageController.animateToPage(3, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+              final state = _quotesKey.currentState;
+              if (state != null) {
+                try {
+                  (state as dynamic).focusOnClient(client);
+                } catch (_) {}
+              }
+            },
+          ),
+        )),
+        RepaintBoundary(child: _KeepAliveWrapper(child: QuotePage(key: _quotesKey, embedded: true))),
+        RepaintBoundary(child: _KeepAliveWrapper(child: InventoryPage(key: _inventoryKey, embedded: true))),
       ],
     );
   }
@@ -517,12 +585,20 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
           // fractional page in [0, pages-1]
           final frac = (local.dx.clamp(0.0, width) / width) * (pages - 1);
           if (_pageController.hasClients) {
-            final offset = frac * _pageController.position.viewportDimension;
-            _pageController.jumpTo(offset);
+            final now = DateTime.now();
+            final shouldJump = _lastDragJumpTime == null || now.difference(_lastDragJumpTime!).inMilliseconds >= _dragThrottleMs;
+            if (shouldJump) {
+              final offset = frac * _pageController.position.viewportDimension;
+              _pageController.jumpTo(offset);
+              _lastDragJumpTime = now;
+            }
           }
-          setState(() {
-            _currentIndex = frac.round();
-          });
+          final newIndex = frac.round();
+          if (newIndex != _currentIndex) {
+            setState(() {
+              _currentIndex = newIndex;
+            });
+          }
         },
         onHorizontalDragEnd: (_) {
           // snap to nearest page

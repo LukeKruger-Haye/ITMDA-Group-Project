@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shutterbook/theme/ui_styles.dart';
 import '../../data/models/item.dart';
 import '../../data/tables/inventory_table.dart';
+import '../../data/services/data_cache.dart';
 import '../../widgets/section_card.dart';
 
 class InventoryPage extends StatefulWidget {
@@ -34,7 +35,15 @@ class _InventoryPageState extends State<InventoryPage> {
   }
 
   Future<void> _loadItems() async {
-    final items = await _inventoryTable.getAllItems();
+    try {
+      final items = await DataCache.instance.getInventory();
+      setState(() {
+        _inventory = items;
+        _filteredInventory = items;
+      });
+      return;
+    } catch (_) {}
+  final items = await _inventoryTable.getAllItems();
     setState(() {
       _inventory = items;
       _filteredInventory = items;
@@ -107,6 +116,7 @@ class _InventoryPageState extends State<InventoryPage> {
                   condition: condition,
                 );
                 await _inventoryTable.insertItem(newItem);
+                    DataCache.instance.clearInventory();
                 if (nav.mounted) nav.pop();
                 _loadItems();
               },
@@ -171,6 +181,7 @@ class _InventoryPageState extends State<InventoryPage> {
                   condition: condition,
                 );
                 await _inventoryTable.updateItem(updatedItem);
+                    DataCache.instance.clearInventory();
                 if (nav.mounted) nav.pop();
                 _loadItems();
               },
@@ -196,6 +207,7 @@ class _InventoryPageState extends State<InventoryPage> {
     ) ?? false;
     if (!confirm) return;
     await _inventoryTable.deleteItem(id);
+    DataCache.instance.clearInventory();
     _loadItems();
   }
 

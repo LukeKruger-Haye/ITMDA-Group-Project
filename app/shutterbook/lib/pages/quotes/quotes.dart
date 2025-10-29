@@ -9,6 +9,7 @@ import '../../data/models/quote.dart';
 import '../../utils/formatters.dart';
 import '../../data/tables/quote_table.dart';
 import '../../data/tables/client_table.dart';
+import '../../data/services/data_cache.dart';
 import '../../widgets/section_card.dart';
 import 'package:shutterbook/theme/ui_styles.dart';
 import '../bookings/create_booking.dart';
@@ -332,7 +333,6 @@ class QuoteList extends StatefulWidget {
 
 class _QuoteListState extends State<QuoteList> {
   final QuoteTable _table = QuoteTable();
-  final ClientTable _clientTable = ClientTable();
   List<Quote> _quotes = [];
   bool _loading = true;
   String _filter = '';
@@ -375,9 +375,9 @@ class _QuoteListState extends State<QuoteList> {
     setState(() => _loading = true);
     final data = await _table.getAllQuotes();
     if (!mounted) return;
-    // also preload client names to avoid many DB calls
+    // also preload client names to avoid many DB calls — use shared cache
     try {
-      final clients = await _clientTable.getAllClients();
+      final clients = await DataCache.instance.getClients();
       _clientNames.clear();
       for (final c in clients) {
         if (c.id != null) _clientNames[c.id!] = '${c.firstName} ${c.lastName}';

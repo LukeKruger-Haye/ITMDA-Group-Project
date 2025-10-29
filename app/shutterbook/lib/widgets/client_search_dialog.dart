@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:shutterbook/data/models/client.dart';
 import 'package:shutterbook/theme/ui_styles.dart';
 import 'package:shutterbook/data/tables/client_table.dart';
+import 'package:shutterbook/data/services/data_cache.dart';
 
 class ClientSearchDialog extends StatefulWidget {
   const ClientSearchDialog({super.key});
@@ -15,7 +16,6 @@ class ClientSearchDialog extends StatefulWidget {
 }
 
 class _ClientSearchDialogState extends State<ClientSearchDialog> {
-  final ClientTable _clientTable = ClientTable();
   List<Client> _all = [];
   List<Client> _filtered = [];
   final TextEditingController _search = TextEditingController();
@@ -29,7 +29,7 @@ class _ClientSearchDialogState extends State<ClientSearchDialog> {
 
   Future<void> _load() async {
     try {
-      final list = await _clientTable.getAllClients();
+      final list = await DataCache.instance.getClients();
       if (!mounted) return;
       setState(() {
         _all = list;
@@ -165,10 +165,10 @@ class _AddClientDialogState extends State<_AddClientDialog> {
       email: _email.text.trim(),
       phone: _phone.text.trim().replaceAll(RegExp(r'\D'), ''),
     );
-    await _table.insertClient(client);
-    final inserted = await _table.getAllClients();
-    // find by email as heuristic
-    final found = inserted.firstWhere((c) => c.email == client.email, orElse: () => client);
+  await _table.insertClient(client);
+  // refresh shared cache and then read cached list to find inserted client
+  final insertedList = await DataCache.instance.getClients(forceRefresh: true);
+  final found = insertedList.firstWhere((c) => c.email == client.email, orElse: () => client);
     if (!mounted) return;
     Navigator.of(context).pop(found);
   }
