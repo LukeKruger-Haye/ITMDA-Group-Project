@@ -337,41 +337,42 @@ Autocomplete<String>(
                 child: const Text('Cancel'),
               ),
                   if (existing != null)
-                TextButton(
-                  onPressed: () async {
-                    // Passing the local `context` into showDialog is safe here because
-                    // we immediately await the result and then check `mounted` before
-                    // performing any stateful operations.
-                    final confirm = await showDialog<bool>(
-                      context: dialogNavigator.context,
-                      builder: (ctx) => AlertDialog(
-                        title: const Text('Confirm Deletion'),
-                        content: const Text('Are you sure you want to delete this booking?'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(ctx).pop(false),
-                            child: const Text('Cancel'),
+                    TextButton(
+                      onPressed: () async {
+                        // Use the captured NavigatorState (dialogNavigator) for
+                        // subsequent dialogs. It provides a stable context while
+                        // we await and lets us check `mounted` before performing
+                        // any stateful operations.
+                        final confirm = await showDialog<bool>(
+                          context: dialogNavigator.context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('Confirm Deletion'),
+                            content: const Text('Are you sure you want to delete this booking?'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(ctx).pop(false),
+                                child: const Text('Cancel'),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.of(ctx).pop(true),
+                                child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                              ),
+                            ],
                           ),
-                          TextButton(
-                            onPressed: () => Navigator.of(ctx).pop(true),
-                            child: const Text('Delete', style: TextStyle(color: Colors.red)),
-                          ),
-                        ],
-                      ),
-                    );
-                    if (confirm != true) return;
+                        );
+                        if (confirm != true) return;
 
-                    final nav = dialogNavigator;
-                    await bookingTable.deleteBooking(existing.bookingId!);
-                    if (nav.mounted) nav.pop();
-                    if (!mounted) return;
-                    _loadBookings();
-                  },
-                  child: const Text(
-                    'Delete',
-                    style: TextStyle(color: Colors.red),
-                  ),
-                ),
+                        final nav = dialogNavigator;
+                        await bookingTable.deleteBooking(existing.bookingId!);
+                        if (nav.mounted) nav.pop();
+                        if (!mounted) return;
+                        _loadBookings();
+                      },
+                      child: const Text(
+                        'Delete',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ),
               TextButton(
                 onPressed: () async {
                   if (selectedClient == null) {
@@ -397,26 +398,26 @@ Autocomplete<String>(
                     excludeBookingId: existing?.bookingId,
                   );
                   if (conflicts.isNotEmpty) {
-                    // Ask user if they want to proceed with a double booking.
+                    // Prompt using the stable dialogNavigator context
                     final proceed = await showDialog<bool>(
-                      context: context,
-                      builder: (innerCtx) => AlertDialog(
-                        title: const Text('Possible double booking'),
-                        content: Text(
-                          'There is already ${conflicts.length} booking(s) in this time slot (hour).\n\nYou can edit the time or proceed and allow a double booking.',
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(innerCtx).pop(false),
-                            child: const Text('Edit time'),
+                          context: dialogNavigator.context,
+                          builder: (innerCtx) => AlertDialog(
+                            title: const Text('Possible double booking'),
+                            content: Text(
+                              'There is already ${conflicts.length} booking(s) in this time slot (hour).\n\nYou can edit the time or proceed and allow a double booking.',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(innerCtx).pop(false),
+                                child: const Text('Edit time'),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.of(innerCtx).pop(true),
+                                child: const Text('Proceed'),
+                              ),
+                            ],
                           ),
-                          TextButton(
-                            onPressed: () => Navigator.of(innerCtx).pop(true),
-                            child: const Text('Proceed'),
-                          ),
-                        ],
-                      ),
-                    ) ?? false;
+                        ) ?? false;
                     if (!proceed) return;
                   }
                   if (existing != null) {
