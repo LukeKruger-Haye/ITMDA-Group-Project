@@ -9,6 +9,7 @@ import 'package:shutterbook/data/models/quote.dart';
 import 'package:shutterbook/data/models/client.dart';
 import 'package:shutterbook/widgets/stat_grid.dart';
 import 'package:shutterbook/theme/ui_styles.dart';
+import 'package:shutterbook/pages/bookings/stats_page.dart';
 import 'package:shutterbook/utils/formatters.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -126,11 +127,15 @@ class _DashboardPageState extends State<DashboardPage> {
                             Text('Your Shutterbook Overview', style: theme.textTheme.bodyMedium),
                           ]),
                         ),
-                        // use a neutral stats icon instead of camera
-                        Container(
-                          decoration: BoxDecoration(color: theme.colorScheme.primaryContainer, shape: BoxShape.circle),
-                          padding: const EdgeInsets.all(8),
-                          child: Icon(Icons.bar_chart, size: 28, color: theme.colorScheme.onPrimaryContainer),
+                        // tappable stats icon — opens the Stats screen
+                        InkWell(
+                          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const StatsPage())),
+                          borderRadius: BorderRadius.circular(100),
+                          child: Container(
+                            decoration: BoxDecoration(color: theme.colorScheme.primaryContainer, shape: BoxShape.circle),
+                            padding: const EdgeInsets.all(8),
+                            child: Icon(Icons.bar_chart, size: 28, color: theme.colorScheme.onPrimaryContainer),
+                          ),
                         ),
                       ],
                     ),
