@@ -160,7 +160,26 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
 
   Widget? _buildFab() {
     switch (_currentIndex) {
-      case 1: // Bookings
+      case 1: // Bookings - show a simple FAB that opens the Create Booking flow
+        return FloatingActionButton(
+          onPressed: () async {
+            final nav = Navigator.of(context);
+            // Try to trigger the embedded BookingsPage create flow if available
+            final state = _bookingsKey.currentState;
+            if (state != null) {
+              try {
+                await (state as dynamic).openCreateBooking();
+                return;
+              } catch (_) {}
+            }
+            // fallback to full CreateBooking page
+            final created = await nav.push<bool>(MaterialPageRoute(builder: (_) => CreateBookingPage()));
+            if (created == true && mounted) setState(() {});
+          },
+          child: const Icon(Icons.add),
+          tooltip: 'Create booking',
+        );
+
       case 0: // Dashboard - show an expanding FAB with quick-create options
         // Use a Column so mini FABs stack above the main FAB. AnimatedSwitcher/AnimatedOpacity
         // provide a smooth transition when toggling.
