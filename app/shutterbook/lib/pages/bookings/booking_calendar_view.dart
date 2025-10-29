@@ -65,16 +65,20 @@ Future<void> _loadClients() async {
   });
 }
 
-  Color getStatusColor(String status) {
+  // Determine a background color for a booking status using the current theme
+  Color getStatusColor(BuildContext context, String status) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     switch (status.toLowerCase()) {
       case 'scheduled':
-        return Colors.lightBlue.shade200;
+        // Use primaryContainer for scheduled to adapt to dark/light themes
+        return cs.primaryContainer;
       case 'completed':
-        return Colors.green.shade300;
+        return cs.secondaryContainer;
       case 'cancelled':
-        return Colors.red.shade300;
+        return cs.errorContainer;
       default:
-        return Colors.grey.shade300;
+        return cs.surfaceContainerHighest;
     }
   }
   Booking? getBookingForSlot(DateTime slot) {
@@ -591,11 +595,12 @@ Autocomplete<String>(
                           final slot = DateTime(d.year, d.month, d.day, hour);
                           final booking = getBookingForSlot(slot);
                           if (booking != null) {
-                            return getStatusColor(booking.status);
+                            return getStatusColor(context, booking.status);
                           }
-                          return Colors.grey.shade300;
+                          return Theme.of(context).colorScheme.surfaceContainerHighest;
                         })(),
                         borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: Theme.of(context).dividerColor.withAlpha((0.6 * 255).round())),
                       ),
                       child: Builder(
                         builder: (context) {
@@ -604,6 +609,9 @@ Autocomplete<String>(
                           if (booking != null) {
                             final client = getClientForBooking(booking);
                             if (client != null) {
+                              // pick a readable foreground color based on background
+                              final bg = getStatusColor(context, booking.status);
+                              final fg = bg.computeLuminance() > 0.5 ? Colors.black : Colors.white;
                               return Center(
                                 child: FittedBox(
                                   fit: BoxFit.scaleDown,
@@ -613,15 +621,16 @@ Autocomplete<String>(
                                       Text(
                                         client.firstName,
                                         textAlign: TextAlign.center,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 10,
+                                          color: fg,
                                         ),
                                       ),
                                       Text(
                                         client.lastName,
                                         textAlign: TextAlign.center,
-                                        style: const TextStyle(fontSize: 9),
+                                        style: TextStyle(fontSize: 9, color: fg),
                                       ),
                                     ],
                                   ),

@@ -237,12 +237,16 @@ class _DashboardPageState extends State<DashboardPage> {
                           const SizedBox(width: 8),
                           ConstrainedBox(
                             constraints: const BoxConstraints(maxWidth: 120),
-                            child: Chip(
-                              label: Text(b.status, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onPrimary)),
-                              backgroundColor: _statusColor(b.status, theme),
-                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                            ),
+                            child: Builder(builder: (context) {
+                              final bg = _statusColor(b.status, theme);
+                              final fg = bg.computeLuminance() > 0.5 ? Colors.black : Colors.white;
+                              return Chip(
+                                label: Text(b.status, style: theme.textTheme.bodySmall?.copyWith(color: fg, fontWeight: FontWeight.w600)),
+                                backgroundColor: bg,
+                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                              );
+                            }),
                           ),
                         ]),
                       ),
