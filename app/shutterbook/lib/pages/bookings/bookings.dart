@@ -1,3 +1,6 @@
+// Shutterbook — Bookings list page
+// Displays a paginated list or calendar of bookings and provides
+// entry points to create or edit bookings.
 import 'dart:async';
 // Shutterbook — Bookings list page
 // Displays a paginated list or calendar of bookings and provides
@@ -138,22 +141,28 @@ class _BookingsPageState extends State<BookingsPage> {
             width: labelMaxWidth,
             child: Align(
               alignment: Alignment.centerLeft,
-              child: Builder(builder: (context) {
-                final reduceMotion = MediaQuery.of(context).accessibleNavigation;
-                final duration = reduceMotion ? Duration.zero : const Duration(milliseconds: 220);
-                final direction = _view >= _prevView ? 1.0 : -1.0;
-                final offsetMag = reduceMotion ? 0.0 : 0.04;
-                return AnimatedSwitcher(
-                  duration: duration,
+              child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
                   transitionBuilder: (child, anim) {
-                    // Simple direction-aware slide + fade tuned for smoothness.
-                    final offsetAnim = Tween<Offset>(begin: Offset(offsetMag * direction, 0), end: Offset.zero)
-                        .animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic));
-                    return SlideTransition(position: offsetAnim, child: FadeTransition(opacity: anim, child: child));
+                    // Direction-aware animation with tuned offset and curves to reduce jank.
+                    final isIncoming = child.key == ValueKey(viewLabel);
+                    final isForward = _view > _prevView;
+                    // smaller offset when moving forward (to List) for gentler motion
+                    final offsetMag = isForward ? 0.06 : 0.12;
+                    if (isIncoming) {
+                      final offsetAnim = Tween<Offset>(begin: Offset(offsetMag * (isForward ? 1 : -1), 0), end: Offset.zero)
+                          .animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic));
+                      final fade = CurvedAnimation(parent: anim, curve: Curves.easeOut);
+                      return FadeTransition(opacity: fade, child: SlideTransition(position: offsetAnim, child: child));
+                    } else {
+                      final offsetAnim = Tween<Offset>(begin: Offset.zero, end: Offset(-offsetMag * (isForward ? 1 : -1), 0))
+                          .animate(CurvedAnimation(parent: anim, curve: Curves.easeInCubic));
+                      final fade = CurvedAnimation(parent: ReverseAnimation(anim), curve: Curves.easeIn);
+                      return FadeTransition(opacity: fade, child: SlideTransition(position: offsetAnim, child: child));
+                    }
                   },
-                  child: Text(viewLabel, key: ValueKey(viewLabel), style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
-                );
-              }),
+                child: Text(viewLabel, key: ValueKey(viewLabel), style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+              ),
             ),
           ),
           const SizedBox(width: 12),
