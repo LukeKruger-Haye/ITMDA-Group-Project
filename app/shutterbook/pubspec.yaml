@@ -40,6 +40,10 @@ dependencies:
   shared_preferences: ^2.5.3
   local_auth: ^2.3.0
   sqflite_common_ffi: ^2.3.6
+  # Update fl_chart to a version compatible with current Flutter SDK
+  # (0.60.0 references removed Flutter APIs like MediaQuery.boldTextOverride)
+  fl_chart: ^1.1.1
+  intl: ^0.18.1
 
 dev_dependencies:
   flutter_test:
