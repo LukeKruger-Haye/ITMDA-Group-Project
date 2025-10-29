@@ -338,8 +338,12 @@ Autocomplete<String>(
               if (existing != null)
                 TextButton(
                   onPressed: () async {
+                    // Capture navigator context before awaiting dialogs
+                    final dialogNav = Navigator.of(context);
                     final confirm = await showDialog<bool>(
-    context: context,
+    // Using the captured Navigator's context is safe here.
+    // ignore: use_build_context_synchronously
+    context: dialogNav.context,
     builder: (ctx) => AlertDialog(
       title: const Text('Confirm Deletion'),
       content: const Text('Are you sure you want to delete this booking?'),
@@ -354,13 +358,14 @@ Autocomplete<String>(
         ),
       ],
     ),
-  );if (confirm != true) return;
+  );
+                    if (confirm != true) return;
 
-  final nav = dialogNavigator;
-  await bookingTable.deleteBooking(existing.bookingId!);
-  if (nav.mounted) nav.pop();
-  if (!mounted) return;
-  _loadBookings();
+                    final nav = dialogNavigator;
+                    await bookingTable.deleteBooking(existing.bookingId!);
+                    if (nav.mounted) nav.pop();
+                    if (!mounted) return;
+                    _loadBookings();
 },
                   child: const Text(
                     'Delete',
@@ -392,8 +397,10 @@ Autocomplete<String>(
                     excludeBookingId: existing?.bookingId,
                   );
                   if (conflicts.isNotEmpty) {
-                    final proceed = await showDialog<bool>(
-                          context: context,
+        final proceed = await showDialog<bool>(
+          // use captured dialogNavigator.context (stable) for dialog creation
+          // ignore: use_build_context_synchronously
+          context: dialogNavigator.context,
                           builder: (innerCtx) => AlertDialog(
                             title: const Text('Possible double booking'),
                             content: Text(
