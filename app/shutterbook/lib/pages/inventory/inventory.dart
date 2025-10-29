@@ -3,7 +3,7 @@ import '../../data/models/item.dart';
 import '../../data/tables/inventory_table.dart';
 
 class InventoryPage extends StatefulWidget {
-  const InventoryPage({Key? key}) : super(key: key);
+  const InventoryPage({super.key});
 
   @override
   State<InventoryPage> createState() => _InventoryPageState();
@@ -62,7 +62,7 @@ class _InventoryPageState extends State<InventoryPage> {
                 ),
                 DropdownButtonFormField<String>(
                   decoration: const InputDecoration(labelText: 'Condition'),
-                  value: 'Good',
+                  initialValue: 'Good',
                   items: ['New', 'Excellent', 'Good', 'Needs Repair']
                       .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                       .toList(),
@@ -120,7 +120,7 @@ class _InventoryPageState extends State<InventoryPage> {
                 ),
                 DropdownButtonFormField<String>(
                   decoration: const InputDecoration(labelText: 'Condition'),
-                  value: condition,
+                  initialValue: condition,
                   items: ['New', 'Excellent', 'Good', 'Needs Repair']
                       .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                       .toList(),

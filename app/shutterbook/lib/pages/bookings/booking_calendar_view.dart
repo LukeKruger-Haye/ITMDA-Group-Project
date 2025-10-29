@@ -219,7 +219,7 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                   ),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<int>(
-                    value: selectedQuoteId,
+                    initialValue: selectedQuoteId,
                     items: clientQuotes
                         .map((q) => DropdownMenuItem<int>(
                               value: q.id!,
@@ -240,7 +240,7 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                   ),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
-                    value: status.isEmpty ? 'Scheduled' : status,
+                    initialValue: status.isEmpty ? 'Scheduled' : status,
                     items: const [
                       DropdownMenuItem(value: 'Scheduled', child: Text('Scheduled')),
                       DropdownMenuItem(value: 'Finished', child: Text('Finished')),

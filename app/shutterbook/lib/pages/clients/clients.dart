@@ -255,8 +255,8 @@ class _ClientsPageState extends State<ClientsPage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _addOrEditClient(),
-        child: const Icon(Icons.add),
         tooltip: 'Add Client',
+        child: const Icon(Icons.add),
       ),
     );
   }
