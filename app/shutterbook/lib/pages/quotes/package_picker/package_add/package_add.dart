@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:shutterbook/data/models/package.dart';
 import 'package:shutterbook/data/tables/package_table.dart';
 
+// ignore_for_file: use_build_context_synchronously
+
 class PackageAdd extends StatefulWidget {
   const PackageAdd({super.key});
 
@@ -34,7 +36,7 @@ class PackageAddState extends State<PackageAdd> {
 
   Future<void> _addOrEditPackages({Package? package}) async {
     final packageNameController = TextEditingController(text: package?.name ?? '');
-  final packagePriceController = TextEditingController(text: package != null ? package.price.toString() : '');
+    final packagePriceController = TextEditingController(text: package != null ? package.price.toString() : '');
     final packageDescriptionController = TextEditingController(text: package?.details ?? '');
     final formKey = GlobalKey<FormState>();
 
@@ -135,7 +137,7 @@ class PackageAddState extends State<PackageAdd> {
         ],
       ),
     );
-  if (confirmed != true) return;
+    if (confirmed != true) return;
     if (package.id == null) return;
     await PackageTable().deletePackages(package.id!);
     await _loadPackages();

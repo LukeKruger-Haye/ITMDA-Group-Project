@@ -339,7 +339,10 @@ Autocomplete<String>(
               if (existing != null)
                 TextButton(
                   onPressed: () async {
-                    // Use captured dialogNavigator for a stable NavigatorState
+                    // Use the captured NavigatorState (dialogNavigator) for
+                    // subsequent dialogs. It provides a stable context while
+                    // we await and lets us check `mounted` before performing
+                    // any stateful operations.
                     final confirm = await showDialog<bool>(
                       context: dialogNavigator.context,
                       builder: (ctx) => AlertDialog(
@@ -395,7 +398,7 @@ Autocomplete<String>(
                     excludeBookingId: existing?.bookingId,
                   );
                   if (conflicts.isNotEmpty) {
-                    // Prompt using the stable dialogNavigator context captured earlier
+                    // Prompt using the stable dialogNavigator context
                     final proceed = await showDialog<bool>(
                       context: dialogNavigator.context,
                       builder: (innerCtx) => AlertDialog(
@@ -414,8 +417,7 @@ Autocomplete<String>(
                           ),
                         ],
                       ),
-                    ) ??
-                        false;
+                    ) ?? false;
                     if (!proceed) return;
                   }
                   if (existing != null) {
