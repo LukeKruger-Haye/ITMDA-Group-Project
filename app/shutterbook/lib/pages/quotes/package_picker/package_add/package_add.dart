@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shutterbook/data/models/package.dart';
 import 'package:shutterbook/data/tables/package_table.dart';
+import 'package:shutterbook/theme/ui_styles.dart';
+import 'package:shutterbook/theme/app_colors.dart';
 
 // ignore_for_file: use_build_context_synchronously
 
@@ -145,8 +147,11 @@ class PackageAddState extends State<PackageAdd> {
 
   @override
   Widget build(BuildContext context) {
+    final tabColor = AppColors.colorForIndex(context, 3);
+    final onColor = tabColor.computeLuminance() > 0.5 ? Colors.black : Colors.white;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Packages')),
+      appBar: UIStyles.accentAppBar(context, const Text('Packages'), 3),
       body: allPackages.isEmpty
           ? const Center(child: Text('No Packages found'))
           : ListView.builder(
@@ -177,6 +182,8 @@ class PackageAddState extends State<PackageAdd> {
       floatingActionButton: FloatingActionButton(
         onPressed: () => _addOrEditPackages(),
         tooltip: 'Add Package',
+        backgroundColor: tabColor,
+        foregroundColor: onColor,
         child: const Icon(Icons.add),
       ),
     );

@@ -75,6 +75,7 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
   late final AnimationController _fabController;
   late final List<Animation<Offset>> _fabSlideAnims;
   late final List<Animation<double>> _fabScaleAnims;
+  // (removed nav drag accumulator - dragging is mapped directly to page position)
 
   void _toggleFab() {
     if (_fabController.isDismissed) {
@@ -159,6 +160,8 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
   // Page indicator removed per UX feedback.
 
   Widget? _buildFab() {
+    final Color activeColor = AppColors.colorForIndex(context, _currentIndex);
+    final Color onActive = activeColor.computeLuminance() > 0.5 ? Colors.black : Colors.white;
     switch (_currentIndex) {
       case 1: // Bookings - show a simple FAB that opens the Create Booking flow
         return FloatingActionButton(
@@ -176,6 +179,8 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
             final created = await nav.push<bool>(MaterialPageRoute(builder: (_) => CreateBookingPage()));
             if (created == true && mounted) setState(() {});
           },
+          backgroundColor: activeColor,
+          foregroundColor: onActive,
           child: const Icon(Icons.add),
           tooltip: 'Create booking',
         );
@@ -183,6 +188,16 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
       case 0: // Dashboard - show an expanding FAB with quick-create options
         // Use a Column so mini FABs stack above the main FAB. AnimatedSwitcher/AnimatedOpacity
         // provide a smooth transition when toggling.
+        // Per-action accent colors so each mini-FAB visually maps to its tab.
+        final Color quoteColor = AppColors.colorForIndex(context, 3);
+        final Color onQuote = quoteColor.computeLuminance() > 0.5 ? Colors.black : Colors.white;
+        final Color bookingColor = AppColors.colorForIndex(context, 1);
+        final Color onBooking = bookingColor.computeLuminance() > 0.5 ? Colors.black : Colors.white;
+        final Color clientColor = AppColors.colorForIndex(context, 2);
+        final Color onClient = clientColor.computeLuminance() > 0.5 ? Colors.black : Colors.white;
+        final Color inventoryColor = AppColors.colorForIndex(context, 4);
+        final Color onInventory = inventoryColor.computeLuminance() > 0.5 ? Colors.black : Colors.white;
+
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -206,10 +221,12 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
                             padding: const EdgeInsets.only(bottom: 8.0),
                             child: FloatingActionButton.small(
                               heroTag: 'fab_quote',
+                              backgroundColor: quoteColor,
+                              foregroundColor: onQuote,
                               onPressed: () async {
                                 _closeFab();
                                 final nav = Navigator.of(context);
-                               
+
                                 // fallback to full CreateQuote page if embedded not available
                                 final created = await nav.push<bool>(MaterialPageRoute(builder: (_) => const CreateQuotePage()));
                                 if (created == true) {
@@ -237,6 +254,8 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
                             padding: const EdgeInsets.only(bottom: 8.0),
                             child: FloatingActionButton.small(
                               heroTag: 'fab_booking',
+                              backgroundColor: bookingColor,
+                              foregroundColor: onBooking,
                               onPressed: () async {
                                 _closeFab();
                                 final nav = Navigator.of(context);
@@ -268,6 +287,8 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
                             padding: const EdgeInsets.only(bottom: 8.0),
                             child: FloatingActionButton.small(
                               heroTag: 'fab_client',
+                              backgroundColor: clientColor,
+                              foregroundColor: onClient,
                               onPressed: () async {
                                 _closeFab();
                                 final nav = Navigator.of(context);
@@ -300,6 +321,8 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
                             padding: const EdgeInsets.only(bottom: 8.0),
                             child: FloatingActionButton.small(
                               heroTag: 'fab_item',
+                              backgroundColor: inventoryColor,
+                              foregroundColor: onInventory,
                               onPressed: () async {
                                 _closeFab();
                                 final nav = Navigator.of(context);
@@ -332,6 +355,8 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
             // main FAB toggles the mini buttons
             FloatingActionButton(
               onPressed: _toggleFab,
+              backgroundColor: activeColor,
+              foregroundColor: onActive,
               child: AnimatedBuilder(
                 animation: _fabController,
                 builder: (context, _) {
@@ -360,6 +385,8 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
               if (mounted) setState(() {});
             }
           },
+          backgroundColor: activeColor,
+          foregroundColor: onActive,
           child: const Icon(Icons.request_quote),
           tooltip: 'Create ',
         );
@@ -385,6 +412,8 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
             }
             if (mounted) setState(() {});
           },
+          backgroundColor: activeColor,
+          foregroundColor: onActive,
           child: const Icon(Icons.person_add),
           tooltip: 'Add client',
         );
@@ -407,6 +436,8 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
             }
             if (mounted) setState(() {});
           },
+          backgroundColor: activeColor,
+          foregroundColor: onActive,
           child: const Icon(Icons.add),
           tooltip: 'Add inventory',
         );
@@ -462,21 +493,60 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
       body: SafeArea(
         child: _buildBody(),
       ),
-      floatingActionButton: _buildFab(),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (i) {
-          // animate the PageView to the tapped page
-          _pageController.animateToPage(i, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+      floatingActionButton: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 260),
+        switchInCurve: Curves.easeInOut,
+        switchOutCurve: Curves.easeInOut,
+        transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
+        child: KeyedSubtree(
+          // key by current index so changes animate when active tab (and color) changes
+          key: ValueKey<int>(_currentIndex),
+          child: _buildFab() ?? const SizedBox.shrink(),
+        ),
+      ),
+      bottomNavigationBar: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onHorizontalDragUpdate: (details) {
+          // Map finger X position over the bottom nav to a fractional page index
+          final renderBox = context.findRenderObject() as RenderBox?;
+          if (renderBox == null) return;
+          final local = renderBox.globalToLocal(details.globalPosition);
+          final width = renderBox.size.width;
+          if (width <= 0) return;
+          final pages = 5;
+          // fractional page in [0, pages-1]
+          final frac = (local.dx.clamp(0.0, width) / width) * (pages - 1);
+          if (_pageController.hasClients) {
+            final offset = frac * _pageController.position.viewportDimension;
+            _pageController.jumpTo(offset);
+          }
+          setState(() {
+            _currentIndex = frac.round();
+          });
         },
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Bookings'),
-          BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Clients'),
-          BottomNavigationBarItem(icon: Icon(Icons.request_quote), label: 'Quotes'),
-          BottomNavigationBarItem(icon: Icon(Icons.inventory), label: 'Inventory'),
-        ],
+        onHorizontalDragEnd: (_) {
+          // snap to nearest page
+          if (_pageController.hasClients) {
+            _pageController.animateToPage(_currentIndex, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+          }
+        },
+        child: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          onTap: (i) {
+            // animate the PageView to the tapped page
+            _pageController.animateToPage(i, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+          },
+          type: BottomNavigationBarType.fixed,
+          selectedItemColor: activeColor,
+          unselectedItemColor: Theme.of(context).iconTheme.color?.withAlpha(0xAA),
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Home'),
+            BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Bookings'),
+            BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Clients'),
+            BottomNavigationBarItem(icon: Icon(Icons.request_quote), label: 'Quotes'),
+            BottomNavigationBarItem(icon: Icon(Icons.inventory), label: 'Inventory'),
+          ],
+        ),
       ),
     );
   }

@@ -3,6 +3,7 @@ import 'package:shutterbook/data/models/quote.dart';
 import 'package:shutterbook/data/tables/quote_table.dart';
 
 import 'package:shutterbook/data/models/package.dart';
+import 'package:shutterbook/theme/ui_styles.dart';
 
 
 
@@ -51,8 +52,7 @@ final Map<Package, int> packages;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Quote Overview')),
+      appBar: UIStyles.accentAppBar(context, const Text('Quote Overview'), 3),
       
       body: Center(
         child: Column(
@@ -64,6 +64,7 @@ final Map<Package, int> packages;
             ...packages.entries.map((entry) => Text('${entry.key.name} x${entry.value} - R${(entry.key.price * entry.value).toStringAsFixed(2)}')),
            const SizedBox(height: 30,),
           ElevatedButton(
+              style: UIStyles.primaryButton(context),
               onPressed: () async {
                 try {
                   final nav = Navigator.of(context);
@@ -86,18 +87,15 @@ final Map<Package, int> packages;
               child: const Text("Update"),
             ),
            const SizedBox(height: 10),
-           ElevatedButton( onPressed: () async {
-                {
-                  final nav = Navigator.of(context);
-                  
-                  if (nav.mounted) {
-                    nav.pushNamedAndRemoveUntil( '/home', (route) => false); // Pop with true to indicate success
-                  }
-                }},
-
-            
-
-            child: const Text("Cancel")
+           ElevatedButton(
+             style: UIStyles.outlineButton(context),
+             onPressed: () async {
+               final nav = Navigator.of(context);
+               if (nav.mounted) {
+                 nav.pushNamedAndRemoveUntil('/home', (route) => false); // Pop with true to indicate success
+               }
+             },
+             child: const Text("Cancel"),
            ),
            
           ],

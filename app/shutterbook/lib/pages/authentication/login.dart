@@ -7,6 +7,7 @@ import 'models/auth_model.dart';
 import '../dashboard_home.dart';
 import '../../widgets/section_card.dart';
 import '../../widgets/password_field.dart';
+import 'package:shutterbook/theme/ui_styles.dart';
 
 class LoginScreen extends StatefulWidget {
   final AuthModel authModel;
@@ -116,7 +117,7 @@ class _LoginScreenState extends State<LoginScreen> {
         widget.authModel.hasPassword && widget.authModel.biometricEnabled;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Login')),
+      appBar: UIStyles.accentAppBar(context, const Text('Login'), 0),
       body: Center(
         child: SingleChildScrollView(
           child: Padding(
@@ -147,6 +148,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const CircularProgressIndicator()
                 else ...[
                   ElevatedButton(
+                    style: UIStyles.primaryButton(context),
                     onPressed: _loginWithPassword,
                     child: const Text('Login'),
                   ),

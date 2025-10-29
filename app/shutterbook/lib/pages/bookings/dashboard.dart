@@ -371,16 +371,27 @@ class _DashboardPageState extends State<DashboardPage> {
     if (widget.embedded) return content;
 
     return Scaffold(
-      appBar: AppBar(title: _clientFromArgs != null ? Text('${_showQuotesInMain ? 'Quotes' : 'Bookings'} — ${_clientFromArgs!.firstName} ${_clientFromArgs!.lastName}') : const Text('Photography Bookings Dashboard'), actions: [
-        if (_clientFromArgs != null)
-          IconButton(tooltip: 'Clear client filter', onPressed: () {
-            setState(() {
-              _clientFromArgs = null;
-              _showQuotesInMain = false;
-              _argsProcessed = false;
-            });
-          }, icon: const Icon(Icons.clear)),
-      ]),
+      appBar: UIStyles.accentAppBar(
+        context,
+        _clientFromArgs != null
+            ? Text('${_showQuotesInMain ? 'Quotes' : 'Bookings'} — ${_clientFromArgs!.firstName} ${_clientFromArgs!.lastName}')
+            : const Text('Photography Bookings Dashboard'),
+        0,
+        actions: [
+          if (_clientFromArgs != null)
+            IconButton(
+              tooltip: 'Clear client filter',
+              onPressed: () {
+                setState(() {
+                  _clientFromArgs = null;
+                  _showQuotesInMain = false;
+                  _argsProcessed = false;
+                });
+              },
+              icon: const Icon(Icons.clear),
+            ),
+        ],
+      ),
       body: content,
     );
   }

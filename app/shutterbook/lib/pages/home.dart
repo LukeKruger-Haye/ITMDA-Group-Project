@@ -23,23 +23,19 @@ class HomeScreen extends StatelessWidget {
     ];
 
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: const Text('Home'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => SettingsScreen(authModel: authModel),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
+      appBar: UIStyles.accentAppBar(context, const Text('Home'), 0, actions: [
+        IconButton(
+          icon: const Icon(Icons.settings),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => SettingsScreen(authModel: authModel),
+              ),
+            );
+          },
+        ),
+      ]),
       body: SafeArea(
         child: ListView.separated(
           padding: const EdgeInsets.all(16),

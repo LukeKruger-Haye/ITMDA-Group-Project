@@ -13,6 +13,7 @@ import '../../data/tables/booking_table.dart';
 import '../../widgets/section_card.dart';
 import 'package:shutterbook/utils/dialogs.dart';
 import 'package:shutterbook/theme/ui_styles.dart';
+import 'package:shutterbook/theme/app_colors.dart';
 import '../bookings/bookings.dart';
 
 class ClientsPage extends StatefulWidget {
@@ -395,31 +396,17 @@ class _ClientsPageState extends State<ClientsPage> {
 
     if (widget.embedded) return pageBody;
 
+    final tabColor = AppColors.colorForIndex(context, 2);
+    final onColor = tabColor.computeLuminance() > 0.5 ? Colors.black : Colors.white;
+
     return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          children: [
-            Container(
-              width: 6,
-              height: 20,
-              margin: const EdgeInsets.only(right: 8),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.secondary.withAlpha((0.95 * 255).round()),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const Text('Clients'),
-          ],
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(2.0),
-          child: Container(height: 2.0, color: theme.colorScheme.secondary.withAlpha((0.6 * 255).round())),
-        ),
-      ),
+      appBar: UIStyles.accentAppBar(context, const Text('Clients'), 2),
       body: pageBody,
       floatingActionButton: FloatingActionButton(
         onPressed: () => _addOrEditClient(),
         tooltip: 'Add Client',
+        backgroundColor: tabColor,
+        foregroundColor: onColor,
         child: const Icon(Icons.person_add),
       ),
     );

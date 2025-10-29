@@ -307,7 +307,7 @@ class _StatsPageState extends State<StatsPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Stats')),
+      appBar: UIStyles.accentAppBar(context, const Text('Stats'), 1),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16.0),

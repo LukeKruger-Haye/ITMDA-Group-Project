@@ -274,11 +274,13 @@ class _BookingsPageState extends State<BookingsPage> {
 
     final body = Padding(padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0), child: Column(children: bodyChildren));
 
-  return widget.embedded
-    ? Column(children: [header, const SizedBox(height: 8), if (_view == 1) searchBar, const SizedBox(height: 8), Expanded(child: bodyContent)])
+    return widget.embedded
+        ? Column(children: [header, const SizedBox(height: 8), if (_view == 1) searchBar, const SizedBox(height: 8), Expanded(child: bodyContent)])
         : Scaffold(
-            appBar: AppBar(
-              title: const Text('Bookings'),
+            appBar: UIStyles.accentAppBar(
+              context,
+              const Text('Bookings'),
+              1,
               actions: [
                 IconButton(
                   tooltip: 'Dashboard',

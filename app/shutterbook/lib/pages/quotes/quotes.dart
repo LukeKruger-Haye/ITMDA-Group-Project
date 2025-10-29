@@ -270,9 +270,7 @@ class _QuotePageState extends State<QuotePage> {
       return widget.embedded
           ? clientBody
           : Scaffold(
-              appBar: AppBar(
-                title: Text('Quotes — ${_client!.firstName} ${_client!.lastName}'),
-              ),
+              appBar: UIStyles.accentAppBar(context, Text('Quotes — ${_client!.firstName} ${_client!.lastName}'), 3),
               body: clientBody,
             );
     }
@@ -281,9 +279,7 @@ class _QuotePageState extends State<QuotePage> {
     return widget.embedded
       ? QuoteList(key: _quoteListKey)
     : Scaffold(
-            appBar: AppBar(
-              title: const Text('Quotes'),
-            ),
+            appBar: UIStyles.accentAppBar(context, const Text('Quotes'), 3),
             body: const QuoteList(),
             floatingActionButton: FloatingActionButton(
               onPressed: () async {

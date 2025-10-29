@@ -3,6 +3,7 @@ import 'package:shutterbook/data/models/package.dart';
 import 'package:shutterbook/pages/quotes/package_picker/package_add/package_add.dart';
 import 'package:shutterbook/pages/quotes/package_picker/package_edit/package_picker_edit.dart';
 import 'package:shutterbook/pages/quotes/overview/quote_overview_edit_screen.dart';
+import 'package:shutterbook/theme/ui_styles.dart';
 
 class PackagePickerEditScreen extends StatefulWidget {
   final int quoteNum;
@@ -57,7 +58,7 @@ class _PackagePickerEditScreenState extends State<PackagePickerEditScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Pick Packages'),
+      appBar: UIStyles.accentAppBar(context, const Text('Pick Packages'), 3,
         actions: [
           IconButton(
             onPressed: () {
@@ -95,9 +96,7 @@ class _PackagePickerEditScreenState extends State<PackagePickerEditScreen> {
               padding: const EdgeInsets.all(16.0),
               child: ElevatedButton(
                 onPressed: _navigateToOverview,
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 50),
-                ),
+                style: UIStyles.primaryButton(context).copyWith(minimumSize: WidgetStatePropertyAll(const Size(double.infinity,50))),
                 child: Text(
                   _selectedPackages.isEmpty 
                     ? 'Continue' 
