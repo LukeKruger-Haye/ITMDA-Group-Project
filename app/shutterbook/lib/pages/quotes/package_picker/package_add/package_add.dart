@@ -63,7 +63,9 @@ class PackageAddState extends State<PackageAdd> {
                   controller: packagePriceController,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   inputFormatters: <TextInputFormatter>[
-                    FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*\$')), // digits + optional decimal
+                    // Allow digits and optional decimal point. The previous pattern included
+                    // a stray escaped dollar sign which prevented entering numbers.
+                    FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*$')),
                   ],
                   decoration: const InputDecoration(labelText: 'Price'),
                   validator: (value) => value == null || value.trim().isEmpty ? 'Package Price required' : null,

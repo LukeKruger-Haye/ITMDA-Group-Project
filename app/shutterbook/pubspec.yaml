@@ -44,6 +44,8 @@ dependencies:
   # (0.60.0 references removed Flutter APIs like MediaQuery.boldTextOverride)
   fl_chart: ^1.1.1
   intl: ^0.18.1
+  # pdf: ^3.10.1
+  # open_file: ^3.2.1
 
 dev_dependencies:
   flutter_test:

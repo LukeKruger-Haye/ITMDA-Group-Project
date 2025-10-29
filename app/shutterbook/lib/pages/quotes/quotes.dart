@@ -468,7 +468,6 @@ class _QuoteListState extends State<QuoteList> {
                               ]),
                               onTap: () async {
                                 final nav = Navigator.of(context);
-                                final messenger = ScaffoldMessenger.of(context);
                                 try {
                                   await nav.push(
                                     MaterialPageRoute(builder: (_) => const ManageQuotePage(), settings: RouteSettings(arguments: q)),
@@ -477,7 +476,7 @@ class _QuoteListState extends State<QuoteList> {
                                       await load();
                                     }
                                 } catch (e) {
-                                  messenger.showSnackBar(SnackBar(content: Text('Failed to open quote: $e')));
+                                  if (nav.mounted) { ScaffoldMessenger.of(nav.context).showSnackBar(SnackBar(content: Text('Failed to open quote: $e'))); }
                                 }
                               },
                             ),

@@ -60,10 +60,9 @@ final Map<Package, int> packages;
             ElevatedButton(
               onPressed: () async {
                 final nav = Navigator.of(context);
-                final messenger = ScaffoldMessenger.of(context);
                 await _insertQuote();
                 if (nav.mounted) {
-                  messenger.showSnackBar(const SnackBar(content: Text('Quote saved')));
+                  ScaffoldMessenger.of(nav.context).showSnackBar(const SnackBar(content: Text('Quote saved')));
                   nav.pushNamedAndRemoveUntil( '/home', (route) => false);
                 }
               },
@@ -80,6 +79,8 @@ final Map<Package, int> packages;
                style: UIStyles.outlineButton(context),
                child: const Text("Cancel"),
              )
+            ,
+            const SizedBox(height: 12),
           ],
         ),
       ),
