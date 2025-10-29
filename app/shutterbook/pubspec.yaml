@@ -39,6 +39,9 @@ dependencies:
   shared_preferences: ^2.5.3
   local_auth: ^2.3.0
   sqflite_common_ffi: ^2.3.6
+  pdf:
+    path: ../pdf-3.11.3
+  open_file: ^3.5.10
 
 dev_dependencies:
   flutter_test:
