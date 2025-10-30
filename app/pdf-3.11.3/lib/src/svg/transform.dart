@@ -51,13 +51,14 @@ class SvgTransform {
           final dx = parameterList[0];
           final dy = [...parameterList, .0][1];
 
-          mat.multiply(Matrix4.identity()..translate(dx, dy));
+          mat.multiply(Matrix4.identity()
+            ..translateByVector3(Vector3(dx, dy, 0)));
           break;
         case 'scale':
           final sw = parameterList[0];
           final sh = [...parameterList, sw][1];
 
-          mat.multiply(Matrix4.identity()..scale(sw, sh));
+          mat.multiply(Matrix4.identity()..scaleByVector3(Vector3(sw, sh, 1)));
           break;
         case 'rotate':
           final degrees = parameterList[0];
@@ -68,13 +69,13 @@ class SvgTransform {
             // Rotation about the origin (ox, oy)
             ox = parameterList[1];
             oy = [...parameterList, .0][2];
-            mat.translate(ox, oy);
+            mat.translateByVector3(Vector3(ox, oy, 0));
           }
 
           mat.multiply(Matrix4.rotationZ(radians(degrees)));
 
           if (ox != 0 || oy != 0) {
-            mat.translate(-ox, -oy);
+            mat.translateByVector3(Vector3(-ox, -oy, 0));
           }
           break;
 

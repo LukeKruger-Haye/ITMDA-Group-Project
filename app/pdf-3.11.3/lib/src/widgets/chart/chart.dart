@@ -121,8 +121,8 @@ class Chart extends Widget implements Inherited {
   void paint(Context context) {
     super.paint(_context!);
 
-    final mat = Matrix4.identity();
-    mat.translate(box!.x, box!.y);
+  final mat = Matrix4.identity();
+  mat.translateByVector3(Vector3(box!.x, box!.y, 0));
     _context!.canvas
       ..saveContext()
       ..setTransform(mat);

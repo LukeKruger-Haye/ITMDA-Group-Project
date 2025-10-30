@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import 'package:vector_math/vector_math_64.dart';
 import 'package:xml/xml.dart';
 
 import '../../pdf.dart';
@@ -199,8 +200,8 @@ class SvgLinearGradient extends SvgGradient {
     if (gradientUnits != GradientUnits.userSpaceOnUse) {
       final bb = op.boundingBox();
       mat
-        ..translate(bb.x, bb.y)
-        ..scale(bb.width, bb.height);
+        ..translateByVector3(Vector3(bb.x, bb.y, 0))
+        ..scaleByVector3(Vector3(bb.width, bb.height, 1));
     }
 
     if (transform.isNotEmpty) {
@@ -348,8 +349,8 @@ class SvgRadialGradient extends SvgGradient {
     if (gradientUnits != GradientUnits.userSpaceOnUse) {
       final bb = op.boundingBox();
       mat
-        ..translate(bb.x, bb.y)
-        ..scale(bb.width, bb.height);
+        ..translateByVector3(Vector3(bb.x, bb.y, 0))
+        ..scaleByVector3(Vector3(bb.width, bb.height, 1));
     }
 
     if (transform.isNotEmpty) {
