@@ -9,6 +9,8 @@ class Booking {
   String status;
   DateTime? createdAt;
 
+  String? clientName;
+
   Booking({
     this.bookingId,
     required this.clientId,
@@ -16,6 +18,7 @@ class Booking {
     this.quoteId,
     this.status = 'Scheduled',
     this.createdAt,
+    this.clientName,
   });
 
   Map<String, dynamic> toMap() {
@@ -26,6 +29,7 @@ class Booking {
       'booking_date': bookingDate.toString(),
       'status': status,
       'created_at': createdAt?.toString(),
+      'client_name': clientName,
     };
   }
 
@@ -34,11 +38,12 @@ class Booking {
   bookingId: map['booking_id'],
   clientId: map['client_id'],
   quoteId: map['quote_id'],
-      bookingDate: DateTime.parse(map['booking_date']),
-      status: map['status'] ?? 'Scheduled',
-      createdAt: map['created_at'] != null
-          ? DateTime.tryParse(map['created_at'])
-          : null,
-    );
+  bookingDate: DateTime.parse(map['booking_date']),
+  status: map['status'] ?? 'Scheduled',
+  createdAt: map['created_at'] != null
+  ? DateTime.tryParse(map['created_at'])
+  : null,
+  clientName: map['client_name'],
+  );
   }
 }

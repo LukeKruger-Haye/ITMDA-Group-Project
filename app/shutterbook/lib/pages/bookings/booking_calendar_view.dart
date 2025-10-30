@@ -11,6 +11,7 @@ import 'package:shutterbook/data/tables/booking_table.dart';
 import 'package:shutterbook/data/tables/client_table.dart';
 import 'package:shutterbook/data/services/data_cache.dart';
 import 'package:shutterbook/data/tables/quote_table.dart';
+import 'package:shutterbook/pages/bookings/bookings_inventory_page.dart';
 
 class BookingCalendarView extends StatefulWidget {
   const BookingCalendarView({super.key});
@@ -288,6 +289,35 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                           _selectedDateTime == null ? 'Select Date & Time' : _formatDateTime(_selectedDateTime!),
                         ),
                       ),
+                      //Manage inventory for bookings button
+                    if (existing != null) ...[
+                        const SizedBox(height: 12),
+                        ElevatedButton.icon(
+                          onPressed: () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => BookingInventoryPage(
+                                  bookingId: existing.bookingId!,
+                                ),
+                              ),
+                            );
+                            if (mounted) {
+                              _loadBookings(); // refresh bookings after return
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Inventory updated for this booking')),
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.inventory_2_outlined),
+                          label: const Text('Add / Edit Inventory'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blueAccent,
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size(double.infinity, 45),
+                          ),
+                        ),
+                    ],
                   ],
                 ),
               ),

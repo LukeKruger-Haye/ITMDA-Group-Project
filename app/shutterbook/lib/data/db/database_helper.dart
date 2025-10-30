@@ -9,7 +9,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 class DatabaseHelper {
   static final _databaseName = 'shutterbook.db';
-  static final _databaseVersion = 2;
+  static final _databaseVersion = 3;
 
   DatabaseHelper._privateConstructor();
   static final DatabaseHelper instance = DatabaseHelper._privateConstructor();
@@ -82,7 +82,9 @@ class DatabaseHelper {
         item_id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         category TEXT NOT NULL,
-        condition TEXT NOT NULL DEFAULT 'New'
+        condition TEXT NOT NULL DEFAULT 'New',
+        serial_number TEXT,
+        image_path TEXT
       )
       ''');
 
@@ -118,5 +120,15 @@ await db.execute('''
       )
       ''');
       
+    await db.execute('''
+      CREATE TABLE BookingInventory (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        booking_id INTEGER NOT NULL,
+        item_id INTEGER NOT NULL,
+        quantity INTEGER NOT NULL,
+        FOREIGN KEY (booking_id) REFERENCES Bookings(booking_id) ON DELETE CASCADE,
+        FOREIGN KEY (item_id) REFERENCES Inventory(item_id) ON DELETE CASCADE
+      )
+    ''');
   }
 }
