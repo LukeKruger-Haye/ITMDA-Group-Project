@@ -77,8 +77,8 @@ mixin AnnotationAppearance on Widget {
 
     return context.canvas.getTransform()
       ..decompose(translation, rotation, scale)
-      ..leftTranslate(-translation.x, -translation.y)
-      ..translate(box!.x, box!.y);
+      ..leftTranslateByVector3(Vector3(-translation.x, -translation.y, 0))
+      ..translateByVector3(Vector3(box!.x, box!.y, 0));
   }
 }
 
