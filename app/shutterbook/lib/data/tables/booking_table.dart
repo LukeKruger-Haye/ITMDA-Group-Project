@@ -93,4 +93,31 @@ class BookingTable {
     );
     return maps.map((m) => Booking.fromMap(m)).toList();
   }
+
+  /// Finds bookings that would conflict with the given [when].
+  ///
+  /// Because the app schedules at hour granularity in the calendar,
+  /// we consider any booking within the same hour a potential conflict.
+  /// If [excludeBookingId] is provided, that row will be ignored (useful
+  /// when editing an existing booking).
+  Future<List<Booking>> findHourConflicts(DateTime when, {int? excludeBookingId}) async {
+    final db = await dbHelper.database;
+    // Define the hour range: [hourStart, hourStart + 1h)
+    final hourStart = DateTime(when.year, when.month, when.day, when.hour);
+    final hourEnd = hourStart.add(const Duration(hours: 1));
+    final where = excludeBookingId == null
+        ? 'booking_date >= ? AND booking_date < ?'
+        : 'booking_date >= ? AND booking_date < ? AND booking_id <> ?';
+    final whereArgs = excludeBookingId == null
+        ? [hourStart.toString(), hourEnd.toString()]
+        : [hourStart.toString(), hourEnd.toString(), excludeBookingId];
+
+    final maps = await db.query(
+      'Bookings',
+      where: where,
+      whereArgs: whereArgs,
+      orderBy: 'booking_date ASC',
+    );
+    return maps.map((m) => Booking.fromMap(m)).toList();
+  }
 }

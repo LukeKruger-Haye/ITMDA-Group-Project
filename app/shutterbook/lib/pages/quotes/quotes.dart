@@ -13,9 +13,9 @@ import '../../widgets/section_card.dart';
 import 'package:shutterbook/theme/ui_styles.dart';
 import '../bookings/create_booking.dart';
 import '../../widgets/client_search_dialog.dart';
-import 'create/package_picker/package_picker_screen.dart';
-import 'create/package_picker/package_picker.dart';
-import 'create/overview/quote_overview_screen.dart';
+import 'package_picker/package_picker/package_picker_screen.dart';
+import '../../data/models/package.dart';
+import 'overview/quote_overview_screen.dart';
 import 'manage/manage_quote_screen.dart';
 
 class QuotePage extends StatefulWidget {
@@ -91,6 +91,41 @@ class _QuotePageState extends State<QuotePage> {
       final v = _clientSearchController.text.trim();
       if (v != _clientSearch) setState(() => _clientSearch = v);
     });
+  }
+
+  /// Start the guided Create Quote flow when the page is embedded.
+  /// Mirrors the non-embedded FAB behavior so dashboard can request it.
+  Future<void> startCreateQuoteFlow() async {
+    final nav = Navigator.of(context);
+    final client = await showDialog<Client?>(context: context, builder: (_) => const ClientSearchDialog());
+    if (!mounted) return;
+    if (client == null) return;
+    final packages = await nav.push<dynamic>(
+      MaterialPageRoute(builder: (_) => PackagePickerScreen(client: client)),
+    );
+    if (!mounted) return;
+    if (packages == null) return;
+    double total = 0.0;
+    if (packages is Map) {
+      for (final entry in packages.entries) {
+        final key = entry.key;
+        final val = entry.value;
+        double price = 0.0;
+        if (key is Package) {
+          price = key.price;
+        } else if (key is Map && key['price'] != null) {
+          price = (key['price'] as num).toDouble();
+        }
+        final int qty = val is int ? val : int.tryParse(val.toString()) ?? 0;
+        total += price * qty;
+      }
+    }
+    final saved = await nav.push<bool?>(
+      MaterialPageRoute(
+        builder: (_) => QuoteOverviewScreen(client: client, total: total, packages: packages),
+      ),
+    );
+    if (saved == true && mounted) setState(() {});
   }
 
   Future<void> _restoreState() async {
@@ -170,7 +205,7 @@ class _QuotePageState extends State<QuotePage> {
                         suffixIcon: _clientSearch.isNotEmpty
                             ? IconButton(icon: const Icon(Icons.clear), onPressed: () => _clientSearchController.clear())
                             : null,
-                        border: OutlineInputBorder(),
+                        border: const OutlineInputBorder(),
                         isDense: true,
                         contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
                       ),
@@ -249,7 +284,7 @@ class _QuotePageState extends State<QuotePage> {
             appBar: AppBar(
               title: const Text('Quotes'),
             ),
-            body: QuoteList(),
+            body: const QuoteList(),
             floatingActionButton: FloatingActionButton(
               onPressed: () async {
                 // Start guided create flow: pick client -> package -> overview
@@ -386,7 +421,7 @@ class _QuoteListState extends State<QuoteList> {
               suffixIcon: _filter.isNotEmpty
                   ? IconButton(icon: const Icon(Icons.clear), onPressed: () => _searchController.clear())
                   : null,
-              border: OutlineInputBorder(),
+              border: const OutlineInputBorder(),
             ),
             onChanged: (v) => setState(() => _filter = v.trim()),
           ),
@@ -403,7 +438,7 @@ class _QuoteListState extends State<QuoteList> {
                           final q = filtered[index];
                           final clientName = _clientNames[q.clientId] ?? 'Client ${q.clientId}';
                           final title = 'Quote #${q.id} — $clientName';
-                          final subtitle = 'Total: ${formatRand(q.totalPrice)} • ${q.createdAt ?? ''}';
+                          final subtitle = 'Total: ${formatRand(q.totalPrice)} \n${formatDateTime(q.createdAt)}';
                           return SectionCard(
                             elevation: UIStyles.cardElevation,
                             child: ListTile(
@@ -412,7 +447,7 @@ class _QuoteListState extends State<QuoteList> {
                               title: Text(title),
                               subtitle: Text(
                                 '${q.description}\n$subtitle',
-                                maxLines: 2,
+                                maxLines: 3,
                                 overflow: TextOverflow.ellipsis,
                               ),
                               trailing: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -420,35 +455,17 @@ class _QuoteListState extends State<QuoteList> {
                                   icon: const Icon(Icons.add_circle_outline),
                                   tooltip: 'Book from quote',
                                   onPressed: () async {
-                                      final nav = Navigator.of(context);
-                                      final messenger = ScaffoldMessenger.of(context);
-                                      try {
-                                        final created = await nav.push<bool>(
-                                          MaterialPageRoute(builder: (_) => CreateBookingPage(quote: q)),
-                                        );
-                                        if (created == true) {
-                                          if (mounted) await load();
-                                        }
-                                      } catch (e) {
-                                        messenger.showSnackBar(SnackBar(content: Text('Failed to book: $e')));
-                                      }
-                                    },
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.open_in_new),
-                                  tooltip: 'View',
-                                  onPressed: () async {
                                     final nav = Navigator.of(context);
                                     final messenger = ScaffoldMessenger.of(context);
                                     try {
-                                      await nav.push(
-                                        MaterialPageRoute(builder: (_) => ManageQuotePage(), settings: RouteSettings(arguments: q)),
+                                      final created = await nav.push<bool>(
+                                        MaterialPageRoute(builder: (_) => CreateBookingPage(quote: q)),
                                       );
-                                      if (mounted) {
-                                        await load();
+                                      if (created == true) {
+                                        if (mounted) await load();
                                       }
                                     } catch (e) {
-                                      messenger.showSnackBar(SnackBar(content: Text('Failed to open quote: $e')));
+                                      messenger.showSnackBar(SnackBar(content: Text('Failed to book: $e')));
                                     }
                                   },
                                 ),
@@ -458,7 +475,7 @@ class _QuoteListState extends State<QuoteList> {
                                 final messenger = ScaffoldMessenger.of(context);
                                 try {
                                   await nav.push(
-                                    MaterialPageRoute(builder: (_) => ManageQuotePage(), settings: RouteSettings(arguments: q)),
+                                    MaterialPageRoute(builder: (_) => const ManageQuotePage(), settings: RouteSettings(arguments: q)),
                                   );
                                   if (mounted) {
                                       await load();
