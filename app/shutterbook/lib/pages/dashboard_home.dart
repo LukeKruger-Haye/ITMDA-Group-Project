@@ -500,22 +500,36 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
           tooltip: 'Add client',
         );
       case 4: // Inventory
-        return FloatingActionButton(
-          onPressed: () async {
-            final nav = Navigator.of(context);
-            final state = _inventoryKey.currentState;
-            if (state != null) {
+      return FloatingActionButton(
+        onPressed: () async {
+          final nav = Navigator.of(context);
+          final state = _inventoryKey.currentState;
+          bool? created;
+
+          if (state != null) {
+            try {
+              await (state as dynamic).openAddDialog();
               try {
-                await (state as dynamic).openAddDialog();
-                try {
-                  await (state as dynamic).refresh();
-                } catch (_) {}
-              } catch (_) {
-                await nav.push<bool>(MaterialPageRoute(builder: (_) => const InventoryPage(embedded: false)));
-              }
-            } else {
-              await nav.push<bool>(MaterialPageRoute(builder: (_) => const InventoryPage(embedded: false)));
+                await (state as dynamic).refresh();
+              } catch (_) {}
+              return;
+            } catch (_) {}
+          }
+
+          // Fallback to full inventory page
+          created = await nav.push<bool>(
+            MaterialPageRoute(builder: (_) => const InventoryPage(embedded: false, openAddOnLoad: true)),
+          );
+
+          // Refresh embedded InventoryPage when returning
+          if (created == true) {
+            final s = _inventoryKey.currentState;
+            if (s != null) {
+              try {
+                await (s as dynamic).refresh();
+              } catch (_) {}
             }
+          }
             if (mounted) setState(() {});
           },
           backgroundColor: activeColor,
