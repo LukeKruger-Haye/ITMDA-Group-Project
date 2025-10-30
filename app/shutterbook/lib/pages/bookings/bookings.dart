@@ -1,3 +1,6 @@
+// Shutterbook — Bookings list page
+// Displays a paginated list or calendar of bookings and provides
+// entry points to create or edit bookings.
 import 'dart:async';
 // Shutterbook — Bookings list page
 // Displays a paginated list or calendar of bookings and provides
@@ -10,7 +13,7 @@ import '../../widgets/section_card.dart';
 import '../../data/models/booking.dart';
 import '../../data/models/client.dart';
 import '../../data/models/quote.dart';
-import '../../data/tables/booking_table.dart';
+import '../../data/services/data_cache.dart';
 import '../../data/tables/client_table.dart';
 import '../../data/tables/quote_table.dart';
 import 'create_booking.dart';
@@ -271,11 +274,13 @@ class _BookingsPageState extends State<BookingsPage> {
 
     final body = Padding(padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0), child: Column(children: bodyChildren));
 
-  return widget.embedded
-    ? Column(children: [header, const SizedBox(height: 8), if (_view == 1) searchBar, const SizedBox(height: 8), Expanded(child: bodyContent)])
+    return widget.embedded
+        ? Column(children: [header, const SizedBox(height: 8), if (_view == 1) searchBar, const SizedBox(height: 8), Expanded(child: bodyContent)])
         : Scaffold(
-            appBar: AppBar(
-              title: const Text('Bookings'),
+            appBar: UIStyles.accentAppBar(
+              context,
+              const Text('Bookings'),
+              1,
               actions: [
                 IconButton(
                   tooltip: 'Dashboard',
@@ -315,8 +320,6 @@ class BookingListView extends StatefulWidget {
 }
 
 class _BookingListViewState extends State<BookingListView> {
-  final BookingTable _bookingTable = BookingTable();
-  final ClientTable _clientTable = ClientTable();
   final QuoteTable _quoteTable = QuoteTable();
 
   late Future<List<Booking>> _bookingsFuture;
@@ -326,8 +329,8 @@ class _BookingListViewState extends State<BookingListView> {
   @override
   void initState() {
     super.initState();
-    _bookingsFuture = _bookingTable.getAllBookings();
-    _clientsFuture = _clientTable.getAllClients();
+    _bookingsFuture = DataCache.instance.getBookings();
+    _clientsFuture = DataCache.instance.getClients();
     _quotesFuture = _quoteTable.getAllQuotes();
   }
 

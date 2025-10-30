@@ -15,6 +15,63 @@ import 'inventory/inventory.dart';
 import 'settings/settings.dart';
 import '../theme/app_colors.dart';
 
+// Custom scroll physics that reduces the fractional threshold required
+// to snap to the next page. The default PageScrollPhysics uses ~50%.
+// This lowers it to 20% so shorter swipes will move pages.
+// Kept as a top-level helper so it can be reused elsewhere.
+class _FastPageScrollPhysics extends PageScrollPhysics {
+  const _FastPageScrollPhysics({super.parent});
+
+  @override
+  _FastPageScrollPhysics applyTo(ScrollPhysics? ancestor) {
+    return _FastPageScrollPhysics(parent: buildParent(ancestor));
+  }
+
+  double getTargetPixels(ScrollMetrics position, double velocity) {
+    final double page = position.pixels / position.viewportDimension;
+    double targetPage;
+
+    // If the user flings quickly, follow the velocity direction.
+    final t = toleranceFor(position);
+    if (velocity.abs() > t.velocity) {
+      targetPage = velocity > 0 ? page.ceilToDouble() : page.floorToDouble();
+    } else {
+      // Lower threshold (12%) for deciding whether to move to next page.
+      // This makes short swipes more likely to switch pages.
+        final double frac = page - page.floorToDouble();
+        if (frac >= 0.25) {
+          targetPage = page.floorToDouble() + 1.0;
+      } else {
+        targetPage = page.floorToDouble();
+      }
+    }
+
+    return targetPage * position.viewportDimension;
+  }
+}
+
+/// Lightweight wrapper that keeps its child alive when used inside scrollables
+/// like PageView. This prevents the child from being disposed/rebuilt on
+/// page transitions and reduces jank on repeated navigation.
+class _KeepAliveWrapper extends StatefulWidget {
+  final Widget child;
+  const _KeepAliveWrapper({required this.child});
+
+  @override
+  State<_KeepAliveWrapper> createState() => _KeepAliveWrapperState();
+}
+
+class _KeepAliveWrapperState extends State<_KeepAliveWrapper> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.child;
+  }
+}
+
 class DashboardHome extends StatefulWidget {
   final AuthModel authModel;
 
@@ -35,6 +92,15 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
   final GlobalKey _inventoryKey = GlobalKey();
   // key for the embedded quotes page so we can trigger a refresh after creates
   final GlobalKey _quotesKey = GlobalKey();
+  // Throttle drag->jump updates to avoid excessive controller updates that
+  // can cause jank. We'll allow updates at ~60Hz.
+  // (previous throttle/jump-time fields removed) — we commit to nearest
+  // tab immediately during drag and avoid per-frame jumps.
+  // Lightweight notifier that follows the PageController.page value so UI
+  // that needs to smoothly follow the finger can listen without requiring
+  // full widget rebuilds via setState. We keep this separate from
+  // `_currentIndex` which is only committed on page change/drag end.
+  late final ValueNotifier<double> _pageNotifier;
 
   // Use centralized colors from AppColors
 
@@ -50,6 +116,14 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: _currentIndex);
+    _pageNotifier = ValueNotifier<double>(_currentIndex.toDouble());
+    // Mirror the PageController.page into the notifier so listeners can
+    // react to fractional page changes without setState.
+    _pageController.addListener(() {
+      if (_pageController.hasClients) {
+        _pageNotifier.value = _pageController.page ?? _pageController.initialPage.toDouble();
+      }
+    });
     // No fractional page listener needed when indicator is removed.
     // Initialize FAB animation controller and staggered animations here
     _fabController = AnimationController(vsync: this, duration: const Duration(milliseconds: 320));
@@ -75,6 +149,7 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
   late final AnimationController _fabController;
   late final List<Animation<Offset>> _fabSlideAnims;
   late final List<Animation<double>> _fabScaleAnims;
+  // (removed nav drag accumulator - dragging is mapped directly to page position)
 
   void _toggleFab() {
     if (_fabController.isDismissed) {
@@ -95,56 +170,64 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
   @override
   void dispose() {
     _pageController.dispose();
+    _pageNotifier.dispose();
     _fabController.dispose();
     super.dispose();
   }
+
+  
 
   Widget _buildBody() {
     // PageView provides native horizontal swipe navigation with animation.
     return PageView(
       controller: _pageController,
-      physics: _swipeEnabled ? const ClampingScrollPhysics() : const NeverScrollableScrollPhysics(),
+      physics: _swipeEnabled ? const _FastPageScrollPhysics(parent: ClampingScrollPhysics()) : const NeverScrollableScrollPhysics(),
       onPageChanged: (index) => setState(() {
         _currentIndex = index;
         // close the dashboard FAB when navigating away or between pages
         if (!_fabController.isDismissed) _fabController.reverse();
       }),
       children: [
-        // Use the redesigned DashboardPage as the embedded home dashboard
-        DashboardPage(
-          embedded: true,
-          onNavigateToTab: (index) {
-            // dashboard can ask to navigate to another tab — animate the page transition
-            _pageController.animateToPage(index, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
-          },
-        ),
-        BookingsPage(key: _bookingsKey, embedded: true),
-        ClientsPage(
-          key: _clientsKey,
-          embedded: true,
-          onViewBookings: (client) async {
-            // animate to Bookings tab and focus the embedded BookingsPage
-            await _pageController.animateToPage(1, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
-            final state = _bookingsKey.currentState;
-            if (state != null) {
-              try {
-                (state as dynamic).focusOnClient(client);
-              } catch (_) {}
-            }
-          },
-          onViewQuotes: (client) async {
-            // animate to Quotes tab and tell embedded QuotePage to focus on the client
-            await _pageController.animateToPage(3, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
-            final state = _quotesKey.currentState;
-            if (state != null) {
-              try {
-                (state as dynamic).focusOnClient(client);
-              } catch (_) {}
-            }
-          },
-        ),
-        QuotePage(key: _quotesKey, embedded: true),
-        InventoryPage(key: _inventoryKey, embedded: true),
+        // Use RepaintBoundary around the kept-alive children to reduce repaint
+        // work when other parts of the screen update.
+        RepaintBoundary(child: _KeepAliveWrapper(
+          child: DashboardPage(
+            embedded: true,
+            onNavigateToTab: (index) {
+              // dashboard can ask to navigate to another tab — animate the page transition
+              _pageController.animateToPage(index, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+            },
+          ),
+        )),
+        RepaintBoundary(child: _KeepAliveWrapper(child: BookingsPage(key: _bookingsKey, embedded: true))),
+        RepaintBoundary(child: _KeepAliveWrapper(
+          child: ClientsPage(
+            key: _clientsKey,
+            embedded: true,
+            onViewBookings: (client) async {
+              // animate to Bookings tab and focus the embedded BookingsPage
+              await _pageController.animateToPage(1, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+              final state = _bookingsKey.currentState;
+              if (state != null) {
+                try {
+                  (state as dynamic).focusOnClient(client);
+                } catch (_) {}
+              }
+            },
+            onViewQuotes: (client) async {
+              // animate to Quotes tab and tell embedded QuotePage to focus on the client
+              await _pageController.animateToPage(3, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+              final state = _quotesKey.currentState;
+              if (state != null) {
+                try {
+                  (state as dynamic).focusOnClient(client);
+                } catch (_) {}
+              }
+            },
+          ),
+        )),
+        RepaintBoundary(child: _KeepAliveWrapper(child: QuotePage(key: _quotesKey, embedded: true))),
+        RepaintBoundary(child: _KeepAliveWrapper(child: InventoryPage(key: _inventoryKey, embedded: true))),
       ],
     );
   }
@@ -159,11 +242,44 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
   // Page indicator removed per UX feedback.
 
   Widget? _buildFab() {
+    final Color activeColor = AppColors.colorForIndex(context, _currentIndex);
+    final Color onActive = activeColor.computeLuminance() > 0.5 ? Colors.black : Colors.white;
     switch (_currentIndex) {
-      case 1: // Bookings
+      case 1: // Bookings - show a simple FAB that opens the Create Booking flow
+        return FloatingActionButton(
+          onPressed: () async {
+            final nav = Navigator.of(context);
+            // Try to trigger the embedded BookingsPage create flow if available
+            final state = _bookingsKey.currentState;
+            if (state != null) {
+              try {
+                await (state as dynamic).openCreateBooking();
+                return;
+              } catch (_) {}
+            }
+            // fallback to full CreateBooking page
+            final created = await nav.push<bool>(MaterialPageRoute(builder: (_) => CreateBookingPage()));
+            if (created == true && mounted) setState(() {});
+          },
+          backgroundColor: activeColor,
+          foregroundColor: onActive,
+          child: const Icon(Icons.add),
+          tooltip: 'Create booking',
+        );
+
       case 0: // Dashboard - show an expanding FAB with quick-create options
         // Use a Column so mini FABs stack above the main FAB. AnimatedSwitcher/AnimatedOpacity
         // provide a smooth transition when toggling.
+        // Per-action accent colors so each mini-FAB visually maps to its tab.
+        final Color quoteColor = AppColors.colorForIndex(context, 3);
+        final Color onQuote = quoteColor.computeLuminance() > 0.5 ? Colors.black : Colors.white;
+        final Color bookingColor = AppColors.colorForIndex(context, 1);
+        final Color onBooking = bookingColor.computeLuminance() > 0.5 ? Colors.black : Colors.white;
+        final Color clientColor = AppColors.colorForIndex(context, 2);
+        final Color onClient = clientColor.computeLuminance() > 0.5 ? Colors.black : Colors.white;
+        final Color inventoryColor = AppColors.colorForIndex(context, 4);
+        final Color onInventory = inventoryColor.computeLuminance() > 0.5 ? Colors.black : Colors.white;
+
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -187,18 +303,12 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
                             padding: const EdgeInsets.only(bottom: 8.0),
                             child: FloatingActionButton.small(
                               heroTag: 'fab_quote',
+                              backgroundColor: quoteColor,
+                              foregroundColor: onQuote,
                               onPressed: () async {
                                 _closeFab();
                                 final nav = Navigator.of(context);
-                                // switch to Quotes tab and trigger embedded create flow if available
-                                await _pageController.animateToPage(3, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
-                                final state = _quotesKey.currentState;
-                                if (state != null) {
-                                  try {
-                                    await (state as dynamic).startCreateQuoteFlow();
-                                    return;
-                                  } catch (_) {}
-                                }
+
                                 // fallback to full CreateQuote page if embedded not available
                                 final created = await nav.push<bool>(MaterialPageRoute(builder: (_) => const CreateQuotePage()));
                                 if (created == true) {
@@ -226,6 +336,8 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
                             padding: const EdgeInsets.only(bottom: 8.0),
                             child: FloatingActionButton.small(
                               heroTag: 'fab_booking',
+                              backgroundColor: bookingColor,
+                              foregroundColor: onBooking,
                               onPressed: () async {
                                 _closeFab();
                                 final nav = Navigator.of(context);
@@ -257,6 +369,8 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
                             padding: const EdgeInsets.only(bottom: 8.0),
                             child: FloatingActionButton.small(
                               heroTag: 'fab_client',
+                              backgroundColor: clientColor,
+                              foregroundColor: onClient,
                               onPressed: () async {
                                 _closeFab();
                                 final nav = Navigator.of(context);
@@ -289,6 +403,8 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
                             padding: const EdgeInsets.only(bottom: 8.0),
                             child: FloatingActionButton.small(
                               heroTag: 'fab_item',
+                              backgroundColor: inventoryColor,
+                              foregroundColor: onInventory,
                               onPressed: () async {
                                 _closeFab();
                                 final nav = Navigator.of(context);
@@ -321,6 +437,8 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
             // main FAB toggles the mini buttons
             FloatingActionButton(
               onPressed: _toggleFab,
+              backgroundColor: activeColor,
+              foregroundColor: onActive,
               child: AnimatedBuilder(
                 animation: _fabController,
                 builder: (context, _) {
@@ -349,8 +467,10 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
               if (mounted) setState(() {});
             }
           },
+          backgroundColor: activeColor,
+          foregroundColor: onActive,
           child: const Icon(Icons.request_quote),
-          tooltip: 'Create quote',
+          tooltip: 'Create ',
         );
       case 2: // Clients - open add client dialog by delegating to page
         return FloatingActionButton(
@@ -374,6 +494,8 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
             }
             if (mounted) setState(() {});
           },
+          backgroundColor: activeColor,
+          foregroundColor: onActive,
           child: const Icon(Icons.person_add),
           tooltip: 'Add client',
         );
@@ -396,6 +518,8 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
             }
             if (mounted) setState(() {});
           },
+          backgroundColor: activeColor,
+          foregroundColor: onActive,
           child: const Icon(Icons.add),
           tooltip: 'Add inventory',
         );
@@ -451,21 +575,73 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
       body: SafeArea(
         child: _buildBody(),
       ),
-      floatingActionButton: _buildFab(),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (i) {
-          // animate the PageView to the tapped page
-          _pageController.animateToPage(i, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+      floatingActionButton: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 260),
+        switchInCurve: Curves.easeInOut,
+        switchOutCurve: Curves.easeInOut,
+        transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
+        child: KeyedSubtree(
+          // key by current index so changes animate when active tab (and color) changes
+          key: ValueKey<int>(_currentIndex),
+          child: _buildFab() ?? const SizedBox.shrink(),
+        ),
+      ),
+      bottomNavigationBar: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onHorizontalDragUpdate: (details) {
+          // Map finger X position over the bottom nav to a page index and
+          // commit immediately when the finger enters a new tab region.
+          final renderBox = context.findRenderObject() as RenderBox?;
+          if (renderBox == null) return;
+          final local = renderBox.globalToLocal(details.globalPosition);
+          final width = renderBox.size.width;
+          if (width <= 0) return;
+          const pages = 5;
+          // Map to [0, pages-1] and pick the nearest tab index for immediate
+          // commit. This makes the nav snappy: as soon as the finger is over
+          // the next tab, we switch to it.
+          final frac = (local.dx.clamp(0.0, width) / width) * (pages - 1);
+          final newIndex = frac.round().clamp(0, pages - 1);
+
+          if (newIndex != _currentIndex && _pageController.hasClients) {
+            setState(() {
+              _currentIndex = newIndex;
+            });
+            // Animate quickly to the selected page so the content updates
+            // smoothly and avoids a visible 'halfway' state.
+            _pageController.animateToPage(newIndex, duration: const Duration(milliseconds: 160), curve: Curves.easeOut);
+          }
         },
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Bookings'),
-          BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Clients'),
-          BottomNavigationBarItem(icon: Icon(Icons.request_quote), label: 'Quotes'),
-          BottomNavigationBarItem(icon: Icon(Icons.inventory), label: 'Inventory'),
-        ],
+        onHorizontalDragEnd: (_) {
+          // snap to nearest page
+          if (_pageController.hasClients) {
+              // Commit the actual page (rounded) as the new current index and
+              // animate to that page so the PageView settles cleanly.
+              final double page = _pageController.page ?? _currentIndex.toDouble();
+              final commitIndex = page.round().clamp(0, 4);
+              setState(() {
+                _currentIndex = commitIndex;
+              });
+              _pageController.animateToPage(_currentIndex, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+          }
+        },
+        child: BottomNavigationBar(
+            currentIndex: _currentIndex,
+          onTap: (i) {
+            // animate the PageView to the tapped page
+            _pageController.animateToPage(i, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+          },
+          type: BottomNavigationBarType.fixed,
+          selectedItemColor: activeColor,
+          unselectedItemColor: Theme.of(context).iconTheme.color?.withAlpha(0xAA),
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Home'),
+            BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Bookings'),
+            BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Clients'),
+            BottomNavigationBarItem(icon: Icon(Icons.request_quote), label: 'Quotes'),
+            BottomNavigationBarItem(icon: Icon(Icons.inventory), label: 'Inventory'),
+          ],
+        ),
       ),
     );
   }
