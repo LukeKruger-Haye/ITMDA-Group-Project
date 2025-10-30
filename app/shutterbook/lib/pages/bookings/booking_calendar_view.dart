@@ -131,8 +131,9 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
 
   Future<void> _editBooking(DateTime slot, [Booking? existing]) async {
     Client? selectedClient;
-    if (existing != null && existing.clientId != null) {
-      selectedClient = await clientTable.getClientById(existing.clientId!);
+    if (existing != null) {
+      // Booking.clientId is non-nullable in our model, so we can access it directly.
+      selectedClient = await clientTable.getClientById(existing.clientId);
     }
     _selectedDateTime = existing?.bookingDate;
 
@@ -549,8 +550,7 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                   child: Builder(builder: (context) {
                     final slot = DateTime(d.year, d.month, d.day, hour);
                     final booking = getBookingForSlot(slot);
-                    final theme = Theme.of(context);
-                    final fg = theme.textTheme.bodySmall?.color ?? Colors.black;
+                    
 
                     final bool isNewBookingBlocked = hour < 8 || hour > 18 || booking != null;
 
@@ -562,17 +562,12 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                           _editBooking(slot);
                         }
                       },
-                      child: Container(
+                        child: Container(
                         margin: const EdgeInsets.all(2),
                         height: 50,
                         decoration: BoxDecoration(
-<<<<<<< HEAD
-              color: booking != null
-                ? getStatusColor(context, booking.status)
-=======
                           color: booking != null
                               ? getStatusColor(context, booking.status)
->>>>>>> origin/main
                               : (hour < 8 || hour > 18
                                   ? const Color.fromARGB(255, 24, 20, 20)
                                   : Colors.grey.shade300),
