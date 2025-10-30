@@ -96,5 +96,16 @@ class DatabaseHelper {
         price REAL NOT NULL
       )
       ''');
+
+    await db.execute('''
+      CREATE TABLE BookingInventory (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        booking_id INTEGER NOT NULL,
+        item_id INTEGER NOT NULL,
+        quantity INTEGER NOT NULL,
+        FOREIGN KEY (booking_id) REFERENCES Bookings(booking_id) ON DELETE CASCADE,
+        FOREIGN KEY (item_id) REFERENCES Inventory(item_id) ON DELETE CASCADE
+      )
+    ''');
   }
 }

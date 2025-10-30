@@ -320,11 +320,11 @@ Widget build(BuildContext context) {
                     await Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => ItemDetailsPage(item: item),
+                        builder: (context) => InventoryDetailsPage(item: item),
                       ),
                     );
 
-                    // 🔄 Refresh inventory list when returning
+                    //Refresh inventory list when returning
                     await _loadItems();
                   },
                   child: Card(
