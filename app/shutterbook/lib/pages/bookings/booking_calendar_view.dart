@@ -47,10 +47,6 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
     super.dispose();
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
 
   String _twoDigits(int n) => n.toString().padLeft(2, '0');
 
@@ -136,8 +132,10 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
   }
 
   Future<void> _editBooking(DateTime slot, [Booking? existing]) async {
-    Client? selectedClient =
-        existing?.clientId != null ? await clientTable.getClientById(existing!.clientId!) : null;
+    Client? selectedClient;
+    if (existing != null) {
+      selectedClient = await clientTable.getClientById(existing.clientId);
+    }
     _selectedDateTime = existing?.bookingDate;
 
     List<Quote> clientQuotes = [];
@@ -327,7 +325,8 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                       if (!mounted) return;
                       _loadBookings();
                     },
-                    child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                    child
+                    : const Text('Delete', style: TextStyle(color: Colors.red)),
                   ),
                 // Save Button
                 TextButton(
@@ -350,9 +349,9 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
     ),
   );if (confirm != true) return;
 
-  final nav = dialogNavigator;
-  await bookingTable.deleteBooking(existing.bookingId!);
-  if (nav.mounted) nav.pop();
+  final nav = Navigator.of(context);
+  await bookingTable.deleteBooking(existing?.bookingId ?? 0);
+  if (mounted) nav.pop();
   if (!mounted) return;
   _loadBookings();
 },
@@ -364,13 +363,13 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
               TextButton(
                 onPressed: () async {
                   if (selectedClient == null) {
-                    dialogMessenger.showSnackBar(
+                    ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Please select a client.')),
                     );
                     return;
                   }
                   if (selectedQuoteId == null) {
-                    dialogMessenger.showSnackBar(
+                    ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content:
                             Text('Please select a quote for this client.'),
@@ -379,16 +378,16 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                     return;
                   }
 
-                  final nav = dialogNavigator;
+                  final nav = Navigator.of(context);
                   // Double-booking check for this hour slot
                   final conflicts = await bookingTable.findHourConflicts(
                     slot,
                     excludeBookingId: existing?.bookingId,
                   );
                   if (conflicts.isNotEmpty) {
-                    // Prompt using the stable dialogNavigator context
+                    // Prompt using the stable Navigator context
                     final proceed = await showDialog<bool>(
-                          context: dialogNavigator.context,
+                          context: context,
                           builder: (innerCtx) => AlertDialog(
                             title: const Text('Possible double booking'),
                             content: Text(
@@ -639,9 +638,9 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                         height: 50,
                         decoration: BoxDecoration(
                           color: booking != null
-                              ? getStatusColor(booking.status)
+                              ? getStatusColor(context, booking.status)
                               : (hour < 8 || hour > 18
-                                  ? Colors.grey.shade400
+                                  ? const Color.fromARGB(255, 24, 20, 20)
                                   : Colors.grey.shade300),
                           borderRadius: BorderRadius.circular(4),
                         ),
@@ -655,16 +654,16 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                                       Text(
                                         getClientForBooking(booking)?.firstName ?? '',
                                         textAlign: TextAlign.center,
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 10,
-                                          color: fg,
+                                          color: Color.fromARGB(255, 12, 12, 12),
                                         ),
                                       ),
                                       Text(
                                         getClientForBooking(booking)?.lastName ?? '',
                                         textAlign: TextAlign.center,
-                                        style: TextStyle(fontSize: 9, color: fg),
+                                        style: const TextStyle(fontSize: 9, color: Color.fromARGB(255, 34, 29, 29)),
                                       ),
                                     ],
                                   ),
