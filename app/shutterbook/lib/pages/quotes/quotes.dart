@@ -9,6 +9,7 @@ import '../../data/models/quote.dart';
 import '../../utils/formatters.dart';
 import '../../data/tables/quote_table.dart';
 import '../../data/tables/client_table.dart';
+import '../../data/services/data_cache.dart';
 import '../../widgets/section_card.dart';
 import 'package:shutterbook/theme/ui_styles.dart';
 import '../bookings/create_booking.dart';
@@ -270,9 +271,7 @@ class _QuotePageState extends State<QuotePage> {
       return widget.embedded
           ? clientBody
           : Scaffold(
-              appBar: AppBar(
-                title: Text('Quotes — ${_client!.firstName} ${_client!.lastName}'),
-              ),
+              appBar: UIStyles.accentAppBar(context, Text('Quotes — ${_client!.firstName} ${_client!.lastName}'), 3),
               body: clientBody,
             );
     }
@@ -281,9 +280,7 @@ class _QuotePageState extends State<QuotePage> {
     return widget.embedded
       ? QuoteList(key: _quoteListKey)
     : Scaffold(
-            appBar: AppBar(
-              title: const Text('Quotes'),
-            ),
+            appBar: UIStyles.accentAppBar(context, const Text('Quotes'), 3),
             body: const QuoteList(),
             floatingActionButton: FloatingActionButton(
               onPressed: () async {
@@ -336,7 +333,6 @@ class QuoteList extends StatefulWidget {
 
 class _QuoteListState extends State<QuoteList> {
   final QuoteTable _table = QuoteTable();
-  final ClientTable _clientTable = ClientTable();
   List<Quote> _quotes = [];
   bool _loading = true;
   String _filter = '';
@@ -379,9 +375,9 @@ class _QuoteListState extends State<QuoteList> {
     setState(() => _loading = true);
     final data = await _table.getAllQuotes();
     if (!mounted) return;
-    // also preload client names to avoid many DB calls
+    // also preload client names to avoid many DB calls — use shared cache
     try {
-      final clients = await _clientTable.getAllClients();
+      final clients = await DataCache.instance.getClients();
       _clientNames.clear();
       for (final c in clients) {
         if (c.id != null) _clientNames[c.id!] = '${c.firstName} ${c.lastName}';
@@ -472,7 +468,6 @@ class _QuoteListState extends State<QuoteList> {
                               ]),
                               onTap: () async {
                                 final nav = Navigator.of(context);
-                                final messenger = ScaffoldMessenger.of(context);
                                 try {
                                   await nav.push(
                                     MaterialPageRoute(builder: (_) => const ManageQuotePage(), settings: RouteSettings(arguments: q)),
@@ -481,7 +476,7 @@ class _QuoteListState extends State<QuoteList> {
                                       await load();
                                     }
                                 } catch (e) {
-                                  messenger.showSnackBar(SnackBar(content: Text('Failed to open quote: $e')));
+                                  if (nav.mounted) { ScaffoldMessenger.of(nav.context).showSnackBar(SnackBar(content: Text('Failed to open quote: $e'))); }
                                 }
                               },
                             ),

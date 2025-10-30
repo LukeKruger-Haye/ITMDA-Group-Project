@@ -1,8 +1,10 @@
 // Shutterbook — Inventory screen
 // Manage inventory items (add/edit/remove) used in quotes and bookings.
 import 'package:flutter/material.dart';
+import 'package:shutterbook/theme/ui_styles.dart';
 import '../../data/models/item.dart';
 import '../../data/tables/inventory_table.dart';
+import '../../data/services/data_cache.dart';
 import '../../widgets/section_card.dart';
 
 class InventoryPage extends StatefulWidget {
@@ -33,7 +35,15 @@ class _InventoryPageState extends State<InventoryPage> {
   }
 
   Future<void> _loadItems() async {
-    final items = await _inventoryTable.getAllItems();
+    try {
+      final items = await DataCache.instance.getInventory();
+      setState(() {
+        _inventory = items;
+        _filteredInventory = items;
+      });
+      return;
+    } catch (_) {}
+  final items = await _inventoryTable.getAllItems();
     setState(() {
       _inventory = items;
       _filteredInventory = items;
@@ -106,6 +116,7 @@ class _InventoryPageState extends State<InventoryPage> {
                   condition: condition,
                 );
                 await _inventoryTable.insertItem(newItem);
+                    DataCache.instance.clearInventory();
                 if (nav.mounted) nav.pop();
                 _loadItems();
               },
@@ -133,13 +144,13 @@ class _InventoryPageState extends State<InventoryPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 TextFormField(
-                  controller: TextEditingController(text: name),
+                  initialValue: name,
                   decoration: const InputDecoration(labelText: 'Item Name'),
                   onChanged: (val) => name = val,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
-                  controller: TextEditingController(text: category),
+                  initialValue: category,
                   decoration: const InputDecoration(labelText: 'Category'),
                   onChanged: (val) => category = val,
                 ),
@@ -170,6 +181,7 @@ class _InventoryPageState extends State<InventoryPage> {
                   condition: condition,
                 );
                 await _inventoryTable.updateItem(updatedItem);
+                    DataCache.instance.clearInventory();
                 if (nav.mounted) nav.pop();
                 _loadItems();
               },
@@ -182,7 +194,20 @@ class _InventoryPageState extends State<InventoryPage> {
   }
 
   Future<void> _deleteItem(int id) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Item'),
+        content: const Text('Are you sure you want to delete this item?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+          ElevatedButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Delete')),
+        ],
+      ),
+    ) ?? false;
+    if (!confirm) return;
     await _inventoryTable.deleteItem(id);
+    DataCache.instance.clearInventory();
     _loadItems();
   }
 
@@ -274,9 +299,7 @@ class _InventoryPageState extends State<InventoryPage> {
     return widget.embedded
         ? pageBody
         : Scaffold(
-            appBar: AppBar(
-              title: const Text('Inventory'),
-            ),
+            appBar: UIStyles.accentAppBar(context, const Text('Inventory'), 4),
             body: pageBody,
             floatingActionButton: FloatingActionButton(
               onPressed: _addItem,

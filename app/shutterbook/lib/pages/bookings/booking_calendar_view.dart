@@ -1,4 +1,5 @@
 // Shutterbook — booking_calendar_view.dart
+// ignore_for_file: use_build_context_synchronously
 // A compact calendar view used in the bookings section to visualise
 // upcoming sessions. It's intentionally small and focused on display logic.
 import 'package:flutter/material.dart';
@@ -8,6 +9,7 @@ import 'package:shutterbook/data/models/client.dart';
 import 'package:shutterbook/data/models/quote.dart';
 import 'package:shutterbook/data/tables/booking_table.dart';
 import 'package:shutterbook/data/tables/client_table.dart';
+import 'package:shutterbook/data/services/data_cache.dart';
 import 'package:shutterbook/data/tables/quote_table.dart';
 
 class BookingCalendarView extends StatefulWidget {
@@ -20,6 +22,7 @@ class BookingCalendarView extends StatefulWidget {
 class _BookingCalendarViewState extends State<BookingCalendarView> {
   final bookingTable = BookingTable();
   final quoteTable = QuoteTable();
+  // clientTable retained for writes; reads should use DataCache for better perf
   final clientTable = ClientTable();
 
   List<Booking> bookings = [];
@@ -34,8 +37,8 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
     super.initState();
     final now = DateTime.now();
     weekStart = now.subtract(Duration(days: now.weekday - 1));
-    _loadBookings();
-    _loadClients();
+  _loadBookings();
+  _loadClients();
   }
 
   @override
@@ -93,16 +96,20 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
     });
   }
 
-  Color getStatusColor(String status) {
+  // Determine a background color for a booking status using the current theme
+  Color getStatusColor(BuildContext context, String status) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     switch (status.toLowerCase()) {
       case 'scheduled':
-        return Colors.lightBlue.shade200;
+        // Use primaryContainer for scheduled to adapt to dark/light themes
+        return cs.primaryContainer;
       case 'completed':
-        return Colors.green.shade300;
+        return cs.secondaryContainer;
       case 'cancelled':
-        return Colors.red.shade300;
+        return cs.errorContainer;
       default:
-        return Colors.grey.shade300;
+        return cs.surfaceContainerHighest;
     }
   }
 
@@ -379,8 +386,9 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                     excludeBookingId: existing?.bookingId,
                   );
                   if (conflicts.isNotEmpty) {
+                    // Prompt using the stable dialogNavigator context
                     final proceed = await showDialog<bool>(
-                          context: context,
+                          context: dialogNavigator.context,
                           builder: (innerCtx) => AlertDialog(
                             title: const Text('Possible double booking'),
                             content: Text(
@@ -397,8 +405,7 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                               ),
                             ],
                           ),
-                        ) ??
-                        false;
+                        ) ?? false;
                     if (!proceed) return;
                   }
                   if (existing != null) {
@@ -411,6 +418,7 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                       createdAt: existing.createdAt,
                     );
                     await bookingTable.updateBooking(updated);
+                    DataCache.instance.clearBookings();
                   } else {
                     Booking newBooking = Booking(
                       quoteId: selectedQuoteId!,
@@ -419,6 +427,7 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                       status: status.isEmpty ? "Scheduled" : status,
                     );
                     await bookingTable.insertBooking(newBooking);
+                    DataCache.instance.clearBookings();
                   }
 
                     final bookingDate = _selectedDateTime ?? slot;
@@ -646,15 +655,16 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                                       Text(
                                         getClientForBooking(booking)?.firstName ?? '',
                                         textAlign: TextAlign.center,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 10,
+                                          color: fg,
                                         ),
                                       ),
                                       Text(
                                         getClientForBooking(booking)?.lastName ?? '',
                                         textAlign: TextAlign.center,
-                                        style: const TextStyle(fontSize: 9),
+                                        style: TextStyle(fontSize: 9, color: fg),
                                       ),
                                     ],
                                   ),

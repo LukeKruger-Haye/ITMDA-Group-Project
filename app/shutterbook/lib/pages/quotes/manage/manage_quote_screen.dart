@@ -163,8 +163,10 @@ class _ManageQuotePageState extends State<ManageQuotePage> {
     if (_quote == null) return const Scaffold(body: Center(child: Text('Quote not found')));
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Quote #${_quote!.id}'),
+      appBar: UIStyles.accentAppBar(
+        context,
+        Text('Quote #${_quote!.id}'),
+        3,
         actions: [
           IconButton(
             icon: Icon(_editing ? Icons.close : Icons.edit),

@@ -9,6 +9,7 @@ import 'package:shutterbook/data/tables/quote_table.dart';
   
 import 'package:shutterbook/data/models/package.dart';
 import 'package:shutterbook/utils/formatters.dart';
+import 'package:shutterbook/theme/ui_styles.dart';
 
 class QuoteOverviewScreen extends StatelessWidget {
 final double total;
@@ -41,8 +42,7 @@ final Map<Package, int> packages;
   Widget build(BuildContext context) {
     if (kDebugMode) debugPrint('QuoteOverviewScreen built for client ${client.id} total $total');
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Quote Overview')),
+      appBar: UIStyles.accentAppBar(context, const Text('Quote Overview'), 3),
       
       body: Center(
         child: Column(
@@ -57,28 +57,30 @@ final Map<Package, int> packages;
               ),
             ),
             const SizedBox(height: 30),
-             ElevatedButton(
+            ElevatedButton(
               onPressed: () async {
                 final nav = Navigator.of(context);
-                final messenger = ScaffoldMessenger.of(context);
                 await _insertQuote();
                 if (nav.mounted) {
-                  messenger.showSnackBar(const SnackBar(content: Text('Quote saved')));
+                  ScaffoldMessenger.of(nav.context).showSnackBar(const SnackBar(content: Text('Quote saved')));
                   nav.pushNamedAndRemoveUntil( '/home', (route) => false);
                 }
               },
+              style: UIStyles.primaryButton(context),
               child: const Text("Save"),
             ),
-             ElevatedButton( onPressed: () async {
-                {
-                  final nav = Navigator.of(context);
-                  if (nav.mounted) {
-                    nav.pushNamedAndRemoveUntil( '/home', (route) => false); // Pop with true to indicate success
-                  }
-                }},
-
-            child: const Text("Cancel")
+             ElevatedButton(
+               onPressed: () async {
+                 final nav = Navigator.of(context);
+                 if (nav.mounted) {
+                   nav.pushNamedAndRemoveUntil( '/home', (route) => false); // Pop with true to indicate success
+                 }
+               },
+               style: UIStyles.outlineButton(context),
+               child: const Text("Cancel"),
              )
+            ,
+            const SizedBox(height: 12),
           ],
         ),
       ),

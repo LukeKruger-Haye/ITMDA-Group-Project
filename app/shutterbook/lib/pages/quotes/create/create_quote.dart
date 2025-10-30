@@ -79,7 +79,7 @@ class _CreateQuotePageState extends State<CreateQuotePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Create Quote'),
+      appBar: UIStyles.accentAppBar(context, const Text('Create Quote'), 3,
       actions: [
         IconButton(
           onPressed: () async {
@@ -109,7 +109,7 @@ class _CreateQuotePageState extends State<CreateQuotePage> {
           },
           icon: const Icon(Icons.person_add),
         )
-      ],),
+  ],),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(

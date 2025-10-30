@@ -9,6 +9,7 @@ import 'package:shutterbook/data/models/quote.dart';
 import 'package:shutterbook/data/models/client.dart';
 import 'package:shutterbook/widgets/stat_grid.dart';
 import 'package:shutterbook/theme/ui_styles.dart';
+import 'package:shutterbook/pages/bookings/stats_page.dart';
 import 'package:shutterbook/utils/formatters.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -123,14 +124,18 @@ class _DashboardPageState extends State<DashboardPage> {
                           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                             Text('Welcome back', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
                             const SizedBox(height: 6),
-                            Text('Your studio overview', style: theme.textTheme.bodyMedium),
+                            Text('Your Shutterbook Overview', style: theme.textTheme.bodyMedium),
                           ]),
                         ),
-                        // use a neutral stats icon instead of camera
-                        Container(
-                          decoration: BoxDecoration(color: theme.colorScheme.primaryContainer, shape: BoxShape.circle),
-                          padding: const EdgeInsets.all(8),
-                          child: Icon(Icons.bar_chart, size: 28, color: theme.colorScheme.onPrimaryContainer),
+                        // tappable stats icon — opens the Stats screen
+                        InkWell(
+                          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const StatsPage())),
+                          borderRadius: BorderRadius.circular(100),
+                          child: Container(
+                            decoration: BoxDecoration(color: theme.colorScheme.primaryContainer, shape: BoxShape.circle),
+                            padding: const EdgeInsets.all(8),
+                            child: Icon(Icons.bar_chart, size: 28, color: theme.colorScheme.onPrimaryContainer),
+                          ),
                         ),
                       ],
                     ),
@@ -232,12 +237,16 @@ class _DashboardPageState extends State<DashboardPage> {
                           const SizedBox(width: 8),
                           ConstrainedBox(
                             constraints: const BoxConstraints(maxWidth: 120),
-                            child: Chip(
-                              label: Text(b.status, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onPrimary)),
-                              backgroundColor: _statusColor(b.status, theme),
-                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                            ),
+                            child: Builder(builder: (context) {
+                              final bg = _statusColor(b.status, theme);
+                              final fg = bg.computeLuminance() > 0.5 ? Colors.black : Colors.white;
+                              return Chip(
+                                label: Text(b.status, style: theme.textTheme.bodySmall?.copyWith(color: fg, fontWeight: FontWeight.w600)),
+                                backgroundColor: bg,
+                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                              );
+                            }),
                           ),
                         ]),
                       ),
@@ -366,16 +375,27 @@ class _DashboardPageState extends State<DashboardPage> {
     if (widget.embedded) return content;
 
     return Scaffold(
-      appBar: AppBar(title: _clientFromArgs != null ? Text('${_showQuotesInMain ? 'Quotes' : 'Bookings'} — ${_clientFromArgs!.firstName} ${_clientFromArgs!.lastName}') : const Text('Photography Bookings Dashboard'), actions: [
-        if (_clientFromArgs != null)
-          IconButton(tooltip: 'Clear client filter', onPressed: () {
-            setState(() {
-              _clientFromArgs = null;
-              _showQuotesInMain = false;
-              _argsProcessed = false;
-            });
-          }, icon: const Icon(Icons.clear)),
-      ]),
+      appBar: UIStyles.accentAppBar(
+        context,
+        _clientFromArgs != null
+            ? Text('${_showQuotesInMain ? 'Quotes' : 'Bookings'} — ${_clientFromArgs!.firstName} ${_clientFromArgs!.lastName}')
+            : const Text('Photography Bookings Dashboard'),
+        0,
+        actions: [
+          if (_clientFromArgs != null)
+            IconButton(
+              tooltip: 'Clear client filter',
+              onPressed: () {
+                setState(() {
+                  _clientFromArgs = null;
+                  _showQuotesInMain = false;
+                  _argsProcessed = false;
+                });
+              },
+              icon: const Icon(Icons.clear),
+            ),
+        ],
+      ),
       body: content,
     );
   }

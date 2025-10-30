@@ -15,6 +15,7 @@ import 'package:shutterbook/data/tables/client_table.dart';
 import 'package:shutterbook/widgets/client_search_dialog.dart';
 import 'package:shutterbook/data/tables/quote_table.dart';
 import '../../widgets/section_card.dart';
+import 'package:shutterbook/data/services/data_cache.dart';
 
 class CreateBookingPage extends StatefulWidget {
   final Quote? quote; // provided when creating a new booking from a quote
@@ -201,6 +202,7 @@ class _CreateBookingPageState extends State<CreateBookingPage> {
             createdAt: existing.createdAt,
           );
           await BookingTable().updateBooking(updated);
+          DataCache.instance.clearBookings();
         } else {
           // Create booking: support creating from provided quote or free-form selection
           int? clientId;
@@ -226,6 +228,7 @@ class _CreateBookingPageState extends State<CreateBookingPage> {
             status: _statusController.text.trim().isEmpty ? 'Scheduled' : _statusController.text.trim(),
           );
           await BookingTable().insertBooking(booking);
+          DataCache.instance.clearBookings();
         }
 
         if (!mounted) return;
@@ -273,9 +276,7 @@ class _CreateBookingPageState extends State<CreateBookingPage> {
       // compute ids on demand where needed; controllers provide user-visible strings
 
         return Scaffold(
-          appBar: AppBar(
-            title: Text(isEditing ? 'Edit Booking' : 'Create Booking'),
-          ),
+          appBar: UIStyles.accentAppBar(context, Text(isEditing ? 'Edit Booking' : 'Create Booking'), 1),
           body: Form(
             key: _formKey,
             child: ListView(

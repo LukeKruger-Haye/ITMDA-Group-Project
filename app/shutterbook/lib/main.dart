@@ -19,6 +19,7 @@ import 'pages/clients/clients.dart';
 import 'pages/quotes/create/create_quote.dart';
 import 'pages/quotes/manage/manage_quote_screen.dart';
 import 'pages/inventory/inventory.dart';
+import 'data/services/data_cache.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,6 +31,11 @@ Future<void> main() async {
   await authModel.loadSettings();
 
   final firstLaunch = await authModel.isFirstLaunch();
+
+  // Prefetch commonly-used caches (non-blocking) to warm the app and
+  // reduce perceived latency when navigating to client/booking screens.
+  DataCache.instance.getClients();
+  DataCache.instance.getBookings();
 
   runApp(MyApp(authModel: authModel, firstLaunch: firstLaunch));
 }

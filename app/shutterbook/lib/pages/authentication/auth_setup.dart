@@ -6,6 +6,7 @@ import 'models/auth_model.dart';
 import '../dashboard_home.dart';
 import '../../widgets/section_card.dart';
 import '../../widgets/password_field.dart';
+import 'package:shutterbook/theme/ui_styles.dart';
 
 class SetupScreen extends StatefulWidget {
   final AuthModel authModel;
@@ -64,7 +65,7 @@ class _SetupScreenState extends State<SetupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Initial Setup')),
+      appBar: UIStyles.accentAppBar(context, const Text('Initial Setup'), 0),
       body: Center(
         child: SingleChildScrollView(
           child: Padding(
@@ -102,12 +103,14 @@ class _SetupScreenState extends State<SetupScreen> {
                                   children: [
                                     Expanded(
                                       child: ElevatedButton(
+                                        style: UIStyles.primaryButton(context),
                                         onPressed: _continue,
                                         child: const Text('Save & Continue'),
                                       ),
                                     ),
                                     const SizedBox(width: 12),
                                     OutlinedButton(
+                                      style: UIStyles.outlineButton(context),
                                       onPressed: () {
                                         _passwordController.clear();
                                         _confirmController.clear();
@@ -121,6 +124,7 @@ class _SetupScreenState extends State<SetupScreen> {
                             ),
                           )
                         : ElevatedButton(
+                            style: UIStyles.primaryButton(context),
                             onPressed: () => setState(() => _showPasswordEditor = true),
                             child: const Text('Set Password'),
                           ),
@@ -129,6 +133,7 @@ class _SetupScreenState extends State<SetupScreen> {
                 ],
                 if (!_usePassword)
                   ElevatedButton(
+                    style: UIStyles.primaryButton(context),
                     onPressed: _continue,
                     child: const Text('Continue'),
                   ),

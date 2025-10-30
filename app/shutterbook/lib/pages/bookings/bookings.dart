@@ -1,3 +1,6 @@
+// Shutterbook — Bookings list page
+// Displays a paginated list or calendar of bookings and provides
+// entry points to create or edit bookings.
 import 'dart:async';
 // Shutterbook — Bookings list page
 // Displays a paginated list or calendar of bookings and provides
@@ -10,7 +13,7 @@ import '../../widgets/section_card.dart';
 import '../../data/models/booking.dart';
 import '../../data/models/client.dart';
 import '../../data/models/quote.dart';
-import '../../data/tables/booking_table.dart';
+import '../../data/services/data_cache.dart';
 import '../../data/tables/client_table.dart';
 import '../../data/tables/quote_table.dart';
 import 'create_booking.dart';
@@ -27,6 +30,7 @@ class BookingsPage extends StatefulWidget {
 class _BookingsPageState extends State<BookingsPage> {
   // 0 = calendar, 1 = list
   int _view = 0;
+  int _prevView = 0;
   Client? _clientFilter;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
@@ -41,6 +45,7 @@ class _BookingsPageState extends State<BookingsPage> {
     // If an initial client was passed explicitly, prefer that (e.g., programmatic navigation)
     if (widget.initialClient != null) {
       _clientFilter = widget.initialClient;
+      _prevView = _view;
       _view = 1; // show list when opened for a client
     }
 
@@ -91,13 +96,14 @@ class _BookingsPageState extends State<BookingsPage> {
       final prefs = await SharedPreferences.getInstance();
       if (widget.initialClient == null) {
         final clientId = prefs.getInt(_kLastClientIdKey);
-        if (clientId != null) {
+          if (clientId != null) {
           try {
             final c = await ClientTable().getClientById(clientId);
             if (c != null) {
               setState(() {
                 _clientFilter = c;
-                _view = 1;
+                  _prevView = _view;
+                  _view = 1;
               });
             }
           } catch (_) {}
@@ -121,21 +127,37 @@ class _BookingsPageState extends State<BookingsPage> {
     final header = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
       child: LayoutBuilder(builder: (context, constraints) {
-        // Allocate up to 40% of the width (max 240) for the toggle controls on the right
-        final maxToggleWidth = (constraints.maxWidth * 0.4).clamp(120.0, 240.0);
+  // Allocate up to 40% of the width (max 240) for the toggle controls on the right
+  final maxToggleWidth = (constraints.maxWidth * 0.4).clamp(120.0, 240.0);
         final gap = 6.0; // space between two buttons
         final buttonWidth = (maxToggleWidth - gap) / 2;
         final btnConstraints = BoxConstraints(minWidth: buttonWidth, minHeight: 36);
 
-        final viewLabel = _view == 0 ? 'Calendar' : 'List';
+  final viewLabel = _view == 0 ? 'Calendar' : 'List';
+        // Prevent label width jumps when switching by giving the label a stable max width
+        final labelMaxWidth = (constraints.maxWidth - maxToggleWidth - 32).clamp(80.0, constraints.maxWidth * 0.6);
         return Row(children: [
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 250),
-            transitionBuilder: (child, anim) {
-              final offsetAnim = Tween<Offset>(begin: const Offset(0, 0.2), end: Offset.zero).animate(anim);
-              return FadeTransition(opacity: anim, child: SlideTransition(position: offsetAnim, child: child));
-            },
-            child: Text(viewLabel, key: ValueKey(viewLabel), style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+          SizedBox(
+            width: labelMaxWidth,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Builder(builder: (context) {
+                final reduceMotion = MediaQuery.of(context).accessibleNavigation;
+                final duration = reduceMotion ? Duration.zero : const Duration(milliseconds: 220);
+                final direction = _view >= _prevView ? 1.0 : -1.0;
+                final offsetMag = reduceMotion ? 0.0 : 0.04;
+                return AnimatedSwitcher(
+                  duration: duration,
+                  transitionBuilder: (child, anim) {
+                    // Simple direction-aware slide + fade tuned for smoothness.
+                    final offsetAnim = Tween<Offset>(begin: Offset(offsetMag * direction, 0), end: Offset.zero)
+                        .animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic));
+                    return SlideTransition(position: offsetAnim, child: FadeTransition(opacity: anim, child: child));
+                  },
+                  child: Text(viewLabel, key: ValueKey(viewLabel), style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                );
+              }),
+            ),
           ),
           const SizedBox(width: 12),
           const Spacer(),
@@ -143,7 +165,10 @@ class _BookingsPageState extends State<BookingsPage> {
             width: maxToggleWidth,
             child: ToggleButtons(
               isSelected: [_view == 0, _view == 1],
-              onPressed: (i) => setState(() => _view = i),
+              onPressed: (i) => setState(() {
+                _prevView = _view;
+                _view = i;
+              }),
               borderRadius: BorderRadius.circular(8),
               constraints: btnConstraints,
               color: Theme.of(context).colorScheme.onSurface,
@@ -249,11 +274,13 @@ class _BookingsPageState extends State<BookingsPage> {
 
     final body = Padding(padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0), child: Column(children: bodyChildren));
 
-  return widget.embedded
-    ? Column(children: [header, const SizedBox(height: 8), if (_view == 1) searchBar, const SizedBox(height: 8), Expanded(child: bodyContent)])
+    return widget.embedded
+        ? Column(children: [header, const SizedBox(height: 8), if (_view == 1) searchBar, const SizedBox(height: 8), Expanded(child: bodyContent)])
         : Scaffold(
-            appBar: AppBar(
-              title: const Text('Bookings'),
+            appBar: UIStyles.accentAppBar(
+              context,
+              const Text('Bookings'),
+              1,
               actions: [
                 IconButton(
                   tooltip: 'Dashboard',
@@ -270,6 +297,7 @@ class _BookingsPageState extends State<BookingsPage> {
   void focusOnClient(Client client, {String? query}) {
     setState(() {
       _clientFilter = client;
+      _prevView = _view;
       _view = 1;
       _searchController.text = query ?? '';
       _searchQuery = _searchController.text.trim();
@@ -292,8 +320,6 @@ class BookingListView extends StatefulWidget {
 }
 
 class _BookingListViewState extends State<BookingListView> {
-  final BookingTable _bookingTable = BookingTable();
-  final ClientTable _clientTable = ClientTable();
   final QuoteTable _quoteTable = QuoteTable();
 
   late Future<List<Booking>> _bookingsFuture;
@@ -303,8 +329,8 @@ class _BookingListViewState extends State<BookingListView> {
   @override
   void initState() {
     super.initState();
-    _bookingsFuture = _bookingTable.getAllBookings();
-    _clientsFuture = _clientTable.getAllClients();
+    _bookingsFuture = DataCache.instance.getBookings();
+    _clientsFuture = DataCache.instance.getClients();
     _quotesFuture = _quoteTable.getAllQuotes();
   }
 

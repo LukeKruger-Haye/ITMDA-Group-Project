@@ -48,11 +48,7 @@ class _ClientBookingsPageState extends State<ClientBookingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Bookings — ${widget.client.firstName} ${widget.client.lastName}',
-        ),
-      ),
+      appBar: UIStyles.accentAppBar(context, Text('Bookings — ${widget.client.firstName} ${widget.client.lastName}'), 1),
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : bookings.isEmpty
