@@ -510,8 +510,8 @@ class Flex extends MultiChildWidget with SpanningWidget {
   void paint(Context context) {
     super.paint(context);
 
-    final mat = Matrix4.identity();
-    mat.translate(box!.x, box!.y);
+  final mat = Matrix4.identity();
+  mat.translateByVector3(Vector3(box!.x, box!.y, 0));
     context.canvas
       ..saveContext()
       ..setTransform(mat);

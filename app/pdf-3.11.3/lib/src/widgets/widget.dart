@@ -252,8 +252,8 @@ abstract class StatelessWidget extends Widget with SpanningWidget {
     super.paint(context);
 
     if (_child != null) {
-      final mat = Matrix4.identity();
-      mat.translate(box!.x, box!.y);
+  final mat = Matrix4.identity();
+  mat.translateByVector3(Vector3(box!.x, box!.y, 0));
       context.canvas
         ..saveContext()
         ..setTransform(mat);
@@ -312,8 +312,8 @@ abstract class SingleChildWidget extends Widget with SpanningWidget {
   @protected
   void paintChild(Context context) {
     if (child != null) {
-      final mat = Matrix4.identity();
-      mat.translate(box!.x, box!.y);
+  final mat = Matrix4.identity();
+  mat.translateByVector3(Vector3(box!.x, box!.y, 0));
       context.canvas
         ..saveContext()
         ..setTransform(mat);
