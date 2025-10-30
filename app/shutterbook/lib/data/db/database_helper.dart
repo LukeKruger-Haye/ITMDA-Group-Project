@@ -94,5 +94,29 @@ class DatabaseHelper {
         price REAL NOT NULL
       )
       ''');
+
+      await db.execute('''
+      Insert into 'Packages'(
+      name,
+      details,
+      price
+      )
+      VALUES(
+            'Birthday','This package involves taking pictures on your birthday with props', 750 ),
+            ('Wedding','Take pictures on your special day of your partner and family',650
+            )
+      ''');
+await db.execute('''
+      Insert into 'Clients'(
+      first_name,
+      last_name,
+      email,phone
+      )
+      VALUES(
+      'James','Baxtor','james.baxtor@example.com','555-689-2563' ),
+      ('Micheal','Jackson','micehal.jackson@example.com','235-845-9874'
+      )
+      ''');
+      
   }
 }
