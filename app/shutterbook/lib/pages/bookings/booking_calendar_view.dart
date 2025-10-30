@@ -46,7 +46,6 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
     // Space for later timers
     super.dispose();
   }
-
   String _twoDigits(int n) => n.toString().padLeft(2, '0');
 
   String _formatDateTime(DateTime dt) {
@@ -131,7 +130,10 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
   }
 
   Future<void> _editBooking(DateTime slot, [Booking? existing]) async {
-  Client? selectedClient = existing != null ? await clientTable.getClientById(existing.clientId) : null;
+    Client? selectedClient;
+    if (existing != null && existing.clientId != null) {
+      selectedClient = await clientTable.getClientById(existing.clientId!);
+    }
     _selectedDateTime = existing?.bookingDate;
 
     List<Quote> clientQuotes = [];
@@ -287,138 +289,138 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                   ],
                 ),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => dialogNavigator.pop(),
-                  child: const Text('Cancel'),
-                ),
-                if (existing != null)
+                actions: [
+                  TextButton(
+                    onPressed: () => dialogNavigator.pop(),
+                    child: const Text('Cancel'),
+                  ),
+                  if (existing != null)
+                    TextButton(
+                      onPressed: () async {
+                        final confirm = await showDialog<bool>(
+                          context: dialogContext,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('Confirm Deletion'),
+                            content: const Text('Are you sure you want to delete this booking?'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(ctx).pop(false),
+                                child: const Text('Cancel'),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.of(ctx).pop(true),
+                                child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (confirm != true) return;
+                        await bookingTable.deleteBooking(existing.bookingId!);
+                        if (dialogNavigator.mounted) dialogNavigator.pop();
+                        if (!mounted) return;
+                        _loadBookings();
+                      },
+                      child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                    ),
                   TextButton(
                     onPressed: () async {
-                      final confirm = await showDialog<bool>(
-                        context: dialogContext,
-                        builder: (ctx) => AlertDialog(
-                          title: const Text('Confirm Deletion'),
-                          content: const Text('Are you sure you want to delete this booking?'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(ctx).pop(false),
-                              child: const Text('Cancel'),
-                            ),
-                            TextButton(
-                              onPressed: () => Navigator.of(ctx).pop(true),
-                              child: const Text('Delete', style: TextStyle(color: Colors.red)),
-                            ),
-                          ],
-                        ),
+                      if (selectedClient == null) {
+                        dialogMessenger.showSnackBar(const SnackBar(content: Text('Please select a client.')));
+                        return;
+                      }
+                      if (selectedQuoteId == null) {
+                        dialogMessenger.showSnackBar(const SnackBar(content: Text('Please select a quote for this client.')));
+                        return;
+                      }
+
+                      // Double-booking check for this hour slot
+                      final conflicts = await bookingTable.findHourConflicts(
+                        slot,
+                        excludeBookingId: existing?.bookingId,
                       );
-                      if (confirm != true) return;
-                      await bookingTable.deleteBooking(existing.bookingId!);
+                      if (conflicts.isNotEmpty) {
+                        final proceed = await showDialog<bool>(
+                          context: dialogContext,
+                          builder: (innerCtx) => AlertDialog(
+                            title: const Text('Possible double booking'),
+                            content: Text('There is already ${conflicts.length} booking(s) in this time slot (hour).\n\nYou can edit the time or proceed and allow a double booking.'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(innerCtx).pop(false),
+                                child: const Text('Edit time'),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.of(innerCtx).pop(true),
+                                child: const Text('Proceed'),
+                              ),
+                            ],
+                          ),
+                        ) ??
+                            false;
+                        if (!proceed) return;
+                      }
+
+                      final bookingDate = _selectedDateTime ?? slot;
+
+                      // Enforce 08:00–18:00
+                      if (bookingDate.hour < 8 || bookingDate.hour > 18) {
+                        dialogMessenger.showSnackBar(const SnackBar(
+                          content: Text('Please select a time between 08:00 and 18:00.'),
+                          backgroundColor: Colors.red,
+                        ));
+                        return;
+                      }
+
+                      // Check for conflicting bookings at the specific hour
+                      final conflict = bookings.any((b) =>
+                          b.bookingDate.year == bookingDate.year &&
+                          b.bookingDate.month == bookingDate.month &&
+                          b.bookingDate.day == bookingDate.day &&
+                          b.bookingDate.hour == bookingDate.hour &&
+                          (existing == null || b.bookingId != existing.bookingId));
+
+                      if (conflict) {
+                        dialogMessenger.showSnackBar(const SnackBar(
+                          content: Text('This time slot is already booked. Please choose another.'),
+                          backgroundColor: Colors.red,
+                        ));
+                        return;
+                      }
+
+                      if (existing != null) {
+                        final updated = Booking(
+                          bookingId: existing.bookingId,
+                          quoteId: selectedQuoteId!,
+                          clientId: selectedClient!.id!,
+                          bookingDate: bookingDate,
+                          status: status.isEmpty ? 'Scheduled' : status,
+                          createdAt: existing.createdAt,
+                        );
+                        await bookingTable.updateBooking(updated);
+                        DataCache.instance.clearBookings();
+                        setState(() {
+                          final index = bookings.indexWhere((b) => b.bookingId == existing.bookingId);
+                          if (index != -1) bookings[index] = updated;
+                        });
+                      } else {
+                        final newBooking = Booking(
+                          quoteId: selectedQuoteId!,
+                          clientId: selectedClient!.id!,
+                          bookingDate: bookingDate,
+                          status: status.isEmpty ? 'Scheduled' : status,
+                        );
+                        await bookingTable.insertBooking(newBooking);
+                        DataCache.instance.clearBookings();
+                      }
+
                       if (dialogNavigator.mounted) dialogNavigator.pop();
                       if (!mounted) return;
                       _loadBookings();
                     },
-                    child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                    child: const Text('Save'),
                   ),
-                TextButton(
-                  onPressed: () async {
-                    if (selectedClient == null) {
-                      dialogMessenger.showSnackBar(const SnackBar(content: Text('Please select a client.')));
-                      return;
-                    }
-                    if (selectedQuoteId == null) {
-                      dialogMessenger.showSnackBar(const SnackBar(content: Text('Please select a quote for this client.')));
-                      return;
-                    }
-
-                    // Double-booking check for this hour slot
-                    final conflicts = await bookingTable.findHourConflicts(
-                      slot,
-                      excludeBookingId: existing?.bookingId,
-                    );
-                    if (conflicts.isNotEmpty) {
-                      final proceed = await showDialog<bool>(
-                            context: dialogContext,
-                            builder: (innerCtx) => AlertDialog(
-                              title: const Text('Possible double booking'),
-                              content: Text('There is already ${conflicts.length} booking(s) in this time slot (hour).\n\nYou can edit the time or proceed and allow a double booking.'),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.of(innerCtx).pop(false),
-                                  child: const Text('Edit time'),
-                                ),
-                                TextButton(
-                                  onPressed: () => Navigator.of(innerCtx).pop(true),
-                                  child: const Text('Proceed'),
-                                ),
-                              ],
-                            ),
-                          ) ??
-                          false;
-                      if (!proceed) return;
-                    }
-
-                    final bookingDate = _selectedDateTime ?? slot;
-
-                    // Enforce 08:00–18:00
-                    if (bookingDate.hour < 8 || bookingDate.hour > 18) {
-                      dialogMessenger.showSnackBar(const SnackBar(
-                        content: Text('Please select a time between 08:00 and 18:00.'),
-                        backgroundColor: Colors.red,
-                      ));
-                      return;
-                    }
-
-                    // Check for conflicting bookings
-                    final conflict = bookings.any((b) =>
-                        b.bookingDate.year == bookingDate.year &&
-                        b.bookingDate.month == bookingDate.month &&
-                        b.bookingDate.day == bookingDate.day &&
-                        b.bookingDate.hour == bookingDate.hour &&
-                        (existing == null || b.bookingId != existing.bookingId));
-
-                    if (conflict) {
-                      dialogMessenger.showSnackBar(const SnackBar(
-                        content: Text('This time slot is already booked. Please choose another.'),
-                        backgroundColor: Colors.red,
-                      ));
-                      return;
-                    }
-
-                    if (existing != null) {
-                      final updated = Booking(
-                        bookingId: existing.bookingId,
-                        quoteId: selectedQuoteId!,
-                        clientId: selectedClient!.id!,
-                        bookingDate: bookingDate,
-                        status: status.isEmpty ? 'Scheduled' : status,
-                        createdAt: existing.createdAt,
-                      );
-                      await bookingTable.updateBooking(updated);
-                      DataCache.instance.clearBookings();
-                      setState(() {
-                        final index = bookings.indexWhere((b) => b.bookingId == existing.bookingId);
-                        if (index != -1) bookings[index] = updated;
-                      });
-                    } else {
-                      final newBooking = Booking(
-                        quoteId: selectedQuoteId!,
-                        clientId: selectedClient!.id!,
-                        bookingDate: bookingDate,
-                        status: status.isEmpty ? 'Scheduled' : status,
-                      );
-                      await bookingTable.insertBooking(newBooking);
-                      DataCache.instance.clearBookings();
-                    }
-
-                    if (dialogNavigator.mounted) dialogNavigator.pop();
-                    if (!mounted) return;
-                    _loadBookings();
-                  },
-                  child: const Text('Save'),
-                ),
-              ],
-            );
+                ],
+              );
           },
         );
       },
@@ -564,10 +566,15 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                         margin: const EdgeInsets.all(2),
                         height: 50,
                         decoration: BoxDecoration(
+<<<<<<< HEAD
               color: booking != null
                 ? getStatusColor(context, booking.status)
+=======
+                          color: booking != null
+                              ? getStatusColor(context, booking.status)
+>>>>>>> origin/main
                               : (hour < 8 || hour > 18
-                                  ? Colors.grey.shade400
+                                  ? const Color.fromARGB(255, 24, 20, 20)
                                   : Colors.grey.shade300),
                           borderRadius: BorderRadius.circular(4),
                         ),
@@ -581,16 +588,16 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                                       Text(
                                         getClientForBooking(booking)?.firstName ?? '',
                                         textAlign: TextAlign.center,
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 10,
-                                          color: fg,
+                                          color: Color.fromARGB(255, 12, 12, 12),
                                         ),
                                       ),
                                       Text(
                                         getClientForBooking(booking)?.lastName ?? '',
                                         textAlign: TextAlign.center,
-                                        style: TextStyle(fontSize: 9, color: fg),
+                                        style: const TextStyle(fontSize: 9, color: Color.fromARGB(255, 34, 29, 29)),
                                       ),
                                     ],
                                   ),
