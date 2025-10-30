@@ -372,13 +372,29 @@ class _CreateBookingPageState extends State<CreateBookingPage> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      TextFormField(
-                        controller: _statusController,
+                      DropdownButtonFormField<String>(
+                        value: () {
+                          final s = _statusController.text.toLowerCase();
+                          if (s == 'finished' || s == 'completed') return 'Completed';
+                          if (s == 'cancelled') return 'Cancelled';
+                          return 'Scheduled';
+                        }(),
+                        items: [
+                          const DropdownMenuItem(value: 'Scheduled', child: Text('Scheduled')),
+                          if (isEditing)
+                            const DropdownMenuItem(value: 'Completed', child: Text('Completed')),
+                          const DropdownMenuItem(value: 'Cancelled', child: Text('Cancelled')),
+                        ],
+                        onChanged: (val) {
+                          setState(() {
+                            _statusController.text = val ?? 'Scheduled';
+                          });
+                        },
                         decoration: const InputDecoration(
                           labelText: 'Status',
                           border: OutlineInputBorder(),
                         ),
-                        validator: (v) => null,
+                        isExpanded: true,
                       ),
                     ],
                   ),
