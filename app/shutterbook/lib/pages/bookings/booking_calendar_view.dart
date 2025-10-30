@@ -206,7 +206,7 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                       items: clientQuotes
                           .map((q) => DropdownMenuItem<int>(
                                 value: q.id!,
-                               child: Text('${q.description} (quote id: ${q.id})'),
+                               child: Text('${q.description} (Quote #${q.id})'),
                               ))
                           .toList(),
                       onChanged: clientQuotes.isEmpty
