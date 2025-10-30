@@ -15,6 +15,7 @@ import 'package:shutterbook/data/tables/client_table.dart';
 import 'package:shutterbook/widgets/client_search_dialog.dart';
 import 'package:shutterbook/data/tables/quote_table.dart';
 import '../../widgets/section_card.dart';
+import 'package:shutterbook/data/services/data_cache.dart';
 
 class CreateBookingPage extends StatefulWidget {
   final Quote? quote; // provided when creating a new booking from a quote
@@ -153,6 +154,42 @@ class _CreateBookingPageState extends State<CreateBookingPage> {
         setState(() => _saving = true);
         final nav = Navigator.of(context);
 
+        // Check for potential double booking in the same hour.
+        final dt = _selectedDateTime!;
+        int? excludeIdForEdit = widget.existing?.bookingId;
+        final conflicts = await BookingTable().findHourConflicts(dt, excludeBookingId: excludeIdForEdit);
+        if (conflicts.isNotEmpty) {
+          // Ask user whether to proceed or go back to edit.
+          final proceed = await showDialog<bool>(
+                context: context,
+                builder: (ctx) {
+                  final theme = Theme.of(ctx);
+                  String whenStr = _formatDateTime(dt);
+                  return AlertDialog(
+                    title: const Text('Possible double booking'),
+                    content: Text(
+                      'There is already ${conflicts.length} booking(s) in this time slot (hour) on $whenStr.\n\nYou can edit the time or proceed and allow a double booking.',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(false),
+                        child: const Text('Edit time'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(true),
+                        child: Text('Proceed', style: TextStyle(color: theme.colorScheme.primary)),
+                      ),
+                    ],
+                  );
+                },
+              ) ??
+              false;
+          if (!proceed) {
+            if (mounted) setState(() => _saving = false);
+            return;
+          }
+        }
+
         if (widget.existing != null) {
           // Update existing booking
           final existing = widget.existing!;
@@ -165,6 +202,7 @@ class _CreateBookingPageState extends State<CreateBookingPage> {
             createdAt: existing.createdAt,
           );
           await BookingTable().updateBooking(updated);
+          DataCache.instance.clearBookings();
         } else {
           // Create booking: support creating from provided quote or free-form selection
           int? clientId;
@@ -190,6 +228,7 @@ class _CreateBookingPageState extends State<CreateBookingPage> {
             status: _statusController.text.trim().isEmpty ? 'Scheduled' : _statusController.text.trim(),
           );
           await BookingTable().insertBooking(booking);
+          DataCache.instance.clearBookings();
         }
 
         if (!mounted) return;
@@ -237,9 +276,7 @@ class _CreateBookingPageState extends State<CreateBookingPage> {
       // compute ids on demand where needed; controllers provide user-visible strings
 
         return Scaffold(
-          appBar: AppBar(
-            title: Text(isEditing ? 'Edit Booking' : 'Create Booking'),
-          ),
+          appBar: UIStyles.accentAppBar(context, Text(isEditing ? 'Edit Booking' : 'Create Booking'), 1),
           body: Form(
             key: _formKey,
             child: ListView(

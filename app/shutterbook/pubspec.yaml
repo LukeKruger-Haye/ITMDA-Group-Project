@@ -41,6 +41,15 @@ dependencies:
   shared_preferences: ^2.5.3
   local_auth: ^2.3.0
   sqflite_common_ffi: ^2.3.6
+  # Update fl_chart to a version compatible with current Flutter SDK
+  # (0.60.0 references removed Flutter APIs like MediaQuery.boldTextOverride)
+  fl_chart: ^1.1.1
+  intl: ^0.18.1
+  # pdf: ^3.10.1
+  # open_file: ^3.2.1
+  pdf:
+    path: ../pdf-3.11.3
+  open_file: ^3.5.10
 
 dev_dependencies:
   flutter_test:
@@ -54,6 +63,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.13.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -96,3 +106,10 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# Configuration for flutter_launcher_icons. Place your icon at assets/app_icon.png
+# then run: flutter pub run flutter_launcher_icons:main
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/app_icon.png"

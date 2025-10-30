@@ -144,6 +144,4 @@ class BookingTable {
     );
     return maps.map((m) => Booking.fromMap(m)).toList();
   }
-
-  
 }

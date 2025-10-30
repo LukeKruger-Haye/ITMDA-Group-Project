@@ -1,4 +1,5 @@
 // Shutterbook — booking_calendar_view.dart
+// ignore_for_file: use_build_context_synchronously
 // A compact calendar view used in the bookings section to visualise
 // upcoming sessions. It's intentionally small and focused on display logic.
 import 'package:flutter/material.dart';
@@ -8,6 +9,7 @@ import 'package:shutterbook/data/models/client.dart';
 import 'package:shutterbook/data/models/quote.dart';
 import 'package:shutterbook/data/tables/booking_table.dart';
 import 'package:shutterbook/data/tables/client_table.dart';
+import 'package:shutterbook/data/services/data_cache.dart';
 import 'package:shutterbook/data/tables/quote_table.dart';
 import 'package:shutterbook/pages/bookings/bookings_inventory_page.dart';
 
@@ -21,6 +23,7 @@ class BookingCalendarView extends StatefulWidget {
 class _BookingCalendarViewState extends State<BookingCalendarView> {
   final bookingTable = BookingTable();
   final quoteTable = QuoteTable();
+  // clientTable retained for writes; reads should use DataCache for better perf
   final clientTable = ClientTable();
 
   List<Booking> bookings = [];
@@ -28,14 +31,15 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
   Map<String, Client> clientByEmail = {};
 
   late DateTime weekStart;
+  DateTime? _selectedDateTime;
 
   @override
   void initState() {
     super.initState();
     final now = DateTime.now();
     weekStart = now.subtract(Duration(days: now.weekday - 1));
-    _loadBookings();
-    _loadClients();
+  _loadBookings();
+  _loadClients();
   }
 
   @override
@@ -43,40 +47,67 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
     // Space for later timers
     super.dispose();
   }
+  String _twoDigits(int n) => n.toString().padLeft(2, '0');
 
-Future<void> _loadBookings() async {
-  final data = await bookingTable.getAllBookings();
-  if (!mounted) return;
-  setState(() {
-    bookings = data;
-  });
-}
-
-Future<void> _loadClients() async {
-  final data = await clientTable.getAllClients();
-  final map = <String, Client>{};
-  for (final c in data) {
-    if (c.email.isNotEmpty) map[c.email] = c;
+  String _formatDateTime(DateTime dt) {
+    const wk = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const mo = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
+    final day = wk[dt.weekday - 1];
+    final month = mo[dt.month - 1];
+    final hour = _twoDigits(dt.hour);
+    final min = _twoDigits(dt.minute);
+    return '$day, ${dt.day} $month • $hour:$min';
   }
-  if (!mounted) return;
-  setState(() {
-    allClients = data;
-    clientByEmail = map;
-  });
-}
 
-  Color getStatusColor(String status) {
+  Future<void> _loadBookings() async {
+    final data = await bookingTable.getAllBookings();
+    if (!mounted) return;
+    setState(() => bookings = data);
+  }
+
+  Future<void> _loadClients() async {
+    final data = await clientTable.getAllClients();
+    final map = <String, Client>{};
+    for (final c in data) {
+      if (c.email.isNotEmpty) map[c.email] = c;
+    }
+    if (!mounted) return;
+    setState(() {
+      allClients = data;
+      clientByEmail = map;
+    });
+  }
+
+  // Determine a background color for a booking status using the current theme
+  Color getStatusColor(BuildContext context, String status) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     switch (status.toLowerCase()) {
       case 'scheduled':
-        return Colors.lightBlue.shade200;
+        // Use primaryContainer for scheduled to adapt to dark/light themes
+        return cs.primaryContainer;
       case 'completed':
-        return Colors.green.shade300;
+        return cs.secondaryContainer;
       case 'cancelled':
-        return Colors.red.shade300;
+        return cs.errorContainer;
       default:
-        return Colors.grey.shade300;
+        return cs.surfaceContainerHighest;
     }
   }
+
   Booking? getBookingForSlot(DateTime slot) {
     try {
       return bookings.firstWhere(
@@ -101,238 +132,167 @@ Future<void> _loadClients() async {
 
   Future<void> _editBooking(DateTime slot, [Booking? existing]) async {
     Client? selectedClient;
-    int? selectedQuoteId = existing?.quoteId;
-    List<Quote> clientQuotes = [];
-    String status = existing?.status ?? '';
-
     if (existing != null) {
-      if (allClients.isNotEmpty) {
-        selectedClient = allClients.firstWhere(
-          (c) => c.id == existing.clientId,
-          orElse: () => allClients.first,
-        );
-        try {
-          clientQuotes = await quoteTable.getQuotesByClient(selectedClient.id!);
-          if (clientQuotes.isNotEmpty &&
-              (selectedQuoteId == null ||
-                  !clientQuotes.any((q) => q.id == selectedQuoteId))) {
-            selectedQuoteId = clientQuotes.first.id;
-          }
-        } catch (e) {
-          clientQuotes = [];
-        }
-      } else {
-        selectedClient = null;
-      }
+      // Booking.clientId is non-nullable in our model, so we can access it directly.
+      selectedClient = await clientTable.getClientById(existing.clientId);
+    }
+    _selectedDateTime = existing?.bookingDate;
+
+    List<Quote> clientQuotes = [];
+    int? selectedQuoteId = existing?.quoteId;
+    String status = existing?.status ?? 'Scheduled';
+
+    if (selectedClient != null && selectedClient.id != null) {
+      clientQuotes = await quoteTable.getQuotesByClient(selectedClient.id!);
     }
 
-    if (!mounted) return;
-    showDialog(
+    final TextEditingController searchController = TextEditingController();
+
+    await showDialog(
       context: context,
-      builder: (_) => StatefulBuilder(
-        builder: (context, setStateDialog) {
-          final NavigatorState dialogNavigator = Navigator.of(context);
-          final ScaffoldMessengerState dialogMessenger = ScaffoldMessenger.of(
-            context,
-          );
-          return AlertDialog(
-            title: Text(existing == null ? 'New Booking' : 'Edit Booking'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-Autocomplete<String>(
-  initialValue: existing != null && selectedClient != null
-      ? TextEditingValue(
-          text:
-              '${selectedClient!.firstName} ${selectedClient!.lastName} (${selectedClient!.email})',
-        )
-      : const TextEditingValue(),
-  optionsBuilder: (TextEditingValue textEditingValue) {
-    final query = textEditingValue.text.toLowerCase();
-    if (query.isEmpty) return const Iterable<String>.empty();
-    return allClients.where((c) {
-      final full = '${c.firstName} ${c.lastName}'.toLowerCase();
-      return c.firstName.toLowerCase().contains(query) ||
-          c.lastName.toLowerCase().contains(query) ||
-          full.contains(query) ||
-          c.email.toLowerCase().contains(query);
-    }).map((c) => '${c.firstName} ${c.lastName} (${c.email})');
-  },
-                    fieldViewBuilder:
-                        (context, controller, focusNode, onFieldSubmitted) {
-                      return TextField(
-                        controller: controller,
-                        focusNode: focusNode,
-                        decoration: const InputDecoration(
-                          labelText: 'Client name or email',
-                          prefixIcon: Icon(Icons.search),
-                        ),
-                      );
-                    },
-                    onSelected: (String selection) async {
-                      final start = selection.lastIndexOf('(');
-                      final end = selection.lastIndexOf(')');
-                      String? email;
-                      if (start != -1 && end != -1 && end > start) {
-                        email = selection.substring(start + 1, end);
-                      }
+      builder: (BuildContext dialogContext) {
+        final dialogMessenger = ScaffoldMessenger.of(dialogContext);
+        final dialogNavigator = Navigator.of(dialogContext);
 
-                      Client? client;
-                      if (email != null) client = clientByEmail[email];
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            List<Client> filteredClients = allClients
+                .where((c) =>
+                    c.firstName.toLowerCase().contains(searchController.text.toLowerCase()) ||
+                    c.lastName.toLowerCase().contains(searchController.text.toLowerCase()) ||
+                    c.email.toLowerCase().contains(searchController.text.toLowerCase()))
+                .toList();
 
-                      if (client == null) {
-                        for (final c in allClients) {
-                          final display =
-                              '${c.firstName} ${c.lastName} (${c.email})';
-                          if (display == selection) {
-                            client = c;
-                            break;
-                          }
-                        }
-                      }
+            if (selectedClient != null && !filteredClients.contains(selectedClient)) {
+              filteredClients.insert(0, selectedClient!);
+            }
 
-                      if (client == null) {
-                        dialogMessenger.showSnackBar(
-                          const SnackBar(
-                            content: Text('Selected client not found'),
-                          ),
-                        );
-                        return;
-                      }
-
-                      try {
-                        if (client.id == null) {
-                          setStateDialog(() {
-                            selectedClient = client;
-                            clientQuotes = [];
-                            selectedQuoteId = null;
-                          });
-                          dialogMessenger.showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Selected client is not saved (no id)',
-                              ),
+            return AlertDialog(
+              title: Text(existing == null ? 'New Booking' : 'Edit Booking'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Client Dropdown
+                    DropdownButtonFormField<Client>(
+                      initialValue: selectedClient,
+                      items: filteredClients
+                          .map(
+                            (c) => DropdownMenuItem<Client>(
+                              value: c,
+                              child: Text('${c.firstName} ${c.lastName} (${c.email})'),
                             ),
-                          );
-                          return;
-                        }
-                        final quotes = await quoteTable.getQuotesByClient(
-                          client.id!,
-                        );
+                          )
+                          .toList(),
+                      onChanged: (Client? client) async {
+                        if (client == null) return;
+                        final quotes = await quoteTable.getQuotesByClient(client.id!);
                         setStateDialog(() {
                           selectedClient = client;
                           clientQuotes = quotes;
-                          selectedQuoteId = clientQuotes.isNotEmpty
-                              ? clientQuotes.first.id
-                              : null;
+                          selectedQuoteId = clientQuotes.isNotEmpty ? clientQuotes.first.id : null;
                         });
-                      } catch (e) {
+                      },
+                      decoration: const InputDecoration(
+                        labelText: 'Select client',
+                        prefixIcon: Icon(Icons.person),
+                      ),
+                      isExpanded: true,
+                    ),
+                    const SizedBox(height: 8),
+                    // Quote Dropdown
+                    DropdownButtonFormField<int>(
+                      initialValue: selectedQuoteId,
+                      items: clientQuotes
+                          .map((q) => DropdownMenuItem<int>(
+                                value: q.id!,
+                                child: Text(q.description),
+                              ))
+                          .toList(),
+                      onChanged: clientQuotes.isEmpty
+                          ? null
+                          : (val) {
+                              setStateDialog(() {
+                                selectedQuoteId = val;
+                              });
+                            },
+                      decoration: const InputDecoration(labelText: 'Quote'),
+                      hint: const Text('Select Quote'),
+                      isExpanded: true,
+                      disabledHint: const Text('Select a client first'),
+                    ),
+                    const SizedBox(height: 8),
+                    // Status Dropdown
+                    DropdownButtonFormField<String>(
+                      initialValue: () {
+                        switch (status.toLowerCase()) {
+                          case 'finished':
+                          case 'completed':
+                            return 'Completed';
+                          case 'cancelled':
+                            return 'Cancelled';
+                          default:
+                            return 'Scheduled';
+                        }
+                      }(),
+                      items: [
+                        const DropdownMenuItem(value: 'Scheduled', child: Text('Scheduled')),
+                        if (existing != null)
+                          const DropdownMenuItem(value: 'Completed', child: Text('Completed')),
+                        const DropdownMenuItem(value: 'Cancelled', child: Text('Cancelled')),
+                      ],
+                      onChanged: (val) {
                         setStateDialog(() {
-                          selectedClient = client;
-                          clientQuotes = [];
-                          selectedQuoteId = null;
+                          status = val ?? 'Scheduled';
                         });
-                        dialogMessenger.showSnackBar(
-                          SnackBar(content: Text('Failed loading quotes: $e')),
-                        );
-                      }
-                    },
-                    optionsViewBuilder: (context, onSelected, options) {
-                      final opts = options.toList();
-                      return Align(
-                        alignment: Alignment.topLeft,
-                        child: Material(
-                          elevation: 4.0,
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxHeight: 200),
-                            child: ListView.builder(
-                              padding: EdgeInsets.zero,
-                              itemCount: opts.length,
-                              itemBuilder: (BuildContext context, int index) {
-                                final String display = opts[index];
-                                final emailStart = display.lastIndexOf('(');
-                                final namePart = emailStart > 0
-                                    ? display.substring(0, emailStart).trim()
-                                    : display;
-                                final emailPart =
-                                    (emailStart > 0 && display.endsWith(')'))
-                                        ? display.substring(
-                                            emailStart + 1,
-                                            display.length - 1,
-                                          )
-                                        : '';
-                                return ListTile(
-                                  contentPadding: UIStyles.tilePadding,
-                                  title: Text(namePart),
-                                  subtitle: emailPart.isNotEmpty
-                                      ? Text(emailPart)
-                                      : null,
-                                  onTap: () => onSelected(display),
-                                );
-                              },
-                            ),
-                          ),
+                      },
+                      decoration: const InputDecoration(labelText: 'Status'),
+                      isExpanded: true,
+                    ),
+                    const SizedBox(height: 12),
+                    // Date/Time Picker Button only for editing existing bookings
+                    if (existing != null)
+                      OutlinedButton.icon(
+                        style: UIStyles.outlineButton(context),
+                        onPressed: () async {
+                          final now = DateTime.now();
+                          final initialDate = _selectedDateTime ?? now;
+
+                          final pickedDate = await showDatePicker(
+                            context: context,
+                            initialDate: initialDate,
+                            firstDate: DateTime(now.year - 1),
+                            lastDate: DateTime(now.year + 3),
+                          );
+                          if (pickedDate == null) return;
+
+                          final pickedTime = await showTimePicker(
+                            context: context,
+                            initialTime: TimeOfDay.fromDateTime(initialDate),
+                          );
+                          if (pickedTime == null) return;
+
+                          setStateDialog(() {
+                            _selectedDateTime = DateTime(
+                              pickedDate.year,
+                              pickedDate.month,
+                              pickedDate.day,
+                              pickedTime.hour,
+                              pickedTime.minute,
+                            );
+                          });
+                        },
+                        icon: const Icon(Icons.event),
+                        label: Text(
+                          _selectedDateTime == null ? 'Select Date & Time' : _formatDateTime(_selectedDateTime!),
                         ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<int>(
-                    initialValue: selectedQuoteId,
-                    items: clientQuotes
-                        .map(
-                          (q) => DropdownMenuItem<int>(
-                            value: q.id!,
-                            child: Text(q.description),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: clientQuotes.isEmpty
-                        ? null
-                        : (val) {
-                            setStateDialog(() {
-                              selectedQuoteId = val;
-                            });
-                          },
-                    decoration: const InputDecoration(labelText: 'Quote'),
-                    hint: const Text('Select Quote'),
-                    isExpanded: true,
-                    disabledHint: const Text('Select a client first'),
-                  ),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    initialValue: status.isEmpty ? 'Scheduled' : status,
-                    items: const [
-                      DropdownMenuItem(
-                        value: 'Scheduled',
-                        child: Text('Scheduled'),
                       ),
-                      DropdownMenuItem(
-                        value: 'Completed',
-                        child: Text('Completed'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'Cancelled',
-                        child: Text('Cancelled'),
-                      ),
-                    ],
-                    onChanged: (val) {
-                      setStateDialog(() {
-                        status = val ?? 'Scheduled';
-                      });
-                    },
-                    decoration: const InputDecoration(labelText: 'Status'),
-                    isExpanded: true,
-                  ),
-                  //Button to add inventory items to booking
-                  const SizedBox(height: 12),
-                  ElevatedButton.icon(
-                    onPressed: existing == null
-                        ? null // disable if this is a new booking not yet saved
-                        : () async {
-                            // Navigate to the BookingInventoryPage
+                      //Manage inventory for bookings button
+                    if (existing != null) ...[
+                        const SizedBox(height: 12),
+                        ElevatedButton.icon(
+                          onPressed: () async {
                             await Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -348,88 +308,73 @@ Autocomplete<String>(
                               );
                             }
                           },
-                    icon: const Icon(Icons.inventory_2_outlined),
-                    label: const Text('Add / Edit Inventory'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blueAccent,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size(double.infinity, 45),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  dialogNavigator.pop();
-                },
-                child: const Text('Cancel'),
-              ),
-              if (existing != null)
-                TextButton(
-                  onPressed: () async {
-                    final confirm = await showDialog<bool>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: const Text('Confirm Deletion'),
-      content: const Text('Are you sure you want to delete this booking?'),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(ctx).pop(false),
-          child: const Text('Cancel'),
-        ),
-        TextButton(
-          onPressed: () => Navigator.of(ctx).pop(true),
-          child: const Text('Delete', style: TextStyle(color: Colors.red)),
-        ),
-      ],
-    ),
-  );if (confirm != true) return;
-
-  final nav = dialogNavigator;
-  await bookingTable.deleteBooking(existing.bookingId!);
-  if (nav.mounted) nav.pop();
-  if (!mounted) return;
-  _loadBookings();
-},
-                  child: const Text(
-                    'Delete',
-                    style: TextStyle(color: Colors.red),
-                  ),
+                          icon: const Icon(Icons.inventory_2_outlined),
+                          label: const Text('Add / Edit Inventory'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blueAccent,
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size(double.infinity, 45),
+                          ),
+                        ),
+                    ],
+                  ],
                 ),
-              TextButton(
-                onPressed: () async {
-                  if (selectedClient == null) {
-                    dialogMessenger.showSnackBar(
-                      const SnackBar(content: Text('Please select a client.')),
-                    );
-                    return;
-                  }
-                  if (selectedQuoteId == null) {
-                    dialogMessenger.showSnackBar(
-                      const SnackBar(
-                        content:
-                            Text('Please select a quote for this client.'),
-                      ),
-                    );
-                    return;
-                  }
+              ),
+                actions: [
+                  TextButton(
+                    onPressed: () => dialogNavigator.pop(),
+                    child: const Text('Cancel'),
+                  ),
+                  if (existing != null)
+                    TextButton(
+                      onPressed: () async {
+                        final confirm = await showDialog<bool>(
+                          context: dialogContext,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('Confirm Deletion'),
+                            content: const Text('Are you sure you want to delete this booking?'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(ctx).pop(false),
+                                child: const Text('Cancel'),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.of(ctx).pop(true),
+                                child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (confirm != true) return;
+                        await bookingTable.deleteBooking(existing.bookingId!);
+                        if (dialogNavigator.mounted) dialogNavigator.pop();
+                        if (!mounted) return;
+                        _loadBookings();
+                      },
+                      child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                    ),
+                  TextButton(
+                    onPressed: () async {
+                      if (selectedClient == null) {
+                        dialogMessenger.showSnackBar(const SnackBar(content: Text('Please select a client.')));
+                        return;
+                      }
+                      if (selectedQuoteId == null) {
+                        dialogMessenger.showSnackBar(const SnackBar(content: Text('Please select a quote for this client.')));
+                        return;
+                      }
 
-                  final nav = dialogNavigator;
-                  // Double-booking check for this hour slot
-                  final conflicts = await bookingTable.findHourConflicts(
-                    slot,
-                    excludeBookingId: existing?.bookingId,
-                  );
-                  if (conflicts.isNotEmpty) {
-                    final proceed = await showDialog<bool>(
-                          context: context,
+                      // Double-booking check for this hour slot
+                      final conflicts = await bookingTable.findHourConflicts(
+                        slot,
+                        excludeBookingId: existing?.bookingId,
+                      );
+                      if (conflicts.isNotEmpty) {
+                        final proceed = await showDialog<bool>(
+                          context: dialogContext,
                           builder: (innerCtx) => AlertDialog(
                             title: const Text('Possible double booking'),
-                            content: Text(
-                              'There is already ${conflicts.length} booking(s) in this time slot (hour).\n\nYou can edit the time or proceed and allow a double booking.',
-                            ),
+                            content: Text('There is already ${conflicts.length} booking(s) in this time slot (hour).\n\nYou can edit the time or proceed and allow a double booking.'),
                             actions: [
                               TextButton(
                                 onPressed: () => Navigator.of(innerCtx).pop(false),
@@ -442,39 +387,74 @@ Autocomplete<String>(
                             ],
                           ),
                         ) ??
-                        false;
-                    if (!proceed) return;
-                  }
-                  if (existing != null) {
-                    Booking updated = Booking(
-                      bookingId: existing.bookingId,
-                      quoteId: selectedQuoteId!,
-                      clientId: selectedClient!.id!,
-                      bookingDate: slot,
-                      status: status.isEmpty ? "Scheduled" : status,
-                      createdAt: existing.createdAt,
-                    );
-                    await bookingTable.updateBooking(updated);
-                  } else {
-                    Booking newBooking = Booking(
-                      quoteId: selectedQuoteId!,
-                      clientId: selectedClient!.id!,
-                      bookingDate: slot,
-                      status: status.isEmpty ? "Scheduled" : status,
-                    );
-                    await bookingTable.insertBooking(newBooking);
-                  }
+                            false;
+                        if (!proceed) return;
+                      }
 
-                  if (nav.mounted) nav.pop();
-                  if (!mounted) return;
-                  _loadBookings();
-                },
-                child: const Text('Save'),
-              ),
-            ],
-          );
-        },
-      ),
+                      final bookingDate = _selectedDateTime ?? slot;
+
+                      // Enforce 08:00–18:00
+                      if (bookingDate.hour < 8 || bookingDate.hour > 18) {
+                        dialogMessenger.showSnackBar(const SnackBar(
+                          content: Text('Please select a time between 08:00 and 18:00.'),
+                          backgroundColor: Colors.red,
+                        ));
+                        return;
+                      }
+
+                      // Check for conflicting bookings at the specific hour
+                      final conflict = bookings.any((b) =>
+                          b.bookingDate.year == bookingDate.year &&
+                          b.bookingDate.month == bookingDate.month &&
+                          b.bookingDate.day == bookingDate.day &&
+                          b.bookingDate.hour == bookingDate.hour &&
+                          (existing == null || b.bookingId != existing.bookingId));
+
+                      if (conflict) {
+                        dialogMessenger.showSnackBar(const SnackBar(
+                          content: Text('This time slot is already booked. Please choose another.'),
+                          backgroundColor: Colors.red,
+                        ));
+                        return;
+                      }
+
+                      if (existing != null) {
+                        final updated = Booking(
+                          bookingId: existing.bookingId,
+                          quoteId: selectedQuoteId!,
+                          clientId: selectedClient!.id!,
+                          bookingDate: bookingDate,
+                          status: status.isEmpty ? 'Scheduled' : status,
+                          createdAt: existing.createdAt,
+                        );
+                        await bookingTable.updateBooking(updated);
+                        DataCache.instance.clearBookings();
+                        setState(() {
+                          final index = bookings.indexWhere((b) => b.bookingId == existing.bookingId);
+                          if (index != -1) bookings[index] = updated;
+                        });
+                      } else {
+                        final newBooking = Booking(
+                          quoteId: selectedQuoteId!,
+                          clientId: selectedClient!.id!,
+                          bookingDate: bookingDate,
+                          status: status.isEmpty ? 'Scheduled' : status,
+                        );
+                        await bookingTable.insertBooking(newBooking);
+                        DataCache.instance.clearBookings();
+                      }
+
+                      if (dialogNavigator.mounted) dialogNavigator.pop();
+                      if (!mounted) return;
+                      _loadBookings();
+                    },
+                    child: const Text('Save'),
+                  ),
+                ],
+              );
+          },
+        );
+      },
     );
   }
 
@@ -509,11 +489,9 @@ Autocomplete<String>(
         final double whiteCol = isPhone ? 24 : whiteSpaceWidth;
         const double minBlock = 40;
 
-        final double fitBlock =
-            (constraints.maxWidth - timeCol - whiteCol) / 7.0;
+        final double fitBlock = (constraints.maxWidth - timeCol - whiteCol) / 7.0;
         final bool needsHScroll = fitBlock < minBlock;
-        final double blockW =
-            needsHScroll ? minBlock : fitBlock.floorToDouble();
+        final double blockW = needsHScroll ? minBlock : fitBlock.floorToDouble();
         final double contentW = timeCol + whiteCol + (blockW * 7);
 
         Widget buildDateRow() {
@@ -568,10 +546,7 @@ Autocomplete<String>(
                       getWeekdayName(d),
                       style: TextStyle(
                         fontSize: 12,
-                        color: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.color,
+                        color: Theme.of(context).textTheme.bodySmall?.color,
                       ),
                     ),
                   ),
@@ -602,67 +577,66 @@ Autocomplete<String>(
               for (final d in days)
                 SizedBox(
                   width: blockW,
-                  child: GestureDetector(
-                    onTap: () {
-                      final slot = DateTime(d.year, d.month, d.day, hour);
-                      final booking = getBookingForSlot(slot);
-                      _editBooking(slot, booking);
-                    },
-                    child: Container(
-                      margin: const EdgeInsets.all(2),
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: (() {
-                          final slot = DateTime(d.year, d.month, d.day, hour);
-                          final booking = getBookingForSlot(slot);
-                          if (booking != null) {
-                            return getStatusColor(booking.status);
-                          }
-                          return Colors.grey.shade300;
-                        })(),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Builder(
-                        builder: (context) {
-                          final slot = DateTime(d.year, d.month, d.day, hour);
-                          final booking = getBookingForSlot(slot);
-                          if (booking != null) {
-                            final client = getClientForBooking(booking);
-                            if (client != null) {
-                              return Center(
-                                child: FittedBox(
+                  child: Builder(builder: (context) {
+                    final slot = DateTime(d.year, d.month, d.day, hour);
+                    final booking = getBookingForSlot(slot);
+                    
+
+                    final bool isNewBookingBlocked = hour < 8 || hour > 18 || booking != null;
+
+                    return GestureDetector(
+                      onTap: () {
+                        if (booking != null) {
+                          _editBooking(slot, booking);
+                        } else if (!isNewBookingBlocked) {
+                          _editBooking(slot);
+                        }
+                      },
+                        child: Container(
+                        margin: const EdgeInsets.all(2),
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: booking != null
+                              ? getStatusColor(context, booking.status)
+                              : (hour < 8 || hour > 18
+                                  ? const Color.fromARGB(255, 24, 20, 20)
+                                  : Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Center(
+                          child: booking != null
+                              ? FittedBox(
                                   fit: BoxFit.scaleDown,
                                   child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Text(
-                                        client.firstName,
+                                        getClientForBooking(booking)?.firstName ?? '',
                                         textAlign: TextAlign.center,
                                         style: const TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 10,
+                                          color: Color.fromARGB(255, 12, 12, 12),
                                         ),
                                       ),
                                       Text(
-                                        client.lastName,
+                                        getClientForBooking(booking)?.lastName ?? '',
                                         textAlign: TextAlign.center,
-                                        style: const TextStyle(fontSize: 9),
+                                        style: const TextStyle(fontSize: 9, color: Color.fromARGB(255, 34, 29, 29)),
                                       ),
                                     ],
                                   ),
-                                ),
-                              );
-                            }
-                          }
-                          return const SizedBox.shrink();
-                        },
+                                )
+                              : null,
+                        ),
                       ),
-                    ),
-                  ),
+                    );
+                  }),
                 ),
               SizedBox(width: whiteCol),
             ],
           );
+
           if (needsHScroll) {
             return SingleChildScrollView(
               scrollDirection: Axis.horizontal,

@@ -6,6 +6,9 @@ import '../../data/models/item.dart';
 import '../../data/tables/inventory_table.dart';
 import 'dart:io';
 import '../../pages/inventory/items_details_page.dart';
+import 'package:shutterbook/theme/ui_styles.dart';
+import '../../data/models/item.dart';
+import '../../data/services/data_cache.dart';
 import '../../widgets/section_card.dart';
 
 class InventoryPage extends StatefulWidget {
@@ -36,7 +39,15 @@ class _InventoryPageState extends State<InventoryPage> {
   }
 
   Future<void> _loadItems() async {
-    final items = await _inventoryTable.getAllItems();
+    try {
+      final items = await DataCache.instance.getInventory();
+      setState(() {
+        _inventory = items;
+        _filteredInventory = items;
+      });
+      return;
+    } catch (_) {}
+  final items = await _inventoryTable.getAllItems();
     setState(() {
       _inventory = items;
       _filteredInventory = items;
@@ -254,7 +265,20 @@ Future<void> _addItem() async {
 }
 
   Future<void> _deleteItem(int id) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Item'),
+        content: const Text('Are you sure you want to delete this item?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+          ElevatedButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Delete')),
+        ],
+      ),
+    ) ?? false;
+    if (!confirm) return;
     await _inventoryTable.deleteItem(id);
+    DataCache.instance.clearInventory();
     _loadItems();
   }
 
