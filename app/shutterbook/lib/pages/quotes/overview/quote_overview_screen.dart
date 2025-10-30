@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:shutterbook/data/models/client.dart';
 import 'package:shutterbook/data/models/quote.dart';
 import 'package:shutterbook/data/tables/quote_table.dart';
-import 'package:shutterbook/data/services/data_cache.dart';
   
 import 'package:shutterbook/data/models/package.dart';
 import 'package:shutterbook/utils/formatters.dart';
@@ -36,8 +35,6 @@ final Map<Package, int> packages;
     );
 
     await table.insertQuote(quote);
-    // Clear the client cache so the quote list will fetch updated client data
-    DataCache.instance.clearClients();
     if (kDebugMode) debugPrint('Inserted quote:${quote.toMap()}');
   }
 

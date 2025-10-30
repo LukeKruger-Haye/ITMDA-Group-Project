@@ -281,7 +281,7 @@ class _QuotePageState extends State<QuotePage> {
       ? QuoteList(key: _quoteListKey)
     : Scaffold(
             appBar: UIStyles.accentAppBar(context, const Text('Quotes'), 3),
-            body: QuoteList(key: _quoteListKey),
+            body: const QuoteList(),
             floatingActionButton: FloatingActionButton(
               onPressed: () async {
                 // Start guided create flow: pick client -> package -> overview
@@ -315,13 +315,7 @@ class _QuotePageState extends State<QuotePage> {
                     builder: (_) => QuoteOverviewScreen(client: client, total: total, packages: packages),
                   ),
                 );
-                if (saved == true && mounted) {
-                  // Reload the list to get the new quote and update client names
-                  final state = _quoteListKey.currentState;
-                  if (state != null) {
-                    await state.load();
-                  }
-                }
+                if (saved == true && mounted) setState(() {});
               },
               tooltip: 'Create quote',
               child: const Icon(Icons.add),
@@ -382,9 +376,8 @@ class _QuoteListState extends State<QuoteList> {
     final data = await _table.getAllQuotes();
     if (!mounted) return;
     // also preload client names to avoid many DB calls — use shared cache
-    // Force refresh to get any newly added clients
     try {
-      final clients = await DataCache.instance.getClients(forceRefresh: true);
+      final clients = await DataCache.instance.getClients();
       _clientNames.clear();
       for (final c in clients) {
         if (c.id != null) _clientNames[c.id!] = '${c.firstName} ${c.lastName}';
