@@ -29,7 +29,7 @@ class Booking {
       'booking_date': bookingDate.toString(),
       'status': status,
       'created_at': createdAt?.toString(),
-      'client_name': clientName,
+      // Do NOT include client_name here; it's not a column in the Bookings table
     };
   }
 
