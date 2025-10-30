@@ -329,6 +329,37 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                     : const Text('Delete', style: TextStyle(color: Colors.red)),
                   ),
                 // Save Button
+                TextButton(
+                  onPressed: () async {
+                    final confirm = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Confirm Deletion'),
+      content: const Text('Are you sure you want to delete this booking?'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(false),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(true),
+          child: const Text('Delete', style: TextStyle(color: Colors.red)),
+        ),
+      ],
+    ),
+  );if (confirm != true) return;
+
+  final nav = Navigator.of(context);
+  await bookingTable.deleteBooking(existing?.bookingId ?? 0);
+  if (mounted) nav.pop();
+  if (!mounted) return;
+  _loadBookings();
+},
+                  child: const Text(
+                    'Delete',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                ),
               TextButton(
                 onPressed: () async {
                   if (selectedClient == null) {
