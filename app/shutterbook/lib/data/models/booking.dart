@@ -43,7 +43,6 @@ class Booking {
           map['created_at'] != null ? DateTime.parse(map['created_at']) : null,
     );
   }
-
   
 }
 
