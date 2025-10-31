@@ -8,6 +8,7 @@ import '../../data/models/booking_with_client.dart';
 import '../../data/tables/inventory_table.dart';
 import '../../data/services/data_cache.dart';
 import '../../data/models/item.dart';
+import 'package:image_picker/image_picker.dart';
 
 class InventoryDetailsPage extends StatefulWidget {
   final Item item;
@@ -89,90 +90,190 @@ class _InventoryDetailsPageState extends State<InventoryDetailsPage> {
                           String name = item.name;
                           String category = item.category;
                           String condition = item.condition;
+                          String serialNumber = item.serialNumber ?? '';
+                          String? imagePath = item.imagePath;
+
+                          // Validation error flags
+                          String? nameError;
+                          String? categoryError;
+                          String? conditionError;
 
                           await showDialog(
                             context: context,
                             builder: (context) {
-                              return AlertDialog(
-                                title: const Text('Edit Item'),
-                                content: SingleChildScrollView(
-                                  child: Column(
-                                    children: [
-                                      TextField(
-                                        controller: TextEditingController(text: name),
-                                        decoration:
-                                            const InputDecoration(labelText: 'Item Name'),
-                                        onChanged: (val) => name = val,
+                              return StatefulBuilder(
+                                builder: (context, setState) {
+                                  return AlertDialog(
+                                    title: const Text('Edit Item'),
+                                    content: SingleChildScrollView(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          TextField(
+                                            controller: TextEditingController(text: name),
+                                            decoration: InputDecoration(
+                                              labelText: 'Item Name',
+                                              errorText: nameError,
+                                            ),
+                                            onChanged: (val) {
+                                              setState(() {
+                                                name = val;
+                                                nameError = null;
+                                              });
+                                            },
+                                          ),
+                                          const SizedBox(height: 16),
+
+                                          TextField(
+                                            controller: TextEditingController(text: category),
+                                            decoration: InputDecoration(
+                                              labelText: 'Category',
+                                              errorText: categoryError,
+                                            ),
+                                            onChanged: (val) {
+                                              setState(() {
+                                                category = val;
+                                                categoryError = null;
+                                              });
+                                            },
+                                          ),
+                                          const SizedBox(height: 16),
+
+                                          TextField(
+                                            controller: TextEditingController(text: serialNumber),
+                                            decoration: const InputDecoration(
+                                              labelText: 'Serial Number (optional)',
+                                            ),
+                                            onChanged: (val) {
+                                              setState(() {
+                                                serialNumber = val;
+                                              });
+                                            },
+                                          ),
+                                          const SizedBox(height: 16),
+
+                                          DropdownButtonFormField<String>(
+                                            decoration: InputDecoration(
+                                              labelText: 'Condition',
+                                              errorText: conditionError,
+                                            ),
+                                            value: condition,
+                                            items: ['New', 'Excellent', 'Good', 'Needs Repair']
+                                                .map((e) =>
+                                                    DropdownMenuItem(value: e, child: Text(e)))
+                                                .toList(),
+                                            onChanged: (val) {
+                                              setState(() {
+                                                condition = val ?? 'Good';
+                                                conditionError = null;
+                                              });
+                                            },
+                                          ),
+                                          const SizedBox(height: 16),
+
+                                          // Show current image
+                                          if (imagePath != null && imagePath!.isNotEmpty)
+                                            Column(
+                                              children: [
+                                                Image.file(
+                                                  File(imagePath!),
+                                                  height: 120,
+                                                  fit: BoxFit.cover,
+                                                ),
+                                                const SizedBox(height: 8),
+                                                TextButton.icon(
+                                                  onPressed: () {
+                                                    setState(() => imagePath = null);
+                                                  },
+                                                  icon: const Icon(Icons.delete_outline,
+                                                      color: Colors.red),
+                                                  label: const Text('Remove Image',
+                                                      style: TextStyle(color: Colors.red)),
+                                                ),
+                                                const SizedBox(height: 10),
+                                              ],
+                                            ),
+
+                                          // Change / Add image
+                                          ElevatedButton.icon(
+                                            onPressed: () async {
+                                              final picker = ImagePicker();
+                                              final picked = await picker.pickImage(
+                                                  source: ImageSource.gallery);
+                                              if (picked != null) {
+                                                setState(() => imagePath = picked.path);
+                                              }
+                                            },
+                                            icon: const Icon(Icons.image),
+                                            label: const Text('Change / Add Image'),
+                                          ),
+                                        ],
                                       ),
-                                      TextField(
-                                        controller: TextEditingController(text: category),
-                                        decoration:
-                                            const InputDecoration(labelText: 'Category'),
-                                        onChanged: (val) => category = val,
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context),
+                                        child: const Text('Cancel'),
                                       ),
-                                      DropdownButtonFormField<String>(
-                                        decoration:
-                                            const InputDecoration(labelText: 'Condition'),
-                                        value: condition,
-                                        items: ['New', 'Excellent', 'Good', 'Needs Repair']
-                                            .map((e) =>
-                                                DropdownMenuItem(value: e, child: Text(e)))
-                                            .toList(),
-                                        onChanged: (val) => condition = val ?? 'Good',
+                                      ElevatedButton(
+                                        onPressed: () async {
+                                          // Inline validation per field
+                                          setState(() {
+                                            nameError =
+                                                name.trim().isEmpty ? 'Please enter a name.' : null;
+                                            categoryError = category.trim().isEmpty
+                                                ? 'Please enter a category.'
+                                                : null;
+                                            conditionError = condition.trim().isEmpty
+                                                ? 'Please select a condition.'
+                                                : null;
+                                          });
+
+                                          if (nameError != null ||
+                                              categoryError != null ||
+                                              conditionError != null) return;
+
+                                          final updatedItem = Item(
+                                            id: item.id,
+                                            name: name.trim(),
+                                            category: category.trim(),
+                                            condition: condition.trim(),
+                                            serialNumber: serialNumber.trim().isEmpty
+                                                ? null
+                                                : serialNumber.trim(),
+                                            imagePath: imagePath,
+                                          );
+
+                                          await InventoryTable().updateItem(updatedItem);
+                                          DataCache.instance.clearInventory();
+
+                                          if (mounted) {
+                                            Navigator.pop(context);
+                                            // Refresh item details page after edit
+                                            setState(() {
+                                              widget.item.name = updatedItem.name;
+                                              widget.item.category = updatedItem.category;
+                                              widget.item.condition = updatedItem.condition;
+                                              widget.item.serialNumber = updatedItem.serialNumber;
+                                              widget.item.imagePath = updatedItem.imagePath;
+                                            });
+
+                                            // Show success message
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                    'Item "${updatedItem.name}" updated successfully!'),
+                                                backgroundColor: Colors.green,
+                                              ),
+                                            );
+                                          }
+                                        },
+                                        child: const Text('Save'),
                                       ),
                                     ],
-                                  ),
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(context),
-                                    child: const Text('Cancel'),
-                                  ),
-                                  ElevatedButton(
-                                    onPressed: () async {
-                                      if (name.trim().isEmpty ||
-                                          category.trim().isEmpty ||
-                                          condition.trim().isEmpty) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(
-                                            content:
-                                                Text('Please fill in all fields before saving.'),
-                                            backgroundColor: Colors.redAccent,
-                                          ),
-                                        );
-                                        return;
-                                      }
-
-                                      final updatedItem = Item(
-                                        id: item.id,
-                                        name: name.trim(),
-                                        category: category.trim(),
-                                        condition: condition.trim(),
-                                        imagePath: item.imagePath,
-                                        serialNumber: item.serialNumber,
-                                      );
-
-                                      await InventoryTable().updateItem(updatedItem);
-                                      DataCache.instance.clearInventory();
-                                      if (mounted) {
-                                        setState(() {
-                                          widget.item.name = updatedItem.name;
-                                          widget.item.category = updatedItem.category;
-                                          widget.item.condition = updatedItem.condition;
-                                        });
-                                        Navigator.pop(context);
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                                'Item "${updatedItem.name}" updated successfully!'),
-                                            backgroundColor: Colors.green,
-                                          ),
-                                        );
-                                      }
-                                    },
-                                    child: const Text('Save'),
-                                  ),
-                                ],
+                                  );
+                                },
                               );
                             },
                           );

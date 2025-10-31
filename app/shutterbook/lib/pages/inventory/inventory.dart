@@ -81,6 +81,11 @@ Future<void> _addItem() async {
   String serialNumber = '';
   String? imagePath;
 
+  // Validation error messages
+  String? nameError;
+  String? categoryError;
+  String? conditionError;
+
   await showDialog(
     context: context,
     builder: (context) {
@@ -90,42 +95,101 @@ Future<void> _addItem() async {
             title: const Text('Add Inventory Item'),
             content: SingleChildScrollView(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   TextField(
-                    decoration: const InputDecoration(labelText: 'Item Name'),
-                    onChanged: (val) => name = val,
+                    decoration: InputDecoration(
+                      labelText: 'Item Name',
+                      errorText: nameError,
+                    ),
+                    onChanged: (val) {
+                      setState(() {
+                        name = val;
+                        nameError = null;
+                      });
+                    },
                   ),
+                  const SizedBox(height: 16),
+
                   TextField(
-                    decoration: const InputDecoration(labelText: 'Category'),
-                    onChanged: (val) => category = val,
+                    decoration: InputDecoration(
+                      labelText: 'Category',
+                      errorText: categoryError,
+                    ),
+                    onChanged: (val) {
+                      setState(() {
+                        category = val;
+                        categoryError = null;
+                      });
+                    },
                   ),
+                  const SizedBox(height: 16),
+
                   TextField(
-                    decoration: const InputDecoration(labelText: 'Serial Number (optional)'),
-                    onChanged: (val) => serialNumber = val,
+                    decoration: const InputDecoration(
+                      labelText: 'Serial Number (optional)',
+                    ),
+                    onChanged: (val) {
+                      setState(() {
+                        serialNumber = val;
+                      });
+                    },
                   ),
+                  const SizedBox(height: 16),
+
                   DropdownButtonFormField<String>(
-                    decoration: const InputDecoration(labelText: 'Condition'),
-                    value: 'Good',
+                    decoration: InputDecoration(
+                      labelText: 'Condition',
+                      errorText: conditionError,
+                    ),
+                    value: condition,
                     items: ['New', 'Excellent', 'Good', 'Needs Repair']
-                        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                        .map((e) => DropdownMenuItem(
+                              value: e,
+                              child: Text(e),
+                            ))
                         .toList(),
-                    onChanged: (val) => condition = val ?? 'Good',
+                    onChanged: (val) {
+                      setState(() {
+                        condition = val ?? 'Good';
+                        conditionError = null;
+                      });
+                    },
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 16),
+
+                  // Show image preview if selected
                   if (imagePath != null)
                     Column(
                       children: [
                         Image.file(
                           File(imagePath!),
-                          height: 100,
+                          height: 120,
                           fit: BoxFit.cover,
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 8),
+                        TextButton.icon(
+                          onPressed: () {
+                            setState(() => imagePath = null);
+                          },
+                          icon: const Icon(Icons.delete_outline,
+                              color: Colors.red),
+                          label: const Text(
+                            'Remove Image',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
                       ],
                     ),
+
+                  // Upload / Change image button
                   ElevatedButton.icon(
                     onPressed: () async {
-                      final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+                      final picker = ImagePicker();
+                      final picked = await picker.pickImage(
+                          source: ImageSource.gallery);
                       if (picked != null) {
                         setState(() => imagePath = picked.path);
                       }
@@ -143,22 +207,30 @@ Future<void> _addItem() async {
               ),
               ElevatedButton(
                 onPressed: () async {
-                  // Validation for required fields
-                  if (name.trim().isEmpty || category.trim().isEmpty || condition.trim().isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Please fill in all required fields before adding the item.'),
-                        backgroundColor: Colors.redAccent,
-                      ),
-                    );
-                    return;
-                  }
+                  // Inline validation per field
+                  setState(() {
+                    nameError = name.trim().isEmpty
+                        ? 'Please enter an item name.'
+                        : null;
+                    categoryError = category.trim().isEmpty
+                        ? 'Please enter a category.'
+                        : null;
+                    conditionError = condition.trim().isEmpty
+                        ? 'Please select a condition.'
+                        : null;
+                  });
+
+                  if (nameError != null ||
+                      categoryError != null ||
+                      conditionError != null) return;
 
                   final newItem = Item(
                     name: name.trim(),
                     category: category.trim(),
                     condition: condition.trim(),
-                    serialNumber: serialNumber.trim().isEmpty ? null : serialNumber.trim(),
+                    serialNumber: serialNumber.trim().isEmpty
+                        ? null
+                        : serialNumber.trim(),
                     imagePath: imagePath,
                   );
 
@@ -166,9 +238,11 @@ Future<void> _addItem() async {
                   Navigator.pop(context);
                   await _loadItems();
 
+                  // Success snackbar
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Item "${newItem.name}" added successfully!'),
+                      content: Text(
+                          'Item "${newItem.name}" added successfully!'),
                       backgroundColor: Colors.green,
                     ),
                   );
