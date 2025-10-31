@@ -40,6 +40,8 @@ class _InventoryPageState extends State<InventoryPage> {
 
   Future<void> _loadItems() async  {
     final items = await _inventoryTable.getAllItems();
+    // Sort items alphabetically by name
+    items.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     setState(() {
       _inventory = items;
       _filteredInventory = items;

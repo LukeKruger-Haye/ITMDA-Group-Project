@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../data/models/item.dart';
 import '../../data/models/booking.dart';
@@ -21,29 +22,38 @@ class InventoryDetailsPage extends StatefulWidget {
 
 class _InventoryDetailsPageState extends State<InventoryDetailsPage> {
   late Future<List<BookingWithClient>> _bookingsFuture;
-
+  //Item for retrieving new item info after edit and save
+  late Item _item;
+  //helper for refresh
+  Future<void> _reloadItem() async {
+    final refreshedItem = await InventoryTable().getItemById(_item.id!);
+    if (mounted && refreshedItem != null) {
+      setState(() {
+        _item = refreshedItem;
+      });
+    }
+  }
   @override
   void initState() {
     super.initState();
+    _item = widget.item;
     _loadBookings();
   }
 
   void _loadBookings() {
     setState(() {
-      _bookingsFuture = BookingTable()
-          .getBookingsForItemWithClientNames(widget.item.id!); // correct query
+      _bookingsFuture = BookingTable().getBookingsForItemWithClientNames(_item.id!); // correct query
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final item = widget.item;
 
     return DefaultTabController(
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: Text(item.name),
+          title: Text(_item.name),
           bottom: const TabBar(
             tabs: [
               Tab(text: 'Info'),
@@ -58,11 +68,11 @@ class _InventoryDetailsPageState extends State<InventoryDetailsPage> {
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  if (item.imagePath != null && item.imagePath!.isNotEmpty)
+                  if (_item.imagePath != null && _item.imagePath!.isNotEmpty)
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),
                       child: Image.file(
-                        File(item.imagePath!),
+                        File(_item.imagePath!),
                         height: 180,
                         width: double.infinity,
                         fit: BoxFit.cover,
@@ -72,12 +82,12 @@ class _InventoryDetailsPageState extends State<InventoryDetailsPage> {
                     const Icon(Icons.image_not_supported,
                         size: 100, color: Colors.grey),
                   const SizedBox(height: 16),
-                  Text(item.name,
+                  Text(_item.name,
                       style: const TextStyle(
                           fontSize: 22, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
-                  Text('Category: ${item.category ?? "Unspecified"}'),
-                  Text('Condition: ${item.condition ?? "Unknown"}'),
+                  Text('Category: ${_item.category ?? "Unspecified"}'),
+                  Text('Condition: ${_item.condition ?? "Unknown"}'),
                   const SizedBox(height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -87,11 +97,11 @@ class _InventoryDetailsPageState extends State<InventoryDetailsPage> {
                         icon: const Icon(Icons.edit),
                         label: const Text('Edit'),
                         onPressed: () async {
-                          String name = item.name;
-                          String category = item.category;
-                          String condition = item.condition;
-                          String serialNumber = item.serialNumber ?? '';
-                          String? imagePath = item.imagePath;
+                          String name = _item.name;
+                          String category = _item.category;
+                          String condition = _item.condition;
+                          String serialNumber = _item.serialNumber ?? '';
+                          String? imagePath = _item.imagePath;
 
                           // Validation error flags
                           String? nameError;
@@ -101,6 +111,11 @@ class _InventoryDetailsPageState extends State<InventoryDetailsPage> {
                           await showDialog(
                             context: context,
                             builder: (context) {
+                              //initialising the text controllers to avoid resetting the cursor
+                              final nameController = TextEditingController(text:name);
+                              final categoryController = TextEditingController(text:category);
+                              final serialController = TextEditingController(text:serialNumber);
+                              
                               return StatefulBuilder(
                                 builder: (context, setState) {
                                   return AlertDialog(
@@ -111,11 +126,8 @@ class _InventoryDetailsPageState extends State<InventoryDetailsPage> {
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           TextField(
-                                            controller: TextEditingController(text: name),
-                                            decoration: InputDecoration(
-                                              labelText: 'Item Name',
-                                              errorText: nameError,
-                                            ),
+                                            controller: nameController,
+                                            decoration: InputDecoration(labelText: 'Item Name',errorText: nameError,),
                                             onChanged: (val) {
                                               setState(() {
                                                 name = val;
@@ -126,11 +138,8 @@ class _InventoryDetailsPageState extends State<InventoryDetailsPage> {
                                           const SizedBox(height: 16),
 
                                           TextField(
-                                            controller: TextEditingController(text: category),
-                                            decoration: InputDecoration(
-                                              labelText: 'Category',
-                                              errorText: categoryError,
-                                            ),
+                                            controller: categoryController,
+                                            decoration: InputDecoration(labelText: 'Category',errorText: categoryError,),
                                             onChanged: (val) {
                                               setState(() {
                                                 category = val;
@@ -141,10 +150,8 @@ class _InventoryDetailsPageState extends State<InventoryDetailsPage> {
                                           const SizedBox(height: 16),
 
                                           TextField(
-                                            controller: TextEditingController(text: serialNumber),
-                                            decoration: const InputDecoration(
-                                              labelText: 'Serial Number (optional)',
-                                            ),
+                                            controller: serialController,
+                                            decoration: const InputDecoration(labelText: 'Serial Number (optional)',),
                                             onChanged: (val) {
                                               setState(() {
                                                 serialNumber = val;
@@ -154,10 +161,7 @@ class _InventoryDetailsPageState extends State<InventoryDetailsPage> {
                                           const SizedBox(height: 16),
 
                                           DropdownButtonFormField<String>(
-                                            decoration: InputDecoration(
-                                              labelText: 'Condition',
-                                              errorText: conditionError,
-                                            ),
+                                            decoration: InputDecoration(labelText: 'Condition',errorText: conditionError,),
                                             value: condition,
                                             items: ['New', 'Excellent', 'Good', 'Needs Repair']
                                                 .map((e) =>
@@ -176,18 +180,13 @@ class _InventoryDetailsPageState extends State<InventoryDetailsPage> {
                                           if (imagePath != null && imagePath!.isNotEmpty)
                                             Column(
                                               children: [
-                                                Image.file(
-                                                  File(imagePath!),
-                                                  height: 120,
-                                                  fit: BoxFit.cover,
-                                                ),
+                                                Image.file(File(imagePath!),height: 120,fit: BoxFit.cover,),
                                                 const SizedBox(height: 8),
                                                 TextButton.icon(
                                                   onPressed: () {
                                                     setState(() => imagePath = null);
                                                   },
-                                                  icon: const Icon(Icons.delete_outline,
-                                                      color: Colors.red),
+                                                  icon: const Icon(Icons.delete_outline,color: Colors.red),
                                                   label: const Text('Remove Image',
                                                       style: TextStyle(color: Colors.red)),
                                                 ),
@@ -205,6 +204,11 @@ class _InventoryDetailsPageState extends State<InventoryDetailsPage> {
                                                 setState(() => imagePath = picked.path);
                                               }
                                             },
+                                            //styling the button
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Color(0xFF2E7D32), // button background color
+                                              foregroundColor: Colors.white, // text/icon color
+                                            ),
                                             icon: const Icon(Icons.image),
                                             label: const Text('Change / Add Image'),
                                           ),
@@ -220,55 +224,42 @@ class _InventoryDetailsPageState extends State<InventoryDetailsPage> {
                                         onPressed: () async {
                                           // Inline validation per field
                                           setState(() {
-                                            nameError =
-                                                name.trim().isEmpty ? 'Please enter a name.' : null;
-                                            categoryError = category.trim().isEmpty
-                                                ? 'Please enter a category.'
-                                                : null;
-                                            conditionError = condition.trim().isEmpty
-                                                ? 'Please select a condition.'
-                                                : null;
+                                            nameError = name.trim().isEmpty ? 'Please enter a name.' : null;
+                                            categoryError = category.trim().isEmpty? 'Please enter a category.': null;
+                                            conditionError = condition.trim().isEmpty? 'Please select a condition.': null;
                                           });
 
-                                          if (nameError != null ||
-                                              categoryError != null ||
-                                              conditionError != null) return;
+                                          if (nameError != null ||categoryError != null ||conditionError != null) return;
 
                                           final updatedItem = Item(
-                                            id: item.id,
+                                            id: _item.id,
                                             name: name.trim(),
                                             category: category.trim(),
                                             condition: condition.trim(),
-                                            serialNumber: serialNumber.trim().isEmpty
-                                                ? null
-                                                : serialNumber.trim(),
+                                            serialNumber: serialNumber.trim().isEmpty? null: serialNumber.trim(),
                                             imagePath: imagePath,
                                           );
 
                                           await InventoryTable().updateItem(updatedItem);
                                           DataCache.instance.clearInventory();
 
-                                          if (mounted) {
-                                            Navigator.pop(context);
-                                            // Refresh item details page after edit
-                                            setState(() {
-                                              widget.item.name = updatedItem.name;
-                                              widget.item.category = updatedItem.category;
-                                              widget.item.condition = updatedItem.condition;
-                                              widget.item.serialNumber = updatedItem.serialNumber;
-                                              widget.item.imagePath = updatedItem.imagePath;
-                                            });
-
-                                            // Show success message
+                                          //Refresh tab info
+                                          final refreshedItem = await InventoryTable().getItemById(_item.id!);
+                                          await _reloadItem(); // refresh state directly
+                                          Navigator.pop(context);
+                                           
                                             ScaffoldMessenger.of(context).showSnackBar(
                                               SnackBar(
-                                                content: Text(
-                                                    'Item "${updatedItem.name}" updated successfully!'),
-                                                backgroundColor: Color(0xFF2E7D32),
+                                                content: Text('Item "${_item.name}" updated successfully!'),
+                                                backgroundColor: const Color(0xFF2E7D32),
                                               ),
                                             );
-                                          }
                                         },
+                                        //styling the button
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Color(0xFF2E7D32), // button background color
+                                          foregroundColor: Colors.white, // text/icon color
+                                        ),
                                         child: const Text('Save'),
                                       ),
                                     ],
@@ -311,13 +302,13 @@ class _InventoryDetailsPageState extends State<InventoryDetailsPage> {
                           );
 
                           if (confirm == true) {
-                            await InventoryTable().deleteItem(item.id!);
+                            await InventoryTable().deleteItem(_item.id!);
                             DataCache.instance.clearInventory();
                             if (mounted) {
                               Navigator.pop(context, true);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('Item "${item.name}" deleted successfully.'),
+                                  content: Text('Item "${_item.name}" deleted successfully.'),
                                   backgroundColor: Color(0xFF2E7D32),
                                 ),
                               );
