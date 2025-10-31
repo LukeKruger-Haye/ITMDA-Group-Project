@@ -30,6 +30,8 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
   Map<String, Client> clientByEmail = {};
   late DateTime weekStart;
   DateTime? _selectedDateTime;
+  TimeOfDay? _selectedStartTime;
+  TimeOfDay? _selectedEndTime;
   
   // Drag selection state
   bool _isDragging = false;
@@ -219,6 +221,9 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
     List<Quote> clientQuotes = [];
     int? selectedQuoteId;
     String status = 'Scheduled';
+    DateTime? selectedDate;
+    TimeOfDay? startTime;
+    TimeOfDay? endTime;
 
     final TextEditingController searchController = TextEditingController();
 
@@ -252,7 +257,6 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                       // color: Theme.of(context).colorScheme.primaryContainer,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Column(
@@ -334,6 +338,100 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                       decoration: const InputDecoration(labelText: 'Status'),
                       isExpanded: true,
                     ),
+                    const SizedBox(height: 16),
+                    
+                    // Date Selection
+                    OutlinedButton.icon(
+                      style: UIStyles.outlineButton(context),
+                      onPressed: () async {
+                        final now = DateTime.now();
+                        final initialDate = selectedDate ?? now;
+                        final pickedDate = await showDatePicker(
+                          context: context,
+                          initialDate: initialDate,
+                          firstDate: DateTime(now.year - 1),
+                          lastDate: DateTime(now.year + 3),
+                        );
+                        if (pickedDate == null) return;
+                        
+                        setStateDialog(() {
+                          selectedDate = pickedDate;
+                          // Auto-set start time to 9am if not set
+                          if (startTime == null) {
+                            startTime = const TimeOfDay(hour: 9, minute: 0);
+                            endTime = const TimeOfDay(hour: 10, minute: 0);
+                          }
+                        });
+                      },
+                      icon: const Icon(Icons.calendar_today),
+                      label: Text(
+                        selectedDate == null
+                            ? 'Select Date'
+                            : '${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}',
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Time Range Selection
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            style: UIStyles.outlineButton(context),
+                            onPressed: () async {
+                              final initialTime = startTime ?? const TimeOfDay(hour: 9, minute: 0);
+                              
+                              final pickedTime = await showTimePicker(
+                                context: context,
+                                initialTime: initialTime,
+                              );
+                              if (pickedTime == null) return;
+                              
+                              setStateDialog(() {
+                                startTime = pickedTime;
+                                // Auto-set end time to 1 hour after start time
+                                endTime = TimeOfDay(
+                                  hour: (pickedTime.hour + 1) % 24,
+                                  minute: pickedTime.minute,
+                                );
+                              });
+                            },
+                            icon: const Icon(Icons.access_time),
+                            label: Text(
+                              startTime == null
+                                  ? 'Start Time'
+                                  : '${startTime!.hour.toString().padLeft(2, '0')}:${startTime!.minute.toString().padLeft(2, '0')}',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            style: UIStyles.outlineButton(context),
+                            onPressed: () async {
+                              final initialTime = endTime ?? const TimeOfDay(hour: 10, minute: 0);
+                              
+                              final pickedTime = await showTimePicker(
+                                context: context,
+                                initialTime: initialTime,
+                              );
+                              if (pickedTime == null) return;
+                              
+                              setStateDialog(() {
+                                endTime = pickedTime;
+                              });
+                            },
+                            icon: const Icon(Icons.access_time),
+                            label: Text(
+                              endTime == null
+                                  ? 'End Time'
+                                  : '${endTime!.hour.toString().padLeft(2, '0')}:${endTime!.minute.toString().padLeft(2, '0')}',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
                   ],
                 ),
               ),
@@ -362,8 +460,39 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                       return;
                     }
 
+                    List<DateTime> bookingSlots = [];
+
+                    // Use drag-selected slots OR create slots from date/time range
+                    if (selectedDate != null && startTime != null && endTime != null) {
+                      // Create bookings based on date/time range
+                      final startHour = startTime!.hour;
+                      final endHour = endTime!.hour;
+                      
+                      for (int h = startHour; h < endHour; h++) {
+                        final slot = DateTime(
+                          selectedDate!.year,
+                          selectedDate!.month,
+                          selectedDate!.day,
+                          h,
+                        );
+                        if (_isSlotAvailable(slot)) {
+                          bookingSlots.add(slot);
+                        }
+                      }
+                    } else {
+                      // Use drag-selected slots
+                      bookingSlots = slots;
+                    }
+
+                    if (bookingSlots.isEmpty) {
+                      dialogMessenger.showSnackBar(
+                        const SnackBar(content: Text('No available time slots selected.')),
+                      );
+                      return;
+                    }
+
                     // Create bookings for all selected slots
-                    for (final slot in slots) {
+                    for (final slot in bookingSlots) {
                       final newBooking = Booking(
                         quoteId: selectedQuoteId!,
                         clientId: selectedClient!.id!,
@@ -386,11 +515,11 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                     
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Created ${slots.length} booking${slots.length > 1 ? 's' : ''} successfully'),
+                        content: Text('Created ${bookingSlots.length} booking${bookingSlots.length > 1 ? 's' : ''} successfully'),
                       ),
                     );
                   },
-                  child: const Text('Save'),
+                  child: const Text('Save All'),
                 ),
               ],
             );
@@ -411,7 +540,11 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
       selectedClient = await clientTable.getClientById(existing.clientId);
     }
 
-    _selectedDateTime = existing?.bookingDate;
+    // Initialize datetime values with existing booking data or current slot
+    _selectedDateTime = existing?.bookingDate ?? slot;
+    _selectedStartTime = TimeOfDay.fromDateTime(_selectedDateTime!);
+    _selectedEndTime = TimeOfDay(hour: (_selectedStartTime!.hour + 1) % 24, minute: _selectedStartTime!.minute);
+
     List<Quote> clientQuotes = [];
     int? selectedQuoteId = existing?.quoteId;
     String status = existing?.status ?? 'Scheduled';
@@ -525,43 +658,112 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                       decoration: const InputDecoration(labelText: 'Status'),
                       isExpanded: true,
                     ),
-                    const SizedBox(height: 12),
-                    // Date/Time Picker Button only for editing existing bookings
-                    if (existing != null)
-                      OutlinedButton.icon(
-                        style: UIStyles.outlineButton(context),
-                        onPressed: () async {
-                          final now = DateTime.now();
-                          final initialDate = _selectedDateTime ?? now;
-                          final pickedDate = await showDatePicker(
-                            context: context,
-                            initialDate: initialDate,
-                            firstDate: DateTime(now.year - 1),
-                            lastDate: DateTime(now.year + 3),
+                    const SizedBox(height: 16),
+                    
+                    // Date Selection
+                    OutlinedButton.icon(
+                      style: UIStyles.outlineButton(context),
+                      onPressed: () async {
+                        final now = DateTime.now();
+                        final initialDate = _selectedDateTime ?? now;
+                        final pickedDate = await showDatePicker(
+                          context: context,
+                          initialDate: initialDate,
+                          firstDate: DateTime(now.year - 1),
+                          lastDate: DateTime(now.year + 3),
+                        );
+                        if (pickedDate == null) return;
+                        
+                        setStateDialog(() {
+                          _selectedDateTime = DateTime(
+                            pickedDate.year,
+                            pickedDate.month,
+                            pickedDate.day,
+                            _selectedStartTime?.hour ?? _selectedDateTime!.hour,
+                            _selectedStartTime?.minute ?? _selectedDateTime!.minute,
                           );
-                          if (pickedDate == null) return;
-                          final pickedTime = await showTimePicker(
-                            context: context,
-                            initialTime: TimeOfDay.fromDateTime(initialDate),
-                          );
-                          if (pickedTime == null) return;
-                          setStateDialog(() {
-                            _selectedDateTime = DateTime(
-                              pickedDate.year,
-                              pickedDate.month,
-                              pickedDate.day,
-                              pickedTime.hour,
-                              pickedTime.minute,
-                            );
-                          });
-                        },
-                        icon: const Icon(Icons.event),
-                        label: Text(
-                          _selectedDateTime == null
-                              ? 'Select Date & Time'
-                              : _formatDateTime(_selectedDateTime!),
-                        ),
+                        });
+                      },
+                      icon: const Icon(Icons.calendar_today),
+                      label: Text(
+                        _selectedDateTime == null
+                            ? 'Select Date'
+                            : '${_selectedDateTime!.day}/${_selectedDateTime!.month}/${_selectedDateTime!.year}',
                       ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Time Range Selection
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            style: UIStyles.outlineButton(context),
+                            onPressed: () async {
+                              final initialTime = _selectedStartTime ?? TimeOfDay.fromDateTime(_selectedDateTime!);
+                              
+                              final pickedTime = await showTimePicker(
+                                context: context,
+                                initialTime: initialTime,
+                              );
+                              if (pickedTime == null) return;
+                              
+                              setStateDialog(() {
+                                _selectedStartTime = pickedTime;
+                                // Auto-set end time to 1 hour after start time
+                                _selectedEndTime = TimeOfDay(
+                                  hour: (pickedTime.hour + 1) % 24,
+                                  minute: pickedTime.minute,
+                                );
+                                // Update the full datetime with start time
+                                if (_selectedDateTime != null) {
+                                  _selectedDateTime = DateTime(
+                                    _selectedDateTime!.year,
+                                    _selectedDateTime!.month,
+                                    _selectedDateTime!.day,
+                                    pickedTime.hour,
+                                    pickedTime.minute,
+                                  );
+                                }
+                              });
+                            },
+                            icon: const Icon(Icons.access_time),
+                            label: Text(
+                              _selectedStartTime == null
+                                  ? 'Start Time'
+                                  : '${_selectedStartTime!.hour.toString().padLeft(2, '0')}:${_selectedStartTime!.minute.toString().padLeft(2, '0')}',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            style: UIStyles.outlineButton(context),
+                            onPressed: () async {
+                              final initialTime = _selectedEndTime ?? TimeOfDay(hour: (_selectedStartTime!.hour + 1) % 24, minute: _selectedStartTime!.minute);
+                              
+                              final pickedTime = await showTimePicker(
+                                context: context,
+                                initialTime: initialTime,
+                              );
+                              if (pickedTime == null) return;
+                              
+                              setStateDialog(() {
+                                _selectedEndTime = pickedTime;
+                              });
+                            },
+                            icon: const Icon(Icons.access_time),
+                            label: Text(
+                              _selectedEndTime == null
+                                  ? 'End Time'
+                                  : '${_selectedEndTime!.hour.toString().padLeft(2, '0')}:${_selectedEndTime!.minute.toString().padLeft(2, '0')}',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
                     // Manage inventory for bookings button
                     if (existing != null) ...[
                       const SizedBox(height: 12),
@@ -644,7 +846,8 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                       return;
                     }
 
-                    final bookingDate = _selectedDateTime ?? slot;
+                    // Use the selected date and start time for the booking
+                    final bookingDate = _selectedDateTime!;
 
                     // Enforce 08:00–18:00
                     if (bookingDate.hour < 8 || bookingDate.hour > 18) {
@@ -657,32 +860,19 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                       return;
                     }
 
-                    // Double-booking check for this hour slot
+                    // Check for double bookings (overlapping times)
                     final conflicts = await bookingTable.findHourConflicts(
-                      slot,
+                      bookingDate,
                       excludeBookingId: existing?.bookingId,
                     );
                     if (conflicts.isNotEmpty) {
-                      final proceed = await showDialog<bool>(
-                        context: dialogContext,
-                        builder: (innerCtx) => AlertDialog(
-                          title: const Text('Possible double booking'),
-                          content: Text(
-                            'There is already ${conflicts.length} booking(s) in this time slot (hour).\n\nYou can edit the time or proceed and allow a double booking.',
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(innerCtx).pop(false),
-                              child: const Text('Edit time'),
-                            ),
-                            TextButton(
-                              onPressed: () => Navigator.of(innerCtx).pop(true),
-                              child: const Text('Proceed'),
-                            ),
-                          ],
+                      dialogMessenger.showSnackBar(
+                        SnackBar(
+                          content: Text('This time slot is already booked. Please choose a different time.'),
+                          backgroundColor: Colors.red,
                         ),
-                      ) ?? false;
-                      if (!proceed) return;
+                      );
+                      return;
                     }
 
                     if (existing != null) {
@@ -716,6 +906,12 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                     if (dialogNavigator.mounted) dialogNavigator.pop();
                     if (!mounted) return;
                     _loadBookings();
+                    
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('${existing != null ? 'Updated' : 'Created'} booking successfully'),
+                      ),
+                    );
                   },
                   child: const Text('Save'),
                 ),
@@ -853,112 +1049,159 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
           return row;
         }
 
-        Widget buildHourRow(int hour) {
-          final row = Row(
+        Widget buildCalendarGrid() {
+          return Row(
             children: [
+              // Time column - scrollable
               SizedBox(
                 width: timeCol,
-                child: Text(
-                  "$hour:00",
-                  style: const TextStyle(fontSize: 12),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              for (final d in days)
-                SizedBox(
-                  width: blockW,
-                  child: Builder(builder: (context) {
-                    final slot = DateTime(d.year, d.month, d.day, hour);
-                    final booking = getBookingForSlot(slot);
-                    final isSelected = _selectedSlots.contains(slot);
-                    final bool isNewBookingBlocked = hour < 8 || hour > 18 || booking != null;
-
-                    return MouseRegion(
-                      onEnter: (_) {
-                        if (_isDragging && !isNewBookingBlocked) {
-                          _updateDragSelection(slot);
-                        }
-                      },
-                      child: GestureDetector(
-                        // Handle tap on existing bookings
-                        onTap: () {
-                          if (booking != null) {
-                            _editBooking(slot, booking);
-                          }
-                        },
-                        // Handle drag start with mouse/touch
-                        onPanDown: (details) {
-                          if (booking == null && !isNewBookingBlocked) {
-                            _startDragSelection(slot);
-                          }
-                        },
-                        child: Container(
-                          margin: const EdgeInsets.all(2),
-                          height: 50,
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? Colors.blue.withOpacity(0.5)
-                                : booking != null
-                                    ? getStatusColor(context, booking.status)
-                                    : (hour < 8 || hour > 18
-                                        ? const Color.fromARGB(255, 24, 20, 20)
-                                        : Colors.grey.shade300),
-                            borderRadius: BorderRadius.circular(4),
-                            border: isSelected
-                                ? Border.all(color: Colors.blue, width: 2)
-                                : null,
-                          ),
-                          child: Center(
-                            child: booking != null
-                                ? FittedBox(
-                                    fit: BoxFit.scaleDown,
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          getClientForBooking(booking)?.firstName ?? '',
-                                          textAlign: TextAlign.center,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 10,
-                                            color: Color.fromARGB(255, 12, 12, 12),
-                                          ),
-                                        ),
-                                        Text(
-                                          getClientForBooking(booking)?.lastName ?? '',
-                                          textAlign: TextAlign.center,
-                                          style: const TextStyle(
-                                            fontSize: 9,
-                                            color: Color.fromARGB(255, 34, 29, 29),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  )
-                                : isSelected
-                                    ? const Icon(
-                                        Icons.check,
-                                        color: Colors.white,
-                                        size: 16,
-                                      )
-                                    : null,
-                          ),
+                child: ListView.builder(
+                  itemCount: hours.length,
+                  itemBuilder: (_, row) {
+                    final hour = hours[row];
+                    return SizedBox(
+                      height: 54, // 50 height + 4 margin
+                      child: Center(
+                        child: Text(
+                          "$hour:00",
+                          style: const TextStyle(fontSize: 12),
                         ),
                       ),
                     );
-                  }),
+                  },
                 ),
+              ),
+              // Calendar grid - not scrollable, handles drag
+              Expanded(
+                child: Listener(
+                  onPointerMove: (details) {
+                    if (_isDragging) {
+                      final RenderBox? gridBox = _calendarGridKey.currentContext?.findRenderObject() as RenderBox?;
+                      if (gridBox == null) return;
+                      
+                      final localPosition = gridBox.globalToLocal(details.position);
+                      final dayColumnX = localPosition.dx;
+                      if (dayColumnX < 0 || dayColumnX >= blockW * days.length) return;
+                      
+                      final dayIndex = (dayColumnX / blockW).floor();
+                      if (dayIndex < 0 || dayIndex >= days.length) return;
+                      
+                      const double rowHeight = 54;
+                      final rowIndex = (localPosition.dy / rowHeight).floor();
+                      if (rowIndex < 0 || rowIndex >= hours.length) return;
+                      
+                      final day = days[dayIndex];
+                      final hour = hours[rowIndex];
+                      final slot = DateTime(day.year, day.month, day.day, hour);
+                      
+                      _updateDragSelection(slot);
+                    }
+                  },
+                  onPointerUp: (_) {
+                    if (_isDragging) {
+                      _endDragSelection();
+                    }
+                  },
+                  onPointerCancel: (_) {
+                    if (_isDragging) {
+                      _cancelDragSelection();
+                    }
+                  },
+                  child: SingleChildScrollView(
+                    child: Column(
+                      key: _calendarGridKey,
+                      children: [
+                        for (int row = 0; row < hours.length; row++)
+                          SizedBox(
+                            height: 54,
+                            child: Row(
+                              children: [
+                                for (final d in days)
+                                  SizedBox(
+                                    width: blockW,
+                                    child: Builder(builder: (context) {
+                                      final hour = hours[row];
+                                      final slot = DateTime(d.year, d.month, d.day, hour);
+                                      final booking = getBookingForSlot(slot);
+                                      final isSelected = _selectedSlots.contains(slot);
+                                      final bool isNewBookingBlocked = hour < 8 || hour > 18 || booking != null;
+
+                                      return GestureDetector(
+                                        onTap: () {
+                                          if (booking != null) {
+                                            _editBooking(slot, booking);
+                                          }
+                                        },
+                                        onPanDown: (details) {
+                                          if (booking == null && !isNewBookingBlocked) {
+                                            _startDragSelection(slot);
+                                          }
+                                        },
+                                        child: Container(
+                                          margin: const EdgeInsets.all(2),
+                                          decoration: BoxDecoration(
+                                            color: isSelected
+                                                ? Colors.blue.withOpacity(0.5)
+                                                : booking != null
+                                                    ? getStatusColor(context, booking.status)
+                                                    : (hour < 8 || hour > 18
+                                                        ? const Color.fromARGB(255, 24, 20, 20)
+                                                        : Colors.grey.shade300),
+                                            borderRadius: BorderRadius.circular(4),
+                                            border: isSelected
+                                                ? Border.all(color: Colors.blue, width: 2)
+                                                : null,
+                                          ),
+                                          child: Center(
+                                            child: booking != null
+                                                ? FittedBox(
+                                                    fit: BoxFit.scaleDown,
+                                                    child: Column(
+                                                      mainAxisAlignment: MainAxisAlignment.center,
+                                                      children: [
+                                                        Text(
+                                                          getClientForBooking(booking)?.firstName ?? '',
+                                                          textAlign: TextAlign.center,
+                                                          style: const TextStyle(
+                                                            fontWeight: FontWeight.bold,
+                                                            fontSize: 10,
+                                                            color: Color.fromARGB(255, 12, 12, 12),
+                                                          ),
+                                                        ),
+                                                        Text(
+                                                          getClientForBooking(booking)?.lastName ?? '',
+                                                          textAlign: TextAlign.center,
+                                                          style: const TextStyle(
+                                                            fontSize: 9,
+                                                            color: Color.fromARGB(255, 34, 29, 29),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  )
+                                                : isSelected
+                                                    ? const Icon(
+                                                        Icons.check,
+                                                        color: Colors.white,
+                                                        size: 16,
+                                                      )
+                                                    : null,
+                                          ),
+                                        ),
+                                      );
+                                    }),
+                                  ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
               SizedBox(width: whiteCol),
             ],
           );
-          
-          if (needsHScroll) {
-            return SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: SizedBox(width: contentW, child: row),
-            );
-          }
-          return row;
         }
 
         return Column(
@@ -993,58 +1236,11 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                 ),
               ),
             Expanded(
-  child: Listener(
-    onPointerMove: (details) {
-      if (_isDragging) {
-        final RenderBox? gridBox = _calendarGridKey.currentContext?.findRenderObject() as RenderBox?;
-        if (gridBox == null) return;
-        
-        final localPosition = gridBox.globalToLocal(details.position);
-        const double timeCol = 60; // Adjust based on your layout
-        const double blockW = 80; // Adjust based on your layout
-        const double rowHeight = 54; // 50 height + 4 margin
-        
-        // Calculate which slot the pointer is over
-        final dayColumnX = localPosition.dx - timeCol;
-        if (dayColumnX < 0) return;
-        
-        final dayIndex = (dayColumnX / blockW).floor();
-        if (dayIndex < 0 || dayIndex >= days.length) return;
-        
-        final rowIndex = (localPosition.dy / rowHeight).floor();
-        if (rowIndex < 0 || rowIndex >= hours.length) return;
-        
-        final day = days[dayIndex];
-        final hour = hours[rowIndex];
-        final slot = DateTime(day.year, day.month, day.day, hour);
-        
-        _updateDragSelection(slot);
-      }
-    },
-    onPointerUp: (_) {
-      if (_isDragging) {
-        _endDragSelection();
-      }
-    },
-    onPointerCancel: (_) {
-      if (_isDragging) {
-        _cancelDragSelection();
-      }
-    },
-    child: ListView.builder(
-      key: _calendarGridKey,
-      itemCount: hours.length,
-      itemBuilder: (_, row) {
-        final hour = hours[row];
-        return buildHourRow(hour);
-      },
-    ),
-  ),
-),
+              child: buildCalendarGrid(),
+            ),
           ],
         );
       },
     );
   }
 }
-
