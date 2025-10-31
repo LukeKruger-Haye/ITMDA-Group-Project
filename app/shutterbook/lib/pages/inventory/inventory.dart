@@ -194,6 +194,11 @@ Future<void> _addItem() async {
                         setState(() => imagePath = picked.path);
                       }
                     },
+                    //styling the button
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFF2E7D32), // button background color
+                          foregroundColor: Colors.white, // text/icon color
+                        ),
                     icon: const Icon(Icons.image),
                     label: const Text('Upload Image (optional)'),
                   ),
@@ -243,10 +248,15 @@ Future<void> _addItem() async {
                     SnackBar(
                       content: Text(
                           'Item "${newItem.name}" added successfully!'),
-                      backgroundColor: Colors.green,
+                      backgroundColor: Color(0xFF2E7D32),
                     ),
                   );
                 },
+                //styling the button
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFF2E7D32), // button background color
+                          foregroundColor: Colors.white, // text/icon color
+                        ),
                 child: const Text('Add'),
               ),
             ],
@@ -262,7 +272,7 @@ Widget build(BuildContext context) {
   return Scaffold(
     appBar: AppBar(
       title: const Text('Inventory'),
-      backgroundColor: Colors.teal,
+      backgroundColor: Color(0xFF2E7D32),
     ),
     body: Column(
       children: [
@@ -282,7 +292,7 @@ Widget build(BuildContext context) {
               ),
               const SizedBox(width: 8),
               PopupMenuButton<String>(
-                icon: const Icon(Icons.filter_list, color: Colors.teal, size: 28),
+                icon: const Icon(Icons.filter_list, color: Color(0xFF2E7D32), size: 28),
                 tooltip: 'Filter by condition',
                 onSelected: (value) {
                   setState(() {
@@ -400,7 +410,7 @@ Widget build(BuildContext context) {
     ),
     floatingActionButton: FloatingActionButton(
       onPressed: _addItem,
-      backgroundColor: Colors.teal,
+      backgroundColor: Color(0xFF2E7D32),
       child: const Icon(Icons.add),
     ),
   );

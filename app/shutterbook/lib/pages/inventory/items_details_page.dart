@@ -264,7 +264,7 @@ class _InventoryDetailsPageState extends State<InventoryDetailsPage> {
                                               SnackBar(
                                                 content: Text(
                                                     'Item "${updatedItem.name}" updated successfully!'),
-                                                backgroundColor: Colors.green,
+                                                backgroundColor: Color(0xFF2E7D32),
                                               ),
                                             );
                                           }
@@ -278,6 +278,11 @@ class _InventoryDetailsPageState extends State<InventoryDetailsPage> {
                             },
                           );
                         },
+                        //styling the button
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFF2E7D32), // button background color
+                          foregroundColor: Colors.white, // text/icon color
+                        ),
                       ),
 
                       // DELETE BUTTON
@@ -313,7 +318,7 @@ class _InventoryDetailsPageState extends State<InventoryDetailsPage> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text('Item "${item.name}" deleted successfully.'),
-                                  backgroundColor: Colors.green,
+                                  backgroundColor: Color(0xFF2E7D32),
                                 ),
                               );
                             }
@@ -396,7 +401,7 @@ class _InventoryDetailsPageState extends State<InventoryDetailsPage> {
                                         horizontal: 8, vertical: 4),
                                     child: ListTile(
                                       leading:
-                                          const Icon(Icons.event_available, color: Colors.green),
+                                          const Icon(Icons.event_available, color: Color(0xFF2E7D32)),
                                       title: Text(b.clientName ?? 'Unknown Client'),
                                       subtitle: Text(
                                           'On ${b.bookingDate.toLocal()} — ${b.status}'),
@@ -423,7 +428,7 @@ class _InventoryDetailsPageState extends State<InventoryDetailsPage> {
                                         horizontal: 8, vertical: 4),
                                     child: ListTile(
                                       leading:
-                                          const Icon(Icons.history, color: Colors.blueGrey),
+                                          const Icon(Icons.history, color: Color(0xFF2E7D32)),
                                       title: Text(b.clientName ?? 'Unknown Client'),
                                       subtitle: Text(
                                           'On ${b.bookingDate.toLocal()} — ${b.status}'),
