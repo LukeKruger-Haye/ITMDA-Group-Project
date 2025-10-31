@@ -207,7 +207,7 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                       items: clientQuotes
                           .map((q) => DropdownMenuItem<int>(
                                 value: q.id!,
-                                child: Text(q.description),
+                               child: Text('${q.description} (Quote #${q.id})'),
                               ))
                           .toList(),
                       onChanged: clientQuotes.isEmpty
@@ -240,6 +240,7 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                         const DropdownMenuItem(value: 'Scheduled', child: Text('Scheduled')),
                         if (existing != null)
                           const DropdownMenuItem(value: 'Completed', child: Text('Completed')),
+                          if (existing != null)
                         const DropdownMenuItem(value: 'Cancelled', child: Text('Cancelled')),
                       ],
                       onChanged: (val) {
