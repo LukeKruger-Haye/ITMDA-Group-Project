@@ -6,10 +6,7 @@ import '../../data/models/item.dart';
 import '../../data/tables/inventory_table.dart';
 import 'dart:io';
 import '../../pages/inventory/items_details_page.dart';
-import 'package:shutterbook/theme/ui_styles.dart';
-import '../../data/models/item.dart';
 import '../../data/services/data_cache.dart';
-import '../../widgets/section_card.dart';
 
 class InventoryPage extends StatefulWidget {
   final bool embedded;
@@ -86,7 +83,7 @@ Future<void> _addItem() async {
 
   await showDialog(
     context: context,
-    builder: (context) {
+    builder: (dialogContext) {
       return StatefulBuilder(
         builder: (context, setState) {
           return AlertDialog(
@@ -108,7 +105,7 @@ Future<void> _addItem() async {
                   ),
                   DropdownButtonFormField<String>(
                     decoration: const InputDecoration(labelText: 'Condition'),
-                    value: 'Good',
+                    initialValue: 'Good',
                     items: ['New', 'Excellent', 'Good', 'Needs Repair']
                         .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                         .toList(),
@@ -141,7 +138,7 @@ Future<void> _addItem() async {
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => Navigator.pop(dialogContext),
                 child: const Text('Cancel'),
               ),
               ElevatedButton(
@@ -165,11 +162,13 @@ Future<void> _addItem() async {
                     imagePath: imagePath,
                   );
 
+                  final navigator = Navigator.of(dialogContext);
+                  final messenger = ScaffoldMessenger.of(context);
                   await _inventoryTable.insertItem(newItem);
-                  Navigator.pop(context);
+                  if (navigator.mounted) navigator.pop();
                   await _loadItems();
-
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  if (!mounted) return;
+                  messenger.showSnackBar(
                     SnackBar(
                       content: Text('Item "${newItem.name}" added successfully!'),
                       backgroundColor: Colors.green,
@@ -186,6 +185,7 @@ Future<void> _addItem() async {
   );
 }
 
+  // ignore: unused_element
   Future<void> _editItem(Item item) async {
   String name = item.name;
   String category = item.category;
@@ -193,7 +193,7 @@ Future<void> _addItem() async {
 
   await showDialog(
     context: context,
-    builder: (context) {
+    builder: (dialogContext) {
       return AlertDialog(
         title: const Text('Edit Item'),
         content: SingleChildScrollView(
@@ -211,7 +211,7 @@ Future<void> _addItem() async {
               ),
               DropdownButtonFormField<String>(
                 decoration: const InputDecoration(labelText: 'Condition'),
-                value: condition,
+                initialValue: condition,
                 items: ['New', 'Excellent', 'Good', 'Needs Repair']
                     .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),
@@ -222,7 +222,7 @@ Future<void> _addItem() async {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
@@ -245,11 +245,13 @@ Future<void> _addItem() async {
                 condition: condition.trim(),
               );
 
+              final navigator = Navigator.of(dialogContext);
+              final messenger = ScaffoldMessenger.of(context);
               await _inventoryTable.updateItem(updatedItem);
-              Navigator.pop(context);
+              if (navigator.mounted) navigator.pop();
               await _loadItems();
-
-              ScaffoldMessenger.of(context).showSnackBar(
+              if (!mounted) return;
+              messenger.showSnackBar(
                 SnackBar(
                   content: Text('Item "${updatedItem.name}" updated successfully!'),
                   backgroundColor: Colors.green,
@@ -264,6 +266,7 @@ Future<void> _addItem() async {
   );
 }
 
+  // ignore: unused_element
   Future<void> _deleteItem(int id) async {
     final confirm = await showDialog<bool>(
       context: context,

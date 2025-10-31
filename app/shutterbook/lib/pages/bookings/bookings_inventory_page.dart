@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../data/tables/inventory_table.dart';
 import '../../data/tables/booking_inventory_table.dart';
 import '../../data/models/item.dart';
-import '../../data/models/booking_inventory.dart';
+// Removed unused booking_inventory import
 
 class BookingInventoryPage extends StatefulWidget {
   final int bookingId;
@@ -72,56 +72,57 @@ class _BookingInventoryPageState extends State<BookingInventoryPage> {
       _searchQuery = query.toLowerCase();
       _filteredItems = _allItems.where((item) {
         return item.name.toLowerCase().contains(_searchQuery) ||
-            (item.category?.toLowerCase().contains(_searchQuery) ?? false);
+            item.category.toLowerCase().contains(_searchQuery);
       }).toList();
     });
   }
 
-  Future<bool> _onWillPop() async {
-    if (!_hasUnsavedChanges) return true;
-
-    final shouldExit = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Unsaved Changes'),
-        content:
-            const Text('You have unsaved changes. Do you want to save before exiting?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, true), // Save and exit
-            child: const Text('Save'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, false), // Exit without saving
-            child: const Text('Discard'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, null), // Cancel dialog
-            child: const Text('Cancel'),
-          ),
-        ],
-      ),
-    );
-
-    if (shouldExit == true) {
-      await _saveSelection();
-      Navigator.pop(context);
-      return false; // prevent double pop
-    } else if (shouldExit == false) {
-      Navigator.pop(context);
-      return false;
-    }
-
-    return false; // Stay on page if canceled
-  }
+  // _onWillPop migrated to PopScope.onPopInvoked
 
   @override
   Widget build(BuildContext context) {
     final selectedItems =
         _allItems.where((item) => _selectedItemIds.contains(item.id)).toList();
 
-    return WillPopScope(
-      onWillPop: _onWillPop,
+    final nav = Navigator.of(context);
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        if (!_hasUnsavedChanges) {
+          if (nav.mounted) nav.pop();
+          return;
+        }
+
+        final shouldExit = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Unsaved Changes'),
+            content: const Text('You have unsaved changes. Do you want to save before exiting?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true), // Save and exit
+                child: const Text('Save'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false), // Exit without saving
+                child: const Text('Discard'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, null), // Cancel dialog
+                child: const Text('Cancel'),
+              ),
+            ],
+          ),
+        );
+
+        if (shouldExit == true) {
+          await _saveSelection();
+          if (nav.mounted) nav.pop();
+        } else if (shouldExit == false) {
+          if (nav.mounted) nav.pop();
+        }
+      },
       child: Scaffold(
         appBar: AppBar(
           title: Column(
@@ -290,7 +291,7 @@ class _BookingInventoryPageState extends State<BookingInventoryPage> {
                                             textAlign: TextAlign.center,
                                           ),
                                           Text(
-                                            item.category ?? 'No category',
+                                            item.category,
                                             style: const TextStyle(
                                               fontSize: 13,
                                               color: Colors.black54,

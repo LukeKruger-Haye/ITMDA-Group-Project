@@ -373,7 +373,7 @@ class _CreateBookingPageState extends State<CreateBookingPage> {
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
-                        value: () {
+                        initialValue: () {
                           final s = _statusController.text.toLowerCase();
                           if (s == 'finished' || s == 'completed') return 'Completed';
                           if (s == 'cancelled') return 'Cancelled';

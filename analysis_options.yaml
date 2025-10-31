@@ -3,6 +3,7 @@
 
 analyzer:
   exclude:
+    - app/pdf-3.11.3/**
     - app/pdf-3.11.3/test/**
     - app/pdf-3.11.3/coverage/**
     - app/pdf-3.11.3/example/**

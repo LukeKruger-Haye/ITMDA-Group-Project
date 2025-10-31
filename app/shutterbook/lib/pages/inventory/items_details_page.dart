@@ -1,8 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../data/models/item.dart';
-import '../../data/models/booking.dart';
-import '../../data/tables/booking_inventory_table.dart';
 import '../../data/tables/booking_table.dart';
 import '../../data/models/booking_with_client.dart';
 
@@ -10,7 +8,7 @@ import '../../data/models/booking_with_client.dart';
 class InventoryDetailsPage extends StatefulWidget {
   final Item item;
 
-  const InventoryDetailsPage({Key? key, required this.item}) : super(key: key);
+  const InventoryDetailsPage({super.key, required this.item});
 
   @override
   State<InventoryDetailsPage> createState() => _InventoryDetailsPageState();
@@ -73,8 +71,8 @@ class _InventoryDetailsPageState extends State<InventoryDetailsPage> {
                       style: const TextStyle(
                           fontSize: 22, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
-                  Text('Category: ${item.category ?? "Unspecified"}'),
-                  Text('Condition: ${item.condition ?? "Unknown"}'),
+                  Text('Category: ${item.category}'),
+                  Text('Condition: ${item.condition}'),
                   const SizedBox(height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
