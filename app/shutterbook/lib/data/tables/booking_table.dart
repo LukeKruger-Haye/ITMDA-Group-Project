@@ -5,10 +5,12 @@
 import 'package:sqflite/sqflite.dart';
 import '../db/database_helper.dart';
 import '../models/booking.dart';
+import '../models/booking_with_client.dart';
 
 class BookingTable {
   final dbHelper = DatabaseHelper.instance;
 
+    
   Future<int> insertBooking(Booking booking) async {
     final db = await dbHelper.database;
     return await db.insert(
@@ -92,6 +94,28 @@ class BookingTable {
       offset: offset,
     );
     return maps.map((m) => Booking.fromMap(m)).toList();
+  }
+
+  //Joining the client table to get client name for the bookings
+  Future<List<BookingWithClient>> getBookingsForItemWithClientNames(int itemId) async {
+    final db = await dbHelper.database;
+    final rows = await db.rawQuery('''
+      SELECT 
+        B.booking_id,
+        B.client_id,
+        B.quote_id,
+        B.booking_date,
+        B.status,
+        B.created_at,
+        (C.first_name || ' ' || C.last_name) AS client_name
+      FROM Bookings B
+      INNER JOIN BookingInventory BI ON BI.booking_id = B.booking_id
+      LEFT JOIN Clients C ON B.client_id = C.client_id
+      WHERE BI.item_id = ?
+      ORDER BY B.booking_date DESC
+    ''', [itemId]);
+
+    return rows.map((r) => BookingWithClient.fromMap(r)).toList();
   }
 
   /// Finds bookings that would conflict with the given [when].

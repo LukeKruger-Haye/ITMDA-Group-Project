@@ -76,7 +76,7 @@ final Map<Package, int> packages;
                    nav.pushNamedAndRemoveUntil( '/home', (route) => false); // Pop with true to indicate success
                  }
                },
-               style: UIStyles.outlineButton(context),
+               style: UIStyles.destructiveButton(context),
                child: const Text("Cancel"),
              )
             ,
