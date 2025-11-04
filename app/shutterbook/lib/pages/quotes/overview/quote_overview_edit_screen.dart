@@ -88,13 +88,13 @@ final Map<Package, int> packages;
             ),
            const SizedBox(height: 10),
            ElevatedButton(
-             style: UIStyles.outlineButton(context),
              onPressed: () async {
                final nav = Navigator.of(context);
                if (nav.mounted) {
                  nav.pushNamedAndRemoveUntil('/home', (route) => false); // Pop with true to indicate success
                }
              },
+             style: UIStyles.destructiveButton(context),
              child: const Text("Cancel"),
            ),
            

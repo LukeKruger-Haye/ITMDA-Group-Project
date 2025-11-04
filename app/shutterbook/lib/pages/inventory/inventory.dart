@@ -1,9 +1,13 @@
 // Shutterbook — Inventory screen
 // Manage inventory items (add/edit/remove) used in quotes and bookings.
 import 'package:flutter/material.dart';
-import 'package:shutterbook/theme/ui_styles.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../data/models/item.dart';
 import '../../data/tables/inventory_table.dart';
+import 'dart:io';
+import '../../pages/inventory/items_details_page.dart';
+import 'package:shutterbook/theme/ui_styles.dart';
+import '../../data/models/item.dart';
 import '../../data/services/data_cache.dart';
 import '../../widgets/section_card.dart';
 
@@ -34,200 +38,279 @@ class _InventoryPageState extends State<InventoryPage> {
     }
   }
 
-  Future<void> _loadItems() async {
-    try {
-      final items = await DataCache.instance.getInventory();
-      setState(() {
-        _inventory = items;
-        _filteredInventory = items;
-      });
-      return;
-    } catch (_) {}
-  final items = await _inventoryTable.getAllItems();
+  Future<void> _loadItems() async  {
+    final items = await _inventoryTable.getAllItems();
+    // Sort items alphabetically by name
+    items.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     setState(() {
       _inventory = items;
       _filteredInventory = items;
     });
   }
 
-  // allow parent to refresh items when embedded
-  Future<void> refresh() async => _loadItems();
+String _selectedCondition = 'All';
 
-  // allow parent to open the add dialog when embedded
-  Future<void> openAddDialog() async => _addItem();
+Future<void> refresh() async {
+  await _loadItems(); // or whatever method reloads data
+  setState(() {});
+}
 
-  void _filterInventory(String query) {
-    setState(() {
-      _searchQuery = query.toLowerCase();
-      _filteredInventory = _inventory.where((item) {
-        return item.name.toLowerCase().contains(_searchQuery) ||
-            item.condition.toLowerCase().contains(_searchQuery);
-      }).toList();
-    });
-  }
+void _filterInventory(String query) {
+  setState(() {
+    _searchQuery = query.toLowerCase();
+    _applyFilters();
+  });
+}
 
-  Future<void> _addItem() async {
-    String name = '';
-    String category = '';
-    String condition = 'Good';
+void _applyFilters() {
+  setState(() {
+    _filteredInventory = _inventory.where((item) {
+      final nameMatch = item.name.toLowerCase().contains(_searchQuery);
+      final categoryMatch = item.category.toLowerCase().contains(_searchQuery);
+      final conditionMatch = _selectedCondition == 'All' || item.condition == _selectedCondition;
+      return (nameMatch || categoryMatch) && conditionMatch;
+    }).toList();
 
-    await showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Add Inventory Item'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextFormField(
-                  decoration: const InputDecoration(labelText: 'Item Name'),
-                  onChanged: (val) => name = val,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  decoration: const InputDecoration(labelText: 'Category'),
-                  onChanged: (val) => category = val,
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  decoration: const InputDecoration(labelText: 'Condition'),
-                  initialValue: 'Good',
-                  items: ['New', 'Excellent', 'Good', 'Needs Repair']
-                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                      .toList(),
-                  onChanged: (val) => condition = val ?? 'Good',
-                ),
-              ],
+    // Sort alphabetically
+    _filteredInventory.sort((a, b) => a.name.compareTo(b.name));
+  });
+}
+
+Future<void> _addItem() async {
+  String name = '';
+  String category = '';
+  String condition = 'Good';
+  String serialNumber = '';
+  String? imagePath;
+
+  // Validation error messages
+  String? nameError;
+  String? categoryError;
+  String? conditionError;
+
+  await showDialog(
+    context: context,
+    builder: (context) {
+      return StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: const Text('Add Inventory Item'),
+            content: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    decoration: InputDecoration(
+                      labelText: 'Item Name',
+                      errorText: nameError,
+                    ),
+                    onChanged: (val) {
+                      setState(() {
+                        name = val;
+                        nameError = null;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  TextField(
+                    decoration: InputDecoration(
+                      labelText: 'Category',
+                      errorText: categoryError,
+                    ),
+                    onChanged: (val) {
+                      setState(() {
+                        category = val;
+                        categoryError = null;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  TextField(
+                    decoration: const InputDecoration(
+                      labelText: 'Serial Number (optional)',
+                    ),
+                    onChanged: (val) {
+                      setState(() {
+                        serialNumber = val;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  DropdownButtonFormField<String>(
+                    decoration: InputDecoration(
+                      labelText: 'Condition',
+                      errorText: conditionError,
+                    ),
+                    value: condition,
+                    items: ['New', 'Excellent', 'Good', 'Needs Repair']
+                        .map((e) => DropdownMenuItem(
+                              value: e,
+                              child: Text(e),
+                            ))
+                        .toList(),
+                    onChanged: (val) {
+                      setState(() {
+                        condition = val ?? 'Good';
+                        conditionError = null;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Show image preview if selected
+                  if (imagePath != null)
+                    Column(
+                      children: [
+                        Image.file(
+                          File(imagePath!),
+                          height: 120,
+                          fit: BoxFit.cover,
+                        ),
+                        const SizedBox(height: 8),
+                        TextButton.icon(
+                          onPressed: () {
+                            setState(() => imagePath = null);
+                          },
+                          icon: const Icon(Icons.delete_outline,
+                              color: Colors.red),
+                          label: const Text(
+                            'Remove Image',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                      ],
+                    ),
+
+                  // Upload / Change image button
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      final picker = ImagePicker();
+                      final picked = await picker.pickImage(
+                          source: ImageSource.gallery);
+                      if (picked != null) {
+                        setState(() => imagePath = picked.path);
+                      }
+                    },
+                    //styling the button
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFF2E7D32), // button background color
+                          foregroundColor: Colors.white, // text/icon color
+                        ),
+                    icon: const Icon(Icons.image),
+                    label: const Text('Upload Image (optional)'),
+                  ),
+                ],
+              ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final nav = Navigator.of(context);
-                final newItem = Item(
-                  name: name,
-                  category: category,
-                  condition: condition,
-                );
-                await _inventoryTable.insertItem(newItem);
-                    DataCache.instance.clearInventory();
-                if (nav.mounted) nav.pop();
-                _loadItems();
-              },
-              child: const Text('Add'),
-            ),
-          ],
-        );
-      },
-    );
-  }
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  // Inline validation per field
+                  setState(() {
+                    nameError = name.trim().isEmpty
+                        ? 'Please enter an item name.'
+                        : null;
+                    categoryError = category.trim().isEmpty
+                        ? 'Please enter a category.'
+                        : null;
+                    conditionError = condition.trim().isEmpty
+                        ? 'Please select a condition.'
+                        : null;
+                  });
 
-  Future<void> _editItem(Item item) async {
-    String name = item.name;
-    String category = item.category;
-    String condition = item.condition;
+                  if (nameError != null ||
+                      categoryError != null ||
+                      conditionError != null) return;
 
-    await showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Edit Item'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextFormField(
-                  initialValue: name,
-                  decoration: const InputDecoration(labelText: 'Item Name'),
-                  onChanged: (val) => name = val,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  initialValue: category,
-                  decoration: const InputDecoration(labelText: 'Category'),
-                  onChanged: (val) => category = val,
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  decoration: const InputDecoration(labelText: 'Condition'),
-                  initialValue: condition,
-                  items: ['New', 'Excellent', 'Good', 'Needs Repair']
-                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                      .toList(),
-                  onChanged: (val) => condition = val ?? 'Good',
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final nav = Navigator.of(context);
-                final updatedItem = Item(
-                  id: item.id,
-                  name: name,
-                  category: category,
-                  condition: condition,
-                );
-                await _inventoryTable.updateItem(updatedItem);
-                    DataCache.instance.clearInventory();
-                if (nav.mounted) nav.pop();
-                _loadItems();
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
-    );
-  }
+                  final newItem = Item(
+                    name: name.trim(),
+                    category: category.trim(),
+                    condition: condition.trim(),
+                    serialNumber: serialNumber.trim().isEmpty
+                        ? null
+                        : serialNumber.trim(),
+                    imagePath: imagePath,
+                  );
 
-  Future<void> _deleteItem(int id) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Item'),
-        content: const Text('Are you sure you want to delete this item?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Delete')),
-        ],
-      ),
-    ) ?? false;
-    if (!confirm) return;
-    await _inventoryTable.deleteItem(id);
-    DataCache.instance.clearInventory();
-    _loadItems();
-  }
+                  await _inventoryTable.insertItem(newItem);
+                  Navigator.pop(context);
+                  await _loadItems();
+
+                  // Success snackbar
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                          'Item "${newItem.name}" added successfully!'),
+                      backgroundColor: Color(0xFF2E7D32),
+                    ),
+                  );
+                },
+                //styling the button
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFF2E7D32), // button background color
+                          foregroundColor: Colors.white, // text/icon color
+                        ),
+                child: const Text('Add'),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+}
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    final pageBody = Column(
+Widget build(BuildContext context) {
+  return Scaffold(
+    appBar: AppBar(
+      title: const Text('Inventory'),
+      backgroundColor: Color(0xFF2E7D32),
+    ),
+    body: Column(
       children: [
         Padding(
           padding: const EdgeInsets.all(10),
-          child: TextField(
-            decoration: InputDecoration(
-              labelText: 'Search by name or condition',
-              prefixIcon: const Icon(Icons.search),
-              border: const OutlineInputBorder(),
-              filled: true,
-              fillColor: theme.inputDecorationTheme.fillColor,
-            ),
-            onChanged: _filterInventory,
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  decoration: const InputDecoration(
+                    labelText: 'Search by name or category',
+                    prefixIcon: Icon(Icons.search),
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: _filterInventory,
+                ),
+              ),
+              const SizedBox(width: 8),
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.filter_list, color: Color(0xFF2E7D32), size: 28),
+                tooltip: 'Filter by condition',
+                onSelected: (value) {
+                  setState(() {
+                    _selectedCondition = value;
+                    _applyFilters();
+                  });
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(value: 'All', child: Text('All Conditions')),
+                  const PopupMenuItem(value: 'New', child: Text('New')),
+                  const PopupMenuItem(value: 'Excellent', child: Text('Excellent')),
+                  const PopupMenuItem(value: 'Good', child: Text('Good')),
+                  const PopupMenuItem(value: 'Needs Repair', child: Text('Needs Repair')),
+                ],
+              ),
+            ],
           ),
         ),
         Expanded(
@@ -243,47 +326,79 @@ class _InventoryPageState extends State<InventoryPage> {
               ),
               itemBuilder: (context, index) {
                 final item = _filteredInventory[index];
-                return SectionCard(
-                  child: Padding(
-                    padding: const EdgeInsets.all(10),
+                return GestureDetector(
+                  onTap: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => InventoryDetailsPage(item: item),
+                      ),
+                    );
+
+                    //Refresh inventory list when returning
+                    await _loadItems();
+                  },
+                  child: Card(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 3,
+                    clipBehavior: Clip.antiAlias,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          item.name,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                        // Image section
+                        Expanded(
+                          child: item.imagePath != null && item.imagePath!.isNotEmpty
+                              ? Image.file(
+                                  File(item.imagePath!),
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                )
+                              : Container(
+                                  color: Colors.grey[300],
+                                  child: const Center(
+                                    child: Icon(
+                                      Icons.image_not_supported,
+                                      size: 40,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                ),
                         ),
-                        const SizedBox(height: 6),
-                        Text('Category: ${item.category}'),
-                        Text(
-                          'Condition: ${item.condition}',
-                          style: TextStyle(
-                            color: item.condition == 'Needs Repair'
-                                ? theme.colorScheme.error
-                                : theme.colorScheme.primary,
+
+                        // Text info section
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item.name,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Category: ${item.category}',
+                                style: const TextStyle(fontSize: 13),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Text(
+                                'Condition: ${item.condition}',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: item.condition == 'Needs Repair'
+                                      ? Colors.red
+                                      : Colors.green,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
                           ),
-                        ),
-                        const Spacer(),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            IconButton(
-                              icon: Icon(
-                                Icons.edit,
-                                color: theme.colorScheme.primary,
-                              ),
-                              onPressed: () => _editItem(item),
-                            ),
-                            IconButton(
-                              icon: Icon(
-                                Icons.delete,
-                                color: theme.colorScheme.error,
-                              ),
-                              onPressed: () => _deleteItem(item.id!),
-                            ),
-                          ],
                         ),
                       ],
                     ),
@@ -294,18 +409,12 @@ class _InventoryPageState extends State<InventoryPage> {
           ),
         ),
       ],
-    );
-
-    return widget.embedded
-        ? pageBody
-        : Scaffold(
-            appBar: UIStyles.accentAppBar(context, const Text('Inventory'), 4),
-            body: pageBody,
-            floatingActionButton: FloatingActionButton(
-              onPressed: _addItem,
-              tooltip: 'Add',
-              child: const Icon(Icons.add),
-            ),
-          );
-  }
+    ),
+    floatingActionButton: FloatingActionButton(
+      onPressed: _addItem,
+      backgroundColor: Color(0xFF2E7D32),
+      child: const Icon(Icons.add),
+    ),
+  );
+}
 }
