@@ -6,10 +6,6 @@ import '../../data/models/item.dart';
 import '../../data/tables/inventory_table.dart';
 import 'dart:io';
 import '../../pages/inventory/items_details_page.dart';
-import 'package:shutterbook/theme/ui_styles.dart';
-import '../../data/models/item.dart';
-import '../../data/services/data_cache.dart';
-import '../../widgets/section_card.dart';
 
 class InventoryPage extends StatefulWidget {
   final bool embedded;
@@ -38,16 +34,10 @@ class _InventoryPageState extends State<InventoryPage> {
     }
   }
 
-  Future<void> _loadItems() async {
-    try {
-      final items = await DataCache.instance.getInventory();
-      setState(() {
-        _inventory = items;
-        _filteredInventory = items;
-      });
-      return;
-    } catch (_) {}
-  final items = await _inventoryTable.getAllItems();
+  Future<void> _loadItems() async  {
+    final items = await _inventoryTable.getAllItems();
+    // Sort items alphabetically by name
+    items.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     setState(() {
       _inventory = items;
       _filteredInventory = items;
@@ -84,6 +74,11 @@ Future<void> _addItem() async {
   String serialNumber = '';
   String? imagePath;
 
+  // Validation error messages
+  String? nameError;
+  String? categoryError;
+  String? conditionError;
+
   await showDialog(
     context: context,
     builder: (context) {
@@ -93,46 +88,110 @@ Future<void> _addItem() async {
             title: const Text('Add Inventory Item'),
             content: SingleChildScrollView(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   TextField(
-                    decoration: const InputDecoration(labelText: 'Item Name'),
-                    onChanged: (val) => name = val,
+                    decoration: InputDecoration(
+                      labelText: 'Item Name',
+                      errorText: nameError,
+                    ),
+                    onChanged: (val) {
+                      setState(() {
+                        name = val;
+                        nameError = null;
+                      });
+                    },
                   ),
+                  const SizedBox(height: 16),
+
                   TextField(
-                    decoration: const InputDecoration(labelText: 'Category'),
-                    onChanged: (val) => category = val,
+                    decoration: InputDecoration(
+                      labelText: 'Category',
+                      errorText: categoryError,
+                    ),
+                    onChanged: (val) {
+                      setState(() {
+                        category = val;
+                        categoryError = null;
+                      });
+                    },
                   ),
+                  const SizedBox(height: 16),
+
                   TextField(
-                    decoration: const InputDecoration(labelText: 'Serial Number (optional)'),
-                    onChanged: (val) => serialNumber = val,
+                    decoration: const InputDecoration(
+                      labelText: 'Serial Number (optional)',
+                    ),
+                    onChanged: (val) {
+                      setState(() {
+                        serialNumber = val;
+                      });
+                    },
                   ),
+                  const SizedBox(height: 16),
+
                   DropdownButtonFormField<String>(
-                    decoration: const InputDecoration(labelText: 'Condition'),
-                    value: 'Good',
+                    decoration: InputDecoration(
+                      labelText: 'Condition',
+                      errorText: conditionError,
+                    ),
+                    value: condition,
                     items: ['New', 'Excellent', 'Good', 'Needs Repair']
-                        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                        .map((e) => DropdownMenuItem(
+                              value: e,
+                              child: Text(e),
+                            ))
                         .toList(),
-                    onChanged: (val) => condition = val ?? 'Good',
+                    onChanged: (val) {
+                      setState(() {
+                        condition = val ?? 'Good';
+                        conditionError = null;
+                      });
+                    },
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 16),
+
+                  // Show image preview if selected
                   if (imagePath != null)
                     Column(
                       children: [
                         Image.file(
                           File(imagePath!),
-                          height: 100,
+                          height: 120,
                           fit: BoxFit.cover,
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 8),
+                        TextButton.icon(
+                          onPressed: () {
+                            setState(() => imagePath = null);
+                          },
+                          icon: const Icon(Icons.delete_outline,
+                              color: Colors.red),
+                          label: const Text(
+                            'Remove Image',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
                       ],
                     ),
+
+                  // Upload / Change image button
                   ElevatedButton.icon(
                     onPressed: () async {
-                      final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+                      final picker = ImagePicker();
+                      final picked = await picker.pickImage(
+                          source: ImageSource.gallery);
                       if (picked != null) {
                         setState(() => imagePath = picked.path);
                       }
                     },
+                    //styling the button
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFF2E7D32), // button background color
+                          foregroundColor: Colors.white, // text/icon color
+                        ),
                     icon: const Icon(Icons.image),
                     label: const Text('Upload Image (optional)'),
                   ),
@@ -146,22 +205,30 @@ Future<void> _addItem() async {
               ),
               ElevatedButton(
                 onPressed: () async {
-                  // Validation for required fields
-                  if (name.trim().isEmpty || category.trim().isEmpty || condition.trim().isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Please fill in all required fields before adding the item.'),
-                        backgroundColor: Colors.redAccent,
-                      ),
-                    );
-                    return;
-                  }
+                  // Inline validation per field
+                  setState(() {
+                    nameError = name.trim().isEmpty
+                        ? 'Please enter an item name.'
+                        : null;
+                    categoryError = category.trim().isEmpty
+                        ? 'Please enter a category.'
+                        : null;
+                    conditionError = condition.trim().isEmpty
+                        ? 'Please select a condition.'
+                        : null;
+                  });
+
+                  if (nameError != null ||
+                      categoryError != null ||
+                      conditionError != null) return;
 
                   final newItem = Item(
                     name: name.trim(),
                     category: category.trim(),
                     condition: condition.trim(),
-                    serialNumber: serialNumber.trim().isEmpty ? null : serialNumber.trim(),
+                    serialNumber: serialNumber.trim().isEmpty
+                        ? null
+                        : serialNumber.trim(),
                     imagePath: imagePath,
                   );
 
@@ -169,13 +236,20 @@ Future<void> _addItem() async {
                   Navigator.pop(context);
                   await _loadItems();
 
+                  // Success snackbar
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Item "${newItem.name}" added successfully!'),
-                      backgroundColor: Colors.green,
+                      content: Text(
+                          'Item "${newItem.name}" added successfully!'),
+                      backgroundColor: Color(0xFF2E7D32),
                     ),
                   );
                 },
+                //styling the button
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFF2E7D32), // button background color
+                          foregroundColor: Colors.white, // text/icon color
+                        ),
                 child: const Text('Add'),
               ),
             ],
@@ -186,108 +260,12 @@ Future<void> _addItem() async {
   );
 }
 
-  Future<void> _editItem(Item item) async {
-  String name = item.name;
-  String category = item.category;
-  String condition = item.condition;
-
-  await showDialog(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        title: const Text('Edit Item'),
-        content: SingleChildScrollView(
-          child: Column(
-            children: [
-              TextField(
-                controller: TextEditingController(text: name),
-                decoration: const InputDecoration(labelText: 'Item Name'),
-                onChanged: (val) => name = val,
-              ),
-              TextField(
-                controller: TextEditingController(text: category),
-                decoration: const InputDecoration(labelText: 'Category'),
-                onChanged: (val) => category = val,
-              ),
-              DropdownButtonFormField<String>(
-                decoration: const InputDecoration(labelText: 'Condition'),
-                value: condition,
-                items: ['New', 'Excellent', 'Good', 'Needs Repair']
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                    .toList(),
-                onChanged: (val) => condition = val ?? 'Good',
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              //Validate before saving
-              if (name.trim().isEmpty || category.trim().isEmpty || condition.trim().isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Please fill in all fields before saving changes.'),
-                    backgroundColor: Colors.redAccent,
-                  ),
-                );
-                return;
-              }
-
-              final updatedItem = Item(
-                id: item.id,
-                name: name.trim(),
-                category: category.trim(),
-                condition: condition.trim(),
-              );
-
-              await _inventoryTable.updateItem(updatedItem);
-              Navigator.pop(context);
-              await _loadItems();
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Item "${updatedItem.name}" updated successfully!'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      );
-    },
-  );
-}
-
-  Future<void> _deleteItem(int id) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Item'),
-        content: const Text('Are you sure you want to delete this item?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Delete')),
-        ],
-      ),
-    ) ?? false;
-    if (!confirm) return;
-    await _inventoryTable.deleteItem(id);
-    DataCache.instance.clearInventory();
-    _loadItems();
-  }
-
   @override
 Widget build(BuildContext context) {
   return Scaffold(
     appBar: AppBar(
       title: const Text('Inventory'),
-      backgroundColor: Colors.teal,
+      backgroundColor: Color(0xFF2E7D32),
     ),
     body: Column(
       children: [
@@ -307,7 +285,7 @@ Widget build(BuildContext context) {
               ),
               const SizedBox(width: 8),
               PopupMenuButton<String>(
-                icon: const Icon(Icons.filter_list, color: Colors.teal, size: 28),
+                icon: const Icon(Icons.filter_list, color: Color(0xFF2E7D32), size: 28),
                 tooltip: 'Filter by condition',
                 onSelected: (value) {
                   setState(() {
@@ -425,7 +403,7 @@ Widget build(BuildContext context) {
     ),
     floatingActionButton: FloatingActionButton(
       onPressed: _addItem,
-      backgroundColor: Colors.teal,
+      backgroundColor: Color(0xFF2E7D32),
       child: const Icon(Icons.add),
     ),
   );

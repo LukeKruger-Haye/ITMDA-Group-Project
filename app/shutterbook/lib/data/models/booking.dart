@@ -22,16 +22,15 @@ class Booking {
   });
 
   Map<String, dynamic> toMap() {
-    return {
-      'booking_id': bookingId,
-      'client_id': clientId,
-      'quote_id': quoteId,
-      'booking_date': bookingDate.toString(),
-      'status': status,
-      'created_at': createdAt?.toString(),
-      // Do NOT include client_name here; it's not a column in the Bookings table
-    };
-  }
+  return {
+    'booking_id': bookingId,
+    'client_id': clientId,
+    'quote_id': quoteId,
+    'booking_date': bookingDate.toIso8601String(),
+    'status': status,
+    'created_at': createdAt?.toIso8601String(),
+  };
+}
 
   factory Booking.fromMap(Map<String, dynamic> map) {
     return Booking(
@@ -46,4 +45,7 @@ class Booking {
   clientName: map['client_name'],
   );
   }
+  
 }
+
+

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../data/tables/inventory_table.dart';
 import '../../data/tables/booking_inventory_table.dart';
 import '../../data/models/item.dart';
-import '../../data/models/booking_inventory.dart';
 
 class BookingInventoryPage extends StatefulWidget {
   final int bookingId;
@@ -72,7 +71,7 @@ class _BookingInventoryPageState extends State<BookingInventoryPage> {
       _searchQuery = query.toLowerCase();
       _filteredItems = _allItems.where((item) {
         return item.name.toLowerCase().contains(_searchQuery) ||
-            (item.category?.toLowerCase().contains(_searchQuery) ?? false);
+            (item.category.toLowerCase().contains(_searchQuery));
       }).toList();
     });
   }
@@ -290,7 +289,7 @@ class _BookingInventoryPageState extends State<BookingInventoryPage> {
                                             textAlign: TextAlign.center,
                                           ),
                                           Text(
-                                            item.category ?? 'No category',
+                                            item.category,
                                             style: const TextStyle(
                                               fontSize: 13,
                                               color: Colors.black54,
