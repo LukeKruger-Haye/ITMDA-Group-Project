@@ -98,28 +98,14 @@ class DatabaseHelper {
       )
       ''');
 
-      await db.execute('''
-      Insert into 'Packages'(
-      name,
-      details,
-      price
-      )
-      VALUES(
-            'Birthday','This package involves taking pictures on your birthday with props', 750 ),
-            ('Wedding','Take pictures on your special day of your partner and family',650
-            )
-      ''');
-await db.execute('''
-      Insert into 'Clients'(
-      first_name,
-      last_name,
-      email,phone
-      )
-      VALUES(
-      'James','Baxtor','james.baxtor@example.com','555-689-2563' ),
-      ('Micheal','Jackson','micehal.jackson@example.com','235-845-9874'
-      )
-      ''');
+    // Seed some demo data only in debug builds. Seeding in release builds
+    // can surprise users after reinstall (system backup/restore or fresh
+    // database creation). Guarding by kDebugMode keeps this helpful during
+    // development without affecting production installs.
+    // No seeded demo data by default. Seeding demo clients/packages was
+    // removed to avoid surprising users by creating sample clients on
+    // fresh installs. If you need demo data for development, add a
+    // developer-only import or enable seeding in a debug-only helper.
       
     await db.execute('''
       CREATE TABLE BookingInventory (
