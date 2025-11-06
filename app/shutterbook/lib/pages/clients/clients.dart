@@ -119,95 +119,169 @@ class _ClientsPageState extends State<ClientsPage> {
     );
     final emailController = TextEditingController(text: client?.email ?? '');
     final phoneController = TextEditingController(text: client?.phone ?? '');
-    final formKey = GlobalKey<FormState>();
+  final formKey = GlobalKey<FormState>();
+  final ValueNotifier<String?> emailError = ValueNotifier<String?>(null);
+  Timer? emailDebounce;
+  bool isSaving = false;
 
-    final result = await showDialog<Client>(
+    // Show dialog which performs DB insert/update itself so we can surface
+    // duplicate-email errors inline without closing the dialog prematurely.
+    final created = await showDialog<Client?>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(client == null ? 'Add Client' : 'Edit Client'),
-        content: Form(
-          key: formKey,
-          child: SingleChildScrollView(
-            child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TextFormField(
-                    controller: firstNameController,
-                    decoration: const InputDecoration(labelText: 'First Name'),
-                    validator: (value) => value == null || value.trim().isEmpty
-                        ? 'First name required'
-                        : null,
-                    textCapitalization: TextCapitalization.words,
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: lastNameController,
-                    decoration: const InputDecoration(labelText: 'Last Name'),
-                    validator: (value) => value == null || value.trim().isEmpty
-                        ? 'Last name required'
-                        : null,
-                    textCapitalization: TextCapitalization.words,
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: emailController,
-                    decoration: const InputDecoration(labelText: 'Email'),
-                    validator: _validateEmail,
-                    keyboardType: TextInputType.emailAddress,
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: phoneController,
-                    decoration: const InputDecoration(labelText: 'Phone'),
-                    validator: _validatePhone,
-                    keyboardType: TextInputType.phone,
-                  ),
-                ],
-              ),
+      builder: (context) => StatefulBuilder(builder: (context, setStateDialog) {
+
+        Future<void> doSave() async {
+          final dialogNav = Navigator.of(context);
+          if (!(formKey.currentState?.validate() ?? false)) return;
+          final confirmed = await _showConfirmationDialog(
+            client == null ? 'Add Client' : 'Save Changes',
+            client == null
+                ? 'Are you sure you want to add this client?'
+                : 'Are you sure you want to save changes to this client?',
+          );
+          if (!confirmed) return;
+
+          final newClient = Client(
+            id: client?.id,
+            firstName: _capitalize(firstNameController.text.trim()),
+            lastName: _capitalize(lastNameController.text.trim()),
+            email: emailController.text.trim().toLowerCase(),
+            phone: phoneController.text.trim().replaceAll(RegExp(r'\D'), ''),
+          );
+
+          setStateDialog(() {
+            isSaving = true;
+            emailError.value = null;
+          });
+
+          try {
+            if (client == null) {
+              await _clientTable.insertClient(newClient);
+            } else {
+              await _clientTable.updateClient(newClient);
+            }
+            // success — close dialog and return created/updated client
+            if (dialogNav.mounted) dialogNav.pop(newClient);
+          } catch (e) {
+            final msg = e.toString().toLowerCase();
+            if (msg.contains('unique') || msg.contains('unique constraint') || msg.contains('idx_clients_email') || msg.contains('unique index')) {
+              // Surface the duplicate error via the notifier so the validator
+              // and inline UI pick it up.
+              emailError.value = 'This email address is already taken.';
+              try {
+                formKey.currentState?.validate();
+              } catch (_) {}
+            } else {
+              // rethrow other errors so they can be logged/handled by global handlers
+              rethrow;
+            }
+          } finally {
+            try {
+              setStateDialog(() {
+                isSaving = false;
+              });
+            } catch (_) {}
+          }
+        }
+
+        return AlertDialog(
+          title: Text(client == null ? 'Add Client' : 'Edit Client'),
+          content: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ValueListenableBuilder<String?>(
+                      valueListenable: emailError,
+                      builder: (context, value, _) => value != null
+                          ? Padding(
+                              padding: const EdgeInsets.only(bottom: 8.0),
+                              child: Text(value, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                    TextFormField(
+                      controller: firstNameController,
+                      decoration: const InputDecoration(labelText: 'First Name'),
+                      validator: (value) => value == null || value.trim().isEmpty ? 'First name required' : null,
+                      textCapitalization: TextCapitalization.words,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: lastNameController,
+                      decoration: const InputDecoration(labelText: 'Last Name'),
+                      validator: (value) => value == null || value.trim().isEmpty ? 'Last name required' : null,
+                      textCapitalization: TextCapitalization.words,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: emailController,
+                      decoration: const InputDecoration(labelText: 'Email'),
+                      validator: (v) {
+                        final basic = _validateEmail(v);
+                        if (basic != null) return basic;
+                        return emailError.value;
+                      },
+                      keyboardType: TextInputType.emailAddress,
+                      onChanged: (val) {
+                        emailDebounce?.cancel();
+                        emailDebounce = Timer(const Duration(milliseconds: 300), () async {
+                          final e = val.trim().toLowerCase();
+                          if (e.isEmpty) {
+                            emailError.value = null;
+                            try {
+                              formKey.currentState?.validate();
+                            } catch (_) {}
+                            return;
+                          }
+                          try {
+                            final existing = await _clientTable.getClientByEmail(e);
+                            if (existing == null || (client != null && existing.id == client.id)) {
+                              emailError.value = null;
+                            } else {
+                              emailError.value = 'This email address is already taken.';
+                            }
+                            try {
+                              formKey.currentState?.validate();
+                            } catch (_) {}
+                          } catch (_) {
+                            // ignore DB errors during live validation
+                          }
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: phoneController,
+                      decoration: const InputDecoration(labelText: 'Phone'),
+                      validator: _validatePhone,
+                      keyboardType: TextInputType.phone,
+                    ),
+                  ]),
+            ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final nav = Navigator.of(context);
-              if (formKey.currentState?.validate() ?? false) {
-                final confirmed = await _showConfirmationDialog(
-                  client == null ? 'Add Client' : 'Save Changes',
-                  client == null
-                      ? 'Are you sure you want to add this client?'
-                      : 'Are you sure you want to save changes to this client?',
-                );
-                if (!confirmed) return;
-                final newClient = Client(
-                  id: client?.id,
-                  firstName: _capitalize(firstNameController.text.trim()),
-                  lastName: _capitalize(lastNameController.text.trim()),
-                  email: emailController.text.trim().toLowerCase(),
-                  phone: phoneController.text.trim().replaceAll(
-                    RegExp(r'\D'),
-                    '',
-                  ),
-                );
-                if (nav.mounted) nav.pop(newClient);
-              }
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: isSaving ? null : () async => await doSave(),
+              child: isSaving ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Save'),
+            ),
+          ],
+        );
+      }),
     );
 
-    if (result != null) {
-      if (client == null) {
-        await _clientTable.insertClient(result);
-      } else {
-        await _clientTable.updateClient(result);
-      }
+    // Clean up debounce and notifier used for live validation
+    try {
+      emailDebounce?.cancel();
+    } catch (_) {}
+    try {
+      emailError.dispose();
+    } catch (_) {}
+
+    if (created != null) {
       // Clear shared clients cache so other pages pick up changes
       DataCache.instance.clearClients();
       _loadClients();
