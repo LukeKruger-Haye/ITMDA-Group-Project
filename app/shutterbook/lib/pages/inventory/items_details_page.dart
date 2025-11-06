@@ -1,20 +1,16 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../data/models/item.dart';
-import '../../data/models/booking.dart';
-import '../../data/tables/booking_inventory_table.dart';
 import '../../data/tables/booking_table.dart';
 import '../../data/models/booking_with_client.dart';
 import '../../data/tables/inventory_table.dart';
 import '../../data/services/data_cache.dart';
-import '../../data/models/item.dart';
 import 'package:image_picker/image_picker.dart';
 
 class InventoryDetailsPage extends StatefulWidget {
   final Item item;
 
-  const InventoryDetailsPage({Key? key, required this.item}) : super(key: key);
+  const InventoryDetailsPage({super.key, required this.item});
 
   @override
   State<InventoryDetailsPage> createState() => _InventoryDetailsPageState();
@@ -86,8 +82,8 @@ class _InventoryDetailsPageState extends State<InventoryDetailsPage> {
                       style: const TextStyle(
                           fontSize: 22, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
-                  Text('Category: ${_item.category ?? "Unspecified"}'),
-                  Text('Condition: ${_item.condition ?? "Unknown"}'),
+                  Text('Category: ${_item.category}'),
+                  Text('Condition: ${_item.condition}'),
                   const SizedBox(height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -162,7 +158,7 @@ class _InventoryDetailsPageState extends State<InventoryDetailsPage> {
 
                                           DropdownButtonFormField<String>(
                                             decoration: InputDecoration(labelText: 'Condition',errorText: conditionError,),
-                                            value: condition,
+                                            initialValue: condition,
                                             items: ['New', 'Excellent', 'Good', 'Needs Repair']
                                                 .map((e) =>
                                                     DropdownMenuItem(value: e, child: Text(e)))
@@ -240,20 +236,25 @@ class _InventoryDetailsPageState extends State<InventoryDetailsPage> {
                                             imagePath: imagePath,
                                           );
 
+                                          // Capture navigator and messenger before async work
+                                          final navigator = Navigator.of(context);
+                                          final messenger = ScaffoldMessenger.of(context);
+
                                           await InventoryTable().updateItem(updatedItem);
                                           DataCache.instance.clearInventory();
 
                                           //Refresh tab info
-                                          final refreshedItem = await InventoryTable().getItemById(_item.id!);
                                           await _reloadItem(); // refresh state directly
-                                          Navigator.pop(context);
-                                           
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(
-                                                content: Text('Item "${_item.name}" updated successfully!'),
-                                                backgroundColor: const Color(0xFF2E7D32),
-                                              ),
-                                            );
+                                          if (!mounted) return;
+                                          navigator.pop();
+
+                                          if (!mounted) return;
+                                          messenger.showSnackBar(
+                                            SnackBar(
+                                              content: Text('Item "${_item.name}" updated successfully!'),
+                                              backgroundColor: const Color(0xFF2E7D32),
+                                            ),
+                                          );
                                         },
                                         //styling the button
                                         style: ElevatedButton.styleFrom(
@@ -282,6 +283,11 @@ class _InventoryDetailsPageState extends State<InventoryDetailsPage> {
                         label: const Text('Delete'),
                         style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
                         onPressed: () async {
+                          // Capture navigator and messenger before any awaits so we
+                          // don't use BuildContext across async gaps.
+                          final navigator = Navigator.of(context);
+                          final messenger = ScaffoldMessenger.of(context);
+
                           final confirm = await showDialog<bool>(
                             context: context,
                             builder: (ctx) => AlertDialog(
@@ -305,8 +311,8 @@ class _InventoryDetailsPageState extends State<InventoryDetailsPage> {
                             await InventoryTable().deleteItem(_item.id!);
                             DataCache.instance.clearInventory();
                             if (mounted) {
-                              Navigator.pop(context, true);
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              navigator.pop(true);
+                              messenger.showSnackBar(
                                 SnackBar(
                                   content: Text('Item "${_item.name}" deleted successfully.'),
                                   backgroundColor: Color(0xFF2E7D32),
