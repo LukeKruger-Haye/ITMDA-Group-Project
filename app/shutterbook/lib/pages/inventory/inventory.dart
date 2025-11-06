@@ -272,10 +272,6 @@ Future<void> _addItem() async {
   @override
 Widget build(BuildContext context) {
   return Scaffold(
-    appBar: AppBar(
-      title: const Text('Inventory'),
-      backgroundColor: Color(0xFF2E7D32),
-    ),
     body: Column(
       children: [
         Padding(
