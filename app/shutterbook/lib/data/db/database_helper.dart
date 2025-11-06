@@ -83,7 +83,9 @@ class DatabaseHelper {
         item_id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         category TEXT NOT NULL,
-        condition TEXT NOT NULL DEFAULT 'New'
+        condition TEXT NOT NULL DEFAULT 'New',
+        serial_number TEXT,
+        image_path TEXT
       )
       ''');
 
@@ -95,6 +97,40 @@ class DatabaseHelper {
         price REAL NOT NULL
       )
       ''');
+
+      await db.execute('''
+      Insert into 'Packages'(
+      name,
+      details,
+      price
+      )
+      VALUES(
+            'Birthday','This package involves taking pictures on your birthday with props', 750 ),
+            ('Wedding','Take pictures on your special day of your partner and family',650
+            )
+      ''');
+await db.execute('''
+      Insert into 'Clients'(
+      first_name,
+      last_name,
+      email,phone
+      )
+      VALUES(
+      'James','Baxtor','james.baxtor@example.com','555-689-2563' ),
+      ('Micheal','Jackson','micehal.jackson@example.com','235-845-9874'
+      )
+      ''');
+      
+    await db.execute('''
+      CREATE TABLE BookingInventory (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        booking_id INTEGER NOT NULL,
+        item_id INTEGER NOT NULL,
+        quantity INTEGER NOT NULL,
+        FOREIGN KEY (booking_id) REFERENCES Bookings(booking_id) ON DELETE CASCADE,
+        FOREIGN KEY (item_id) REFERENCES Inventory(item_id) ON DELETE CASCADE
+      )
+    ''');
   }
 
   Future _onUpgrade(Database db, int oldVersion, int newVersion) async {

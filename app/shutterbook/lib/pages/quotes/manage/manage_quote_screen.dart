@@ -1,6 +1,7 @@
 // Shutterbook — Manage Quote screen
 // Full screen used to view and edit a single quote's details.
 import 'package:flutter/material.dart';
+
 import 'package:shutterbook/data/models/quote.dart';
 import 'package:shutterbook/data/tables/quote_table.dart';
 import 'package:shutterbook/data/tables/client_table.dart';
@@ -277,6 +278,7 @@ class _ManageQuotePageState extends State<ManageQuotePage> {
                           }
                   
                         },
+                        style: ElevatedButton.styleFrom(backgroundColor: Color.fromARGB(255, 209, 109, 10)),
                         icon: const Icon(Icons.edit),
                         label: const Text('Edit'),
                       ),
