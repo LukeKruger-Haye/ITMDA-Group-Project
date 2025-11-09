@@ -338,99 +338,9 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                       decoration: const InputDecoration(labelText: 'Status'),
                       isExpanded: true,
                     ),
-                    const SizedBox(height: 16),
                     
-                    // Date Selection
-                    OutlinedButton.icon(
-                      style: UIStyles.outlineButton(context),
-                      onPressed: () async {
-                        final now = DateTime.now();
-                        final initialDate = selectedDate ?? now;
-                        final pickedDate = await showDatePicker(
-                          context: context,
-                          initialDate: initialDate,
-                          firstDate: DateTime(now.year - 1),
-                          lastDate: DateTime(now.year + 3),
-                        );
-                        if (pickedDate == null) return;
-                        
-                        setStateDialog(() {
-                          selectedDate = pickedDate;
-                          // Auto-set start time to 9am if not set
-                          if (startTime == null) {
-                            startTime = const TimeOfDay(hour: 9, minute: 0);
-                            endTime = const TimeOfDay(hour: 10, minute: 0);
-                          }
-                        });
-                      },
-                      icon: const Icon(Icons.calendar_today),
-                      label: Text(
-                        selectedDate == null
-                            ? 'Select Date'
-                            : '${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}',
-                      ),
-                    ),
-                    const SizedBox(height: 8),
+                    
 
-                    // Time Range Selection
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            style: UIStyles.outlineButton(context),
-                            onPressed: () async {
-                              final initialTime = startTime ?? const TimeOfDay(hour: 9, minute: 0);
-                              
-                              final pickedTime = await showTimePicker(
-                                context: context,
-                                initialTime: initialTime,
-                              );
-                              if (pickedTime == null) return;
-                              
-                              setStateDialog(() {
-                                startTime = pickedTime;
-                                // Auto-set end time to 1 hour after start time
-                                endTime = TimeOfDay(
-                                  hour: (pickedTime.hour + 1) % 24,
-                                  minute: pickedTime.minute,
-                                );
-                              });
-                            },
-                            icon: const Icon(Icons.access_time),
-                            label: Text(
-                              startTime == null
-                                  ? 'Start Time'
-                                  : '${startTime!.hour.toString().padLeft(2, '0')}:${startTime!.minute.toString().padLeft(2, '0')}',
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            style: UIStyles.outlineButton(context),
-                            onPressed: () async {
-                              final initialTime = endTime ?? const TimeOfDay(hour: 10, minute: 0);
-                              
-                              final pickedTime = await showTimePicker(
-                                context: context,
-                                initialTime: initialTime,
-                              );
-                              if (pickedTime == null) return;
-                              
-                              setStateDialog(() {
-                                endTime = pickedTime;
-                              });
-                            },
-                            icon: const Icon(Icons.access_time),
-                            label: Text(
-                              endTime == null
-                                  ? 'End Time'
-                                  : '${endTime!.hour.toString().padLeft(2, '0')}:${endTime!.minute.toString().padLeft(2, '0')}',
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
                     const SizedBox(height: 12),
                   ],
                 ),
@@ -513,11 +423,14 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                     
                     _loadBookings();
                     
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Created ${bookingSlots.length} booking${bookingSlots.length > 1 ? 's' : ''} successfully'),
-                      ),
-                    );
+if (!mounted) return;
+
+ScaffoldMessenger.of(context).showSnackBar(
+  SnackBar(
+    content: Text('Created ${bookingSlots.length} booking${bookingSlots.length > 1 ? 's' : ''} successfully'),
+  ),
+);
+
                   },
                   child: const Text('Save All'),
                 ),
@@ -1182,7 +1095,7 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                                                 : isSelected
                                                     ? const Icon(
                                                         Icons.check,
-                                                        color: Colors.white,
+                                                        color: Color.fromARGB(255, 66, 161, 177),
                                                         size: 16,
                                                       )
                                                     : null,
