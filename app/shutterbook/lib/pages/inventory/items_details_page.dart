@@ -50,12 +50,16 @@ class _InventoryDetailsPageState extends State<InventoryDetailsPage> {
       child: Scaffold(
         appBar: AppBar(
           title: Text(_item.name),
-          bottom: const TabBar(
+          bottom: TabBar(
+            labelColor: Colors.white, // Color for the active tab text
+            unselectedLabelColor: Colors.grey, // Color for inactive tabs
+            indicatorColor:  Color(0xFF2E7D32),// Optional: underline color
             tabs: [
               Tab(text: 'Info'),
               Tab(text: 'Bookings'),
             ],
           ),
+ 
         ),
         body: TabBarView(
           children: [

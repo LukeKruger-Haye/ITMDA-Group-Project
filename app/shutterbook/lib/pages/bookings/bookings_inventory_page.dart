@@ -263,25 +263,25 @@ class _BookingInventoryPageState extends State<BookingInventoryPage> {
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
                                     SizedBox(
-                                height: 120,
-                                width: double.infinity,
-                                child: ClipRRect(
-                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
-                                  child: item.imagePath != null && item.imagePath!.isNotEmpty
-                                      ? Image.file(
-                                          File(item.imagePath!),
-                                          fit: BoxFit.cover,
-                                        )
-                                      : Container(
-                                          color: Colors.grey.shade200,
-                                          child: const Icon(
-                                            Icons.image_not_supported,
-                                            size: 60,
-                                            color: Colors.grey,
-                                          ),
-                                        ),
-                                ),
-                              ),
+                                    height: 120,
+                                    width: double.infinity,
+                                    child: ClipRRect(
+                                      borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+                                      child: item.imagePath != null && item.imagePath!.isNotEmpty
+                                          ? Image.file(
+                                              File(item.imagePath!),
+                                              fit: BoxFit.cover,
+                                            )
+                                          : Container(
+                                              color: Colors.grey.shade200,
+                                              child: const Icon(
+                                                Icons.image_not_supported,
+                                                size: 60,
+                                                color: Colors.grey,
+                                              ),
+                                            ),
+                                    ),
+                                  ),
                                     Padding(
                                       padding: const EdgeInsets.all(8.0),
                                       child: Column(

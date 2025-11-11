@@ -47,11 +47,6 @@ class _InventoryPageState extends State<InventoryPage> {
 
 String _selectedCondition = 'All';
 
-Future<void> refresh() async {
-  await _loadItems(); // or whatever method reloads data
-  setState(() {});
-}
-
 void _filterInventory(String query) {
   setState(() {
     _searchQuery = query.toLowerCase();

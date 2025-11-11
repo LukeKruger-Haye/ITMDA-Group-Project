@@ -34,14 +34,16 @@ class Booking {
 
   factory Booking.fromMap(Map<String, dynamic> map) {
     return Booking(
-      bookingId: map['booking_id'],
-      clientId: map['client_id'],
-      quoteId: map['quote_id'],
-      bookingDate: DateTime.parse(map['booking_date']),
-      status: map['status'],
-      createdAt:
-          map['created_at'] != null ? DateTime.parse(map['created_at']) : null,
-    );
+  bookingId: map['booking_id'],
+  clientId: map['client_id'],
+  quoteId: map['quote_id'],
+  bookingDate: DateTime.parse(map['booking_date']),
+  status: map['status'] ?? 'Scheduled',
+  createdAt: map['created_at'] != null
+  ? DateTime.tryParse(map['created_at'])
+  : null,
+  clientName: map['client_name'],
+  );
   }
   
 }
