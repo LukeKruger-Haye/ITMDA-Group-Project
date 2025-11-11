@@ -10,6 +10,7 @@ import '../models/booking_with_client.dart';
 class BookingTable {
   final dbHelper = DatabaseHelper.instance;
 
+    
   Future<int> insertBooking(Booking booking) async {
     final db = await dbHelper.database;
     return await db.insert(
