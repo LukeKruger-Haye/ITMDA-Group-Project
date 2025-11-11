@@ -227,7 +227,7 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
           ),
         )),
         RepaintBoundary(child: _KeepAliveWrapper(child: QuotePage(key: _quotesKey, embedded: true))),
-        RepaintBoundary(child: _KeepAliveWrapper(child: InventoryPage(key: _inventoryKey, embedded: true))),
+        RepaintBoundary(child: _KeepAliveWrapper(child: InventoryPage(key: _inventoryKey))),
       ],
     );
   }
@@ -500,29 +500,7 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
           tooltip: 'Add client',
         );
       case 4: // Inventory
-        return FloatingActionButton(
-          onPressed: () async {
-            final nav = Navigator.of(context);
-            final state = _inventoryKey.currentState;
-            if (state != null) {
-              try {
-                await (state as dynamic).openAddDialog();
-                try {
-                  await (state as dynamic).refresh();
-                } catch (_) {}
-              } catch (_) {
-                await nav.push<bool>(MaterialPageRoute(builder: (_) => const InventoryPage(embedded: false)));
-              }
-            } else {
-              await nav.push<bool>(MaterialPageRoute(builder: (_) => const InventoryPage(embedded: false)));
-            }
-            if (mounted) setState(() {});
-          },
-          backgroundColor: activeColor,
-          foregroundColor: onActive,
-          child: const Icon(Icons.add),
-          tooltip: 'Add inventory',
-        );
+      return null;
       default:
         return null;
     }

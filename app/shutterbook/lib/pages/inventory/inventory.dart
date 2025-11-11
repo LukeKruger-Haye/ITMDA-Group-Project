@@ -6,6 +6,7 @@ import '../../data/models/item.dart';
 import '../../data/tables/inventory_table.dart';
 import 'dart:io';
 import '../../pages/inventory/items_details_page.dart';
+// cleaned up unused/duplicate imports
 
 class InventoryPage extends StatefulWidget {
   final bool embedded;
@@ -136,7 +137,7 @@ Future<void> _addItem() async {
                       labelText: 'Condition',
                       errorText: conditionError,
                     ),
-                    value: condition,
+                    initialValue: condition,
                     items: ['New', 'Excellent', 'Good', 'Needs Repair']
                         .map((e) => DropdownMenuItem(
                               value: e,
@@ -220,7 +221,9 @@ Future<void> _addItem() async {
 
                   if (nameError != null ||
                       categoryError != null ||
-                      conditionError != null) return;
+                      conditionError != null) {
+                    return;
+                  }
 
                   final newItem = Item(
                     name: name.trim(),
@@ -232,12 +235,21 @@ Future<void> _addItem() async {
                     imagePath: imagePath,
                   );
 
+                  // Capture navigator and messenger before async work to avoid using
+                  // BuildContext across an async gap (satisfies lint rules).
+                  final navigator = Navigator.of(context);
+                  final messenger = ScaffoldMessenger.of(context);
+
                   await _inventoryTable.insertItem(newItem);
-                  Navigator.pop(context);
+
+                  // Ensure widget still mounted before using captured navigator
+                  if (!mounted) return;
+                  navigator.pop();
                   await _loadItems();
 
-                  // Success snackbar
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  // Success snackbar - show using captured messenger
+                  if (!mounted) return;
+                  messenger.showSnackBar(
                     SnackBar(
                       content: Text(
                           'Item "${newItem.name}" added successfully!'),
@@ -263,10 +275,6 @@ Future<void> _addItem() async {
   @override
 Widget build(BuildContext context) {
   return Scaffold(
-    appBar: AppBar(
-      title: const Text('Inventory'),
-      backgroundColor: Color(0xFF2E7D32),
-    ),
     body: Column(
       children: [
         Padding(
@@ -327,6 +335,7 @@ Widget build(BuildContext context) {
                     );
 
                     //Refresh inventory list when returning
+                    if (!mounted) return;
                     await _loadItems();
                   },
                   child: Card(

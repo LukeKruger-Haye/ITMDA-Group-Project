@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../data/tables/inventory_table.dart';
 import '../../data/tables/booking_inventory_table.dart';
 import '../../data/models/item.dart';
+// removed unused import: '../../data/models/booking_inventory.dart'
 
 class BookingInventoryPage extends StatefulWidget {
   final int bookingId;
@@ -70,8 +71,8 @@ class _BookingInventoryPageState extends State<BookingInventoryPage> {
     setState(() {
       _searchQuery = query.toLowerCase();
       _filteredItems = _allItems.where((item) {
-        return item.name.toLowerCase().contains(_searchQuery) ||
-            (item.category.toLowerCase().contains(_searchQuery));
+    return item.name.toLowerCase().contains(_searchQuery) ||
+      item.category.toLowerCase().contains(_searchQuery);
       }).toList();
     });
   }
@@ -104,9 +105,11 @@ class _BookingInventoryPageState extends State<BookingInventoryPage> {
 
     if (shouldExit == true) {
       await _saveSelection();
+      if (!mounted) return false;
       Navigator.pop(context);
       return false; // prevent double pop
     } else if (shouldExit == false) {
+      if (!mounted) return false;
       Navigator.pop(context);
       return false;
     }
@@ -119,6 +122,9 @@ class _BookingInventoryPageState extends State<BookingInventoryPage> {
     final selectedItems =
         _allItems.where((item) => _selectedItemIds.contains(item.id)).toList();
 
+    // PopScope is recommended in newer Flutter versions, but keep WillPopScope
+    // for compatibility; suppress the deprecation info at this call site.
+    // ignore: deprecated_member_use
     return WillPopScope(
       onWillPop: _onWillPop,
       child: Scaffold(

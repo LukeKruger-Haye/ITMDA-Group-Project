@@ -6,16 +6,16 @@
 % PdfXrefTable
 % Verbose dart_pdf
 % Producer https://github.com/DavBfr/dart_pdf
-% Creation date: 2025-10-30 11:06:20.614663
+% Creation date: 2025-11-06 09:22:40.834288
 % Compress: false
 % Crypto: false
-% Creation time: 0.019273 seconds
+% Creation time: 0.010291 seconds
 % File size: 1914 bytes
 % Objects: 4                                          
 
 % ------------------------------------------------------------------------------
 % PdfObjectBase<PdfDict<PdfDataType>>
-% Creation time: 0.002938 seconds         
+% Creation time: 0.001159 seconds         
 4 0 obj
 <<
   /Type  /Catalog
@@ -25,7 +25,7 @@ endobj
 
 % ------------------------------------------------------------------------------
 % PdfObjectBase<PdfDict<PdfDataType>>
-% Creation time: 0.000921 seconds         
+% Creation time: 0.000546 seconds         
 1 0 obj
 <<
   /Type  /Pages
@@ -39,7 +39,7 @@ endobj
 
 % ------------------------------------------------------------------------------
 % PdfObjectBase<PdfDict<PdfDataType>>
-% Creation time: 0.001029 seconds         
+% Creation time: 0.000563 seconds         
 3 0 obj
 <<
   /Type      /Page
@@ -64,7 +64,7 @@ endobj
 
 % ------------------------------------------------------------------------------
 % PdfObjectBase<PdfDictStream>
-% Creation time: 0.000621 seconds                
+% Creation time: 0.000436 seconds                
 2 0 obj
 <<
   /Length 32
