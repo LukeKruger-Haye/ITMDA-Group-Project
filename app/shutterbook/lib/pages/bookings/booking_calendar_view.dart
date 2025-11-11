@@ -984,7 +984,7 @@ ScaffoldMessenger.of(context).showSnackBar(
                   },
                 ),
               ),
-              // Calendar grid - not scrollable, handles drag
+              // Calendar grid 
               Expanded(
                 child: Listener(
                   onPointerMove: (details) {
