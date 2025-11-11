@@ -432,7 +432,7 @@ ScaffoldMessenger.of(context).showSnackBar(
 );
 
                   },
-                  child: const Text('Save All'),
+                  child: const Text('Save'),
                 ),
               ],
             );
@@ -648,6 +648,10 @@ ScaffoldMessenger.of(context).showSnackBar(
                             ),
                           ),
                         ),
+                            Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Text('-', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+    ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: OutlinedButton.icon(
@@ -788,24 +792,46 @@ ScaffoldMessenger.of(context).showSnackBar(
                       return;
                     }
 
-                    if (existing != null) {
-                      final updated = Booking(
-                        bookingId: existing.bookingId,
-                        quoteId: selectedQuoteId!,
-                        clientId: selectedClient!.id!,
-                        bookingDate: bookingDate,
-                        status: status.isEmpty ? 'Scheduled' : status,
-                        createdAt: existing.createdAt,
-                      );
-                      await bookingTable.updateBooking(updated);
-                      DataCache.instance.clearBookings();
-                      setState(() {
-                        final index = bookings.indexWhere(
-                          (b) => b.bookingId == existing.bookingId,
-                        );
-                        if (index != -1) bookings[index] = updated;
-                      });
-                    } else {
+if (existing != null) {
+  // Delete old booking
+  await bookingTable.deleteBooking(existing.bookingId!);
+
+  // Build full start and end timestamps
+  final start = DateTime(
+    bookingDate.year,
+    bookingDate.month,
+    bookingDate.day,
+    _selectedStartTime!.hour,
+    _selectedStartTime!.minute,
+  );
+  final end = DateTime(
+    bookingDate.year,
+    bookingDate.month,
+    bookingDate.day,
+    _selectedEndTime!.hour,
+    _selectedEndTime!.minute,
+  );
+
+  // Split into hour blocks
+  DateTime cursor = start;
+  while (cursor.isBefore(end)) {
+    final next = cursor.add(const Duration(hours: 1));
+
+    final newBooking = Booking(
+      quoteId: selectedQuoteId!,
+      clientId: selectedClient!.id!,
+      bookingDate: cursor,
+      status: status.isEmpty ? 'Scheduled' : status,
+      createdAt: existing.createdAt,
+    );
+
+    await bookingTable.insertBooking(newBooking);
+    cursor = next;
+  }
+
+  DataCache.instance.clearBookings();
+} 
+ else {
                       final newBooking = Booking(
                         quoteId: selectedQuoteId!,
                         clientId: selectedClient!.id!,
@@ -1117,42 +1143,16 @@ ScaffoldMessenger.of(context).showSnackBar(
           );
         }
 
-        return Column(
-          children: [
-            buildDateRow(),
-            buildDaysRow(),
-            const Divider(),
-            if (_selectedSlots.isNotEmpty && !_isDragging)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                color: Colors.blue.withOpacity(0.1),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        '${_selectedSlots.length} slot${_selectedSlots.length > 1 ? 's' : ''} selected',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue,
-                        ),
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        setState(() {
-                          _selectedSlots.clear();
-                        });
-                      },
-                      child: const Text('Clear'),
-                    ),
-                  ],
-                ),
-              ),
-            Expanded(
-              child: buildCalendarGrid(),
-            ),
-          ],
-        );
+return Column(
+  children: [
+    buildDateRow(),
+    buildDaysRow(),
+    const Divider(),
+    Expanded(
+      child: buildCalendarGrid(),
+    ),
+  ],
+);
       },
     );
   }
