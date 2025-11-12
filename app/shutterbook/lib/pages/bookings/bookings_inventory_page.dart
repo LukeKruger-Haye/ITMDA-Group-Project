@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../data/tables/inventory_table.dart';
 import '../../data/tables/booking_inventory_table.dart';
 import '../../data/models/item.dart';
+import '../inventory/inventory.dart';
 // removed unused import: '../../data/models/booking_inventory.dart'
 
 class BookingInventoryPage extends StatefulWidget {
@@ -50,6 +51,10 @@ class _BookingInventoryPageState extends State<BookingInventoryPage> {
   }
 
   Future<void> _saveSelection() async {
+    // Capture messenger before any awaits to avoid using BuildContext
+    // across async gaps (silences analyzer hint).
+    final messenger = ScaffoldMessenger.of(context);
+
     await _bookingInventoryTable.deleteItemsForBooking(widget.bookingId);
 
     for (final itemId in _selectedItemIds) {
@@ -61,7 +66,7 @@ class _BookingInventoryPageState extends State<BookingInventoryPage> {
     });
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text('Booking inventory updated successfully')),
       );
     }
@@ -127,7 +132,7 @@ class _BookingInventoryPageState extends State<BookingInventoryPage> {
     // ignore: deprecated_member_use
     return WillPopScope(
       onWillPop: _onWillPop,
-      child: Scaffold(
+  child: Scaffold(
         appBar: AppBar(
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -328,7 +333,23 @@ class _BookingInventoryPageState extends State<BookingInventoryPage> {
                     ),
             ),
           ],
-        ),
+          ),
+          floatingActionButton: FloatingActionButton(
+            onPressed: () async {
+              // Open the full Inventory page with the Add dialog shown, then
+              // refresh local data when returning so newly added items are
+              // available to attach to this booking.
+              final nav = Navigator.of(context);
+              await nav.push<bool>(MaterialPageRoute(
+                builder: (_) => const InventoryPage(embedded: false, openAddOnLoad: true),
+              ));
+              if (!mounted) return;
+              await _loadData();
+            },
+            backgroundColor: const Color(0xFF2E7D32),
+            tooltip: 'Add inventory item',
+            child: const Icon(Icons.add),
+          ),
       ),
     );
   }
