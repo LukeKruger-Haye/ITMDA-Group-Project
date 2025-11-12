@@ -107,7 +107,7 @@ class _InventoryPageState extends State<InventoryPage> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: condition,
+                  initialValue: condition,
                   items: const [
                     DropdownMenuItem(value: 'New', child: Text('New')),
                     DropdownMenuItem(value: 'Excellent', child: Text('Excellent')),
@@ -137,7 +137,7 @@ class _InventoryPageState extends State<InventoryPage> {
           ),
           actions: [
             TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-            ElevatedButton(
+                ElevatedButton(
               onPressed: () async {
                 final newItem = Item(
                   id: null,
@@ -148,10 +148,14 @@ class _InventoryPageState extends State<InventoryPage> {
                   imagePath: imagePath,
                 );
 
+                // Capture navigator & messenger before any awaits to avoid
+                // using BuildContext across async gaps (fix analyzer hint).
+                final navigator = Navigator.of(context);
                 final messenger = ScaffoldMessenger.of(context);
+
                 await _inventoryTable.insertItem(newItem);
                 if (!mounted) return;
-                Navigator.of(context).pop();
+                navigator.pop();
                 await _loadItems();
                 messenger.showSnackBar(SnackBar(
                   content: Text('Item "${newItem.name}" added'),

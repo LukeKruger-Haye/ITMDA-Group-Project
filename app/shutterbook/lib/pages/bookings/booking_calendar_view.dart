@@ -36,7 +36,7 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
   // Drag selection state
   bool _isDragging = false;
   DateTime? _dragStartSlot;
-  Set<DateTime> _selectedSlots = {};
+  final Set<DateTime> _selectedSlots = {};
   
   // Global key to access the calendar grid's render box
   final GlobalKey _calendarGridKey = GlobalKey();
@@ -189,41 +189,16 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
     });
   }
 
-  // Helper method to find which slot a position corresponds to
-  DateTime? _getSlotFromPosition(Offset globalPosition, double blockWidth, double timeColumnWidth, List<DateTime> days, List<int> hours) {
-    final RenderBox? gridBox = _calendarGridKey.currentContext?.findRenderObject() as RenderBox?;
-    if (gridBox == null) return null;
-    
-    final localPosition = gridBox.globalToLocal(globalPosition);
-    
-    // Calculate which day column
-    final dayColumnX = localPosition.dx - timeColumnWidth;
-    if (dayColumnX < 0) return null;
-    
-    final dayIndex = (dayColumnX / blockWidth).floor();
-    if (dayIndex < 0 || dayIndex >= days.length) return null;
-    
-    // Calculate which hour row (approximately)
-    const double rowHeight = 50 + 4; // height + margin
-    final rowIndex = (localPosition.dy / rowHeight).floor();
-    if (rowIndex < 0 || rowIndex >= hours.length) return null;
-    
-    final day = days[dayIndex];
-    final hour = hours[rowIndex];
-    
-    return DateTime(day.year, day.month, day.day, hour);
-  }
+  // NOTE: _getSlotFromPosition was removed — we rely on pointer-local
+  // calculations inline in the Listener where needed.
 
   Future<void> _createMultiSlotBooking(List<DateTime> slots) async {
     if (slots.isEmpty) return;
 
-    Client? selectedClient;
-    List<Quote> clientQuotes = [];
-    int? selectedQuoteId;
-    String status = 'Scheduled';
-    DateTime? selectedDate;
-    TimeOfDay? startTime;
-    TimeOfDay? endTime;
+  Client? selectedClient;
+  List<Quote> clientQuotes = [];
+  int? selectedQuoteId;
+  String status = 'Scheduled';
 
     final TextEditingController searchController = TextEditingController();
 
@@ -277,7 +252,7 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                     const SizedBox(height: 16),
                     // Client Dropdown
                     DropdownButtonFormField<Client>(
-                      value: selectedClient,
+                      initialValue: selectedClient,
                       items: filteredClients
                           .map(
                             (c) => DropdownMenuItem<Client>(
@@ -304,7 +279,7 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                     const SizedBox(height: 8),
                     // Quote Dropdown
                     DropdownButtonFormField<int>(
-                      value: selectedQuoteId,
+                      initialValue: selectedQuoteId,
                       items: clientQuotes
                           .map((q) => DropdownMenuItem<int>(
                                 value: q.id!,
@@ -326,7 +301,7 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
                     const SizedBox(height: 8),
                     // Status Dropdown
                     DropdownButtonFormField<String>(
-                      value: 'Scheduled',
+                      initialValue: 'Scheduled',
                       items: const [
                         DropdownMenuItem(value: 'Scheduled', child: Text('Scheduled')),
                       ],
@@ -372,27 +347,8 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
 
                     List<DateTime> bookingSlots = [];
 
-                    // Use drag-selected slots OR create slots from date/time range
-                    if (selectedDate != null && startTime != null && endTime != null) {
-                      // Create bookings based on date/time range
-                      final startHour = startTime!.hour;
-                      final endHour = endTime!.hour;
-                      
-                      for (int h = startHour; h < endHour; h++) {
-                        final slot = DateTime(
-                          selectedDate!.year,
-                          selectedDate!.month,
-                          selectedDate!.day,
-                          h,
-                        );
-                        if (_isSlotAvailable(slot)) {
-                          bookingSlots.add(slot);
-                        }
-                      }
-                    } else {
-                      // Use drag-selected slots
-                      bookingSlots = slots;
-                    }
+                    // Use drag-selected slots
+                    bookingSlots = slots;
 
                     if (bookingSlots.isEmpty) {
                       dialogMessenger.showSnackBar(
@@ -496,7 +452,7 @@ ScaffoldMessenger.of(context).showSnackBar(
                   children: [
                     // Client Dropdown
                     DropdownButtonFormField<Client>(
-                      value: selectedClient,
+                      initialValue: selectedClient,
                       items: filteredClients
                           .map(
                             (c) => DropdownMenuItem<Client>(
@@ -523,7 +479,7 @@ ScaffoldMessenger.of(context).showSnackBar(
                     const SizedBox(height: 8),
                     // Quote Dropdown
                     DropdownButtonFormField<int>(
-                      value: selectedQuoteId,
+                      initialValue: selectedQuoteId,
                       items: clientQuotes
                           .map((q) => DropdownMenuItem<int>(
                                 value: q.id!,
@@ -545,7 +501,7 @@ ScaffoldMessenger.of(context).showSnackBar(
                     const SizedBox(height: 8),
                     // Status Dropdown
                     DropdownButtonFormField<String>(
-                      value: () {
+                      initialValue: () {
                         switch (status.toLowerCase()) {
                           case 'finished':
                           case 'completed':
@@ -1079,8 +1035,8 @@ if (existing != null) {
                                         child: Container(
                                           margin: const EdgeInsets.all(2),
                                           decoration: BoxDecoration(
-                                            color: isSelected
-                                                ? Colors.blue.withOpacity(0.5)
+                      color: isSelected
+                        ? Colors.blue.withAlpha(128)
                                                 : booking != null
                                                     ? getStatusColor(context, booking.status)
                                                     : (hour < 8 || hour > 18

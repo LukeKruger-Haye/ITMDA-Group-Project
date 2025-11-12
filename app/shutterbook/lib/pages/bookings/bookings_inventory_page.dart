@@ -51,6 +51,10 @@ class _BookingInventoryPageState extends State<BookingInventoryPage> {
   }
 
   Future<void> _saveSelection() async {
+    // Capture messenger before any awaits to avoid using BuildContext
+    // across async gaps (silences analyzer hint).
+    final messenger = ScaffoldMessenger.of(context);
+
     await _bookingInventoryTable.deleteItemsForBooking(widget.bookingId);
 
     for (final itemId in _selectedItemIds) {
@@ -62,7 +66,7 @@ class _BookingInventoryPageState extends State<BookingInventoryPage> {
     });
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text('Booking inventory updated successfully')),
       );
     }
