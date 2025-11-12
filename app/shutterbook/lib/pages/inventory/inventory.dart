@@ -83,6 +83,7 @@ class _InventoryPageState extends State<InventoryPage> {
 
     await showDialog<void>(
       context: context,
+      useRootNavigator: true,
       builder: (context) {
         return AlertDialog(
           title: const Text('Add Inventory Item'),
@@ -91,18 +92,20 @@ class _InventoryPageState extends State<InventoryPage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
-                  decoration: const InputDecoration(labelText: 'Name'),
+                  decoration: const InputDecoration(labelText: 'Name', contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 12)),
                   onChanged: (v) => name = v,
                 ),
+                const SizedBox(height: 12),
                 TextField(
-                  decoration: const InputDecoration(labelText: 'Category'),
+                  decoration: const InputDecoration(labelText: 'Category', contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 12)),
                   onChanged: (v) => category = v,
                 ),
+                const SizedBox(height: 12),
                 TextField(
-                  decoration: const InputDecoration(labelText: 'Serial Number (optional)'),
+                  decoration: const InputDecoration(labelText: 'Serial Number (optional)', contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 12)),
                   onChanged: (v) => serialNumber = v,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   value: condition,
                   items: const [
@@ -162,6 +165,12 @@ class _InventoryPageState extends State<InventoryPage> {
       },
     );
   }
+
+  // Expose methods so parent (Dashboard) can call them via GlobalKey.currentState
+  // These are invoked dynamically from the dashboard; keep lightweight wrappers.
+  Future<void> openAddDialog() async => _showAddDialog();
+
+  Future<void> refresh() async => _loadItems();
 
   Widget _buildPageBody() {
     return Column(
