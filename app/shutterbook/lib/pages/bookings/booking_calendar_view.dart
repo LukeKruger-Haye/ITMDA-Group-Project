@@ -50,10 +50,14 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
     _loadClients();
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
+final _verticalScrollController = ScrollController();
+
+@override
+void dispose() {
+  _verticalScrollController.dispose();
+  super.dispose();
+}
+
 
   String _twoDigits(int n) => n.toString().padLeft(2, '0');
 
@@ -835,281 +839,287 @@ if (existing != null) {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final hours = List.generate(10, (i) => 8 + i);
-    final days = List.generate(7, (i) => weekStart.add(Duration(days: i)));
-    const double timeColumnWidth = 60;
-    const double whiteSpaceWidth = 40;
+Widget build(BuildContext context) {
+  final hours = List.generate(10, (i) => 8 + i);
+  final days = List.generate(7, (i) => weekStart.add(Duration(days: i)));
+  const double timeColumnWidth = 60;
+  const double whiteSpaceWidth = 40;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final bool isPhone = constraints.maxWidth < 480;
-        final double timeCol = isPhone ? 48 : timeColumnWidth;
-        final double whiteCol = isPhone ? 24 : whiteSpaceWidth;
-        const double minBlock = 40;
-        final double fitBlock = (constraints.maxWidth - timeCol - whiteCol) / 7.0;
-        final bool needsHScroll = fitBlock < minBlock;
-        final double blockW = needsHScroll ? minBlock : fitBlock.floorToDouble();
-        final double contentW = timeCol + whiteCol + (blockW * 7);
+  return LayoutBuilder(
+    builder: (context, constraints) {
+      final bool isPhone = constraints.maxWidth < 480;
+      final double timeCol = isPhone ? 48 : timeColumnWidth;
+      final double whiteCol = isPhone ? 24 : whiteSpaceWidth;
+      const double minBlock = 40;
+      final double fitBlock = (constraints.maxWidth - timeCol - whiteCol) / 7.0;
+      final bool needsHScroll = fitBlock < minBlock;
+      final double blockW = needsHScroll ? minBlock : fitBlock.floorToDouble();
+      final double contentW = timeCol + whiteCol + (blockW * 7);
 
-        Widget buildDateRow() {
-          final monthName = [
-            'January', 'February', 'March', 'April', 'May', 'June',
-            'July', 'August', 'September', 'October', 'November', 'December'
-          ][weekStart.month - 1];
-          
-          final header = Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: _previousWeek,
-                tooltip: 'Previous Week',
-              ),
-              Text(
-                '$monthName ${weekStart.year}',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              IconButton(
-                icon: const Icon(Icons.arrow_forward),
-                onPressed: _nextWeek,
-                tooltip: 'Next Week',
-              ),
-            ],
-          );
-          
-          final row = Row(
-            children: [
-              SizedBox(width: timeCol),
-              for (int i = 0; i < days.length; i++)
-                SizedBox(
-                  width: blockW,
-                  child: Center(
-                    child: Text(
-                      days[i].day.toString(),
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                    ),
+      Widget buildDateRow() {
+        final monthName = [
+          'January', 'February', 'March', 'April', 'May', 'June',
+          'July', 'August', 'September', 'October', 'November', 'December'
+        ][weekStart.month - 1];
+
+        final header = Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: _previousWeek,
+              tooltip: 'Previous Week',
+            ),
+            Text(
+              '$monthName ${weekStart.year}',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            IconButton(
+              icon: const Icon(Icons.arrow_forward),
+              onPressed: _nextWeek,
+              tooltip: 'Next Week',
+            ),
+          ],
+        );
+
+        final row = Row(
+          children: [
+            SizedBox(width: timeCol),
+            for (int i = 0; i < days.length; i++)
+              SizedBox(
+                width: blockW,
+                child: Center(
+                  child: Text(
+                    days[i].day.toString(),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                   ),
                 ),
-              SizedBox(width: whiteCol),
-            ],
-          );
-          
-          if (needsHScroll) {
-            return Column(
-              children: [
-                header,
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: SizedBox(width: contentW, child: row),
-                ),
-              ],
-            );
-          }
+              ),
+            SizedBox(width: whiteCol),
+          ],
+        );
+
+        if (needsHScroll) {
           return Column(
             children: [
               header,
-              row,
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: SizedBox(width: contentW, child: row),
+              ),
             ],
           );
         }
 
-        Widget buildDaysRow() {
-          final row = Row(
-            children: [
-              SizedBox(width: timeCol),
-              for (final d in days)
-                SizedBox(
-                  width: blockW,
-                  child: Center(
-                    child: Text(
-                      getWeekdayName(d),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(context).textTheme.bodySmall?.color,
-                      ),
+        return Column(
+          children: [
+            header,
+            row,
+          ],
+        );
+      }
+
+      Widget buildDaysRow() {
+        final row = Row(
+          children: [
+            SizedBox(width: timeCol),
+            for (final d in days)
+              SizedBox(
+                width: blockW,
+                child: Center(
+                  child: Text(
+                    getWeekdayName(d),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).textTheme.bodySmall?.color,
                     ),
                   ),
                 ),
-              SizedBox(width: whiteCol),
-            ],
+              ),
+            SizedBox(width: whiteCol),
+          ],
+        );
+
+        if (needsHScroll) {
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SizedBox(width: contentW, child: row),
           );
-          
-          if (needsHScroll) {
-            return SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: SizedBox(width: contentW, child: row),
-            );
-          }
-          return row;
         }
 
-        Widget buildCalendarGrid() {
-          return Row(
-            children: [
-              // Time column - scrollable
-              SizedBox(
-                width: timeCol,
-                child: ListView.builder(
-                  itemCount: hours.length,
-                  itemBuilder: (_, row) {
-                    final hour = hours[row];
-                    return SizedBox(
-                      height: 54, // 50 height + 4 margin
-                      child: Center(
-                        child: Text(
-                          "$hour:00",
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              // Calendar grid 
-              Expanded(
-                child: Listener(
-                  onPointerMove: (details) {
-                    if (_isDragging) {
-                      final RenderBox? gridBox = _calendarGridKey.currentContext?.findRenderObject() as RenderBox?;
-                      if (gridBox == null) return;
-                      
-                      final localPosition = gridBox.globalToLocal(details.position);
-                      final dayColumnX = localPosition.dx;
-                      if (dayColumnX < 0 || dayColumnX >= blockW * days.length) return;
-                      
-                      final dayIndex = (dayColumnX / blockW).floor();
-                      if (dayIndex < 0 || dayIndex >= days.length) return;
-                      
-                      const double rowHeight = 54;
-                      final rowIndex = (localPosition.dy / rowHeight).floor();
-                      if (rowIndex < 0 || rowIndex >= hours.length) return;
-                      
-                      final day = days[dayIndex];
-                      final hour = hours[rowIndex];
-                      final slot = DateTime(day.year, day.month, day.day, hour);
-                      
-                      _updateDragSelection(slot);
-                    }
-                  },
-                  onPointerUp: (_) {
-                    if (_isDragging) {
-                      _endDragSelection();
-                    }
-                  },
-                  onPointerCancel: (_) {
-                    if (_isDragging) {
-                      _cancelDragSelection();
-                    }
-                  },
-                  child: SingleChildScrollView(
-                    child: Column(
-                      key: _calendarGridKey,
-                      children: [
-                        for (int row = 0; row < hours.length; row++)
-                          SizedBox(
-                            height: 54,
-                            child: Row(
-                              children: [
-                                for (final d in days)
-                                  SizedBox(
-                                    width: blockW,
-                                    child: Builder(builder: (context) {
-                                      final hour = hours[row];
-                                      final slot = DateTime(d.year, d.month, d.day, hour);
-                                      final booking = getBookingForSlot(slot);
-                                      final isSelected = _selectedSlots.contains(slot);
-                                      final bool isNewBookingBlocked = hour < 8 || hour > 18 || booking != null;
+        return row;
+      }
 
-                                      return GestureDetector(
-                                        onTap: () {
-                                          if (booking != null) {
-                                            _editBooking(slot, booking);
-                                          }
-                                        },
-                                        onPanDown: (details) {
-                                          if (booking == null && !isNewBookingBlocked) {
-                                            _startDragSelection(slot);
-                                          }
-                                        },
-                                        child: Container(
-                                          margin: const EdgeInsets.all(2),
-                                          decoration: BoxDecoration(
-                      color: isSelected
-                        ? Colors.blue.withAlpha(128)
-                                                : booking != null
-                                                    ? getStatusColor(context, booking.status)
-                                                    : (hour < 8 || hour > 18
-                                                        ? const Color.fromARGB(255, 24, 20, 20)
-                                                        : Colors.grey.shade300),
-                                            borderRadius: BorderRadius.circular(4),
-                                            border: isSelected
-                                                ? Border.all(color: Colors.blue, width: 2)
-                                                : null,
-                                          ),
-                                          child: Center(
-                                            child: booking != null
-                                                ? FittedBox(
-                                                    fit: BoxFit.scaleDown,
-                                                    child: Column(
-                                                      mainAxisAlignment: MainAxisAlignment.center,
-                                                      children: [
-                                                        Text(
-                                                          getClientForBooking(booking)?.firstName ?? '',
-                                                          textAlign: TextAlign.center,
-                                                          style: const TextStyle(
-                                                            fontWeight: FontWeight.bold,
-                                                            fontSize: 10,
-                                                            color: Color.fromARGB(255, 12, 12, 12),
-                                                          ),
-                                                        ),
-                                                        Text(
-                                                          getClientForBooking(booking)?.lastName ?? '',
-                                                          textAlign: TextAlign.center,
-                                                          style: const TextStyle(
-                                                            fontSize: 9,
-                                                            color: Color.fromARGB(255, 34, 29, 29),
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  )
-                                                : isSelected
-                                                    ? const Icon(
-                                                        Icons.check,
-                                                        color: Color.fromARGB(255, 66, 161, 177),
-                                                        size: 16,
-                                                      )
-                                                    : null,
-                                          ),
-                                        ),
-                                      );
-                                    }),
-                                  ),
-                              ],
+      Widget buildCalendarGrid() {
+        return Expanded(
+          child: Scrollbar(
+            controller: _verticalScrollController,
+            thumbVisibility: true,
+            child: SingleChildScrollView(
+              controller: _verticalScrollController,
+              scrollDirection: Axis.vertical,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // TIME COLUMN
+                  Column(
+                    children: [
+                      for (final hour in hours)
+                        SizedBox(
+                          height: 54,
+                          width: timeCol,
+                          child: Center(
+                            child: Text(
+                              "$hour:00",
+                              style: const TextStyle(fontSize: 12),
                             ),
                           ),
-                      ],
+                        ),
+                    ],
+                  ),
+
+                  // BOOKING GRID
+                  Expanded(
+                    child: Listener(
+                      onPointerMove: (details) {
+                        if (_isDragging) {
+                          final RenderBox? gridBox =
+                              _calendarGridKey.currentContext?.findRenderObject() as RenderBox?;
+                          if (gridBox == null) return;
+
+                          final localPosition = gridBox.globalToLocal(details.position);
+                          final dayColumnX = localPosition.dx;
+                          if (dayColumnX < 0 || dayColumnX >= blockW * days.length) return;
+
+                          final dayIndex = (dayColumnX / blockW).floor();
+                          if (dayIndex < 0 || dayIndex >= days.length) return;
+
+                          const double rowHeight = 54;
+                          final rowIndex = (localPosition.dy / rowHeight).floor();
+                          if (rowIndex < 0 || rowIndex >= hours.length) return;
+
+                          final day = days[dayIndex];
+                          final hour = hours[rowIndex];
+                          final slot = DateTime(day.year, day.month, day.day, hour);
+
+                          _updateDragSelection(slot);
+                        }
+                      },
+                      onPointerUp: (_) {
+                        if (_isDragging) _endDragSelection();
+                      },
+                      onPointerCancel: (_) {
+                        if (_isDragging) _cancelDragSelection();
+                      },
+                      child: Column(
+                        key: _calendarGridKey,
+                        children: [
+                          for (int row = 0; row < hours.length; row++)
+                            SizedBox(
+                              height: 54,
+                              child: Row(
+                                children: [
+                                  for (final d in days)
+                                    SizedBox(
+                                      width: blockW,
+                                      child: Builder(builder: (context) {
+                                        final hour = hours[row];
+                                        final slot = DateTime(d.year, d.month, d.day, hour);
+                                        final booking = getBookingForSlot(slot);
+                                        final isSelected = _selectedSlots.contains(slot);
+                                        final bool isNewBookingBlocked =
+                                            hour < 8 || hour > 18 || booking != null;
+
+                                        return GestureDetector(
+                                          onTap: () {
+                                            if (booking != null) {
+                                              _editBooking(slot, booking);
+                                            }
+                                          },
+                                          onPanDown: (details) {
+                                            if (booking == null && !isNewBookingBlocked) {
+                                              _startDragSelection(slot);
+                                            }
+                                          },
+                                          child: Container(
+                                            margin: const EdgeInsets.all(2),
+                                            decoration: BoxDecoration(
+                                              color: isSelected
+                                                  ? Colors.blue.withAlpha(128)
+                                                  : booking != null
+                                                      ? getStatusColor(context, booking.status)
+                                                      : (hour < 8 || hour > 18
+                                                          ? const Color.fromARGB(255, 24, 20, 20)
+                                                          : Colors.grey.shade300),
+                                              borderRadius: BorderRadius.circular(4),
+                                              border: isSelected
+                                                  ? Border.all(color: Colors.blue, width: 2)
+                                                  : null,
+                                            ),
+                                            child: Center(
+                                              child: booking != null
+                                                  ? FittedBox(
+                                                      fit: BoxFit.scaleDown,
+                                                      child: Column(
+                                                        mainAxisAlignment: MainAxisAlignment.center,
+                                                        children: [
+                                                          Text(
+                                                            getClientForBooking(booking)?.firstName ?? '',
+                                                            textAlign: TextAlign.center,
+                                                            style: const TextStyle(
+                                                              fontWeight: FontWeight.bold,
+                                                              fontSize: 10,
+                                                              color: Color.fromARGB(255, 12, 12, 12),
+                                                            ),
+                                                          ),
+                                                          Text(
+                                                            getClientForBooking(booking)?.lastName ?? '',
+                                                            textAlign: TextAlign.center,
+                                                            style: const TextStyle(
+                                                              fontSize: 9,
+                                                              color: Color.fromARGB(255, 34, 29, 29),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    )
+                                                  : isSelected
+                                                      ? const Icon(
+                                                          Icons.check,
+                                                          color: Color.fromARGB(255, 66, 161, 177),
+                                                          size: 16,
+                                                        )
+                                                      : null,
+                                            ),
+                                          ),
+                                        );
+                                      }),
+                                    ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ),
-              SizedBox(width: whiteCol),
-            ],
-          );
-        }
 
-return Column(
-  children: [
-    buildDateRow(),
-    buildDaysRow(),
-    const Divider(),
-    Expanded(
-      child: buildCalendarGrid(),
-    ),
-  ],
-);
-      },
-    );
-  }
+                  SizedBox(width: whiteCol),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
+
+      return Column(
+        children: [
+          buildDateRow(),
+          buildDaysRow(),
+          const Divider(),
+          buildCalendarGrid(),
+        ],
+      );
+    },
+  );
+}
 }
