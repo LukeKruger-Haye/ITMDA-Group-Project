@@ -127,6 +127,10 @@ class _InventoryPageState extends State<InventoryPage> {
                       },
                       icon: const Icon(Icons.image),
                       label: const Text('Pick Image'),
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFF2E7D32), // button background color
+                          foregroundColor: Colors.white, // text/icon color
+                        ),
                     ),
                     const SizedBox(width: 8),
                     if (imagePath != null) Flexible(child: Text(File(imagePath!).uri.pathSegments.last)),
@@ -163,6 +167,10 @@ class _InventoryPageState extends State<InventoryPage> {
                 ));
               },
               child: const Text('Add'),
+              style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFF2E7D32), // button background color
+                          foregroundColor: Colors.white, // text/icon color
+                        ),
             ),
           ],
         );
