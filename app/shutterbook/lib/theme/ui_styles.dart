@@ -21,7 +21,6 @@ class UIStyles {
   }
 
   static ButtonStyle primaryButtonGrey(BuildContext context) {
-    final t = Theme.of(context);
     return ElevatedButton.styleFrom(
       backgroundColor: Color.fromARGB(255, 145, 142, 142),
       foregroundColor: Colors.black,

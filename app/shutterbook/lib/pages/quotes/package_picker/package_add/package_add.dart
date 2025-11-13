@@ -59,6 +59,7 @@ class PackageAddState extends State<PackageAdd> {
                   validator: (value) => value == null || value.trim().isEmpty ? 'Package Name required' : null,
                   textCapitalization: TextCapitalization.words,
                 ),
+                const SizedBox(height: 16),
                 TextFormField(
                   controller: packagePriceController,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -71,6 +72,7 @@ class PackageAddState extends State<PackageAdd> {
                   validator: (value) => value == null || value.trim().isEmpty ? 'Package Price required' : null,
                   textCapitalization: TextCapitalization.words,
                 ),
+                const SizedBox(height: 16),
                 TextFormField(
                   controller: packageDescriptionController,
                   decoration: const InputDecoration(labelText: 'Description'),

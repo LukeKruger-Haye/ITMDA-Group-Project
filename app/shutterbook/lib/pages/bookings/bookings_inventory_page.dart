@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import '../../data/tables/inventory_table.dart';
 import '../../data/tables/booking_inventory_table.dart';
 import '../../data/models/item.dart';
-import '../../data/models/booking_inventory.dart';
+import '../inventory/inventory.dart';
+// removed unused import: '../../data/models/booking_inventory.dart'
 
 class BookingInventoryPage extends StatefulWidget {
   final int bookingId;
@@ -50,6 +51,10 @@ class _BookingInventoryPageState extends State<BookingInventoryPage> {
   }
 
   Future<void> _saveSelection() async {
+    // Capture messenger before any awaits to avoid using BuildContext
+    // across async gaps (silences analyzer hint).
+    final messenger = ScaffoldMessenger.of(context);
+
     await _bookingInventoryTable.deleteItemsForBooking(widget.bookingId);
 
     for (final itemId in _selectedItemIds) {
@@ -61,7 +66,7 @@ class _BookingInventoryPageState extends State<BookingInventoryPage> {
     });
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text('Booking inventory updated successfully')),
       );
     }
@@ -71,8 +76,8 @@ class _BookingInventoryPageState extends State<BookingInventoryPage> {
     setState(() {
       _searchQuery = query.toLowerCase();
       _filteredItems = _allItems.where((item) {
-        return item.name.toLowerCase().contains(_searchQuery) ||
-            (item.category?.toLowerCase().contains(_searchQuery) ?? false);
+    return item.name.toLowerCase().contains(_searchQuery) ||
+      item.category.toLowerCase().contains(_searchQuery);
       }).toList();
     });
   }
@@ -105,9 +110,11 @@ class _BookingInventoryPageState extends State<BookingInventoryPage> {
 
     if (shouldExit == true) {
       await _saveSelection();
+      if (!mounted) return false;
       Navigator.pop(context);
       return false; // prevent double pop
     } else if (shouldExit == false) {
+      if (!mounted) return false;
       Navigator.pop(context);
       return false;
     }
@@ -120,9 +127,12 @@ class _BookingInventoryPageState extends State<BookingInventoryPage> {
     final selectedItems =
         _allItems.where((item) => _selectedItemIds.contains(item.id)).toList();
 
+    // PopScope is recommended in newer Flutter versions, but keep WillPopScope
+    // for compatibility; suppress the deprecation info at this call site.
+    // ignore: deprecated_member_use
     return WillPopScope(
       onWillPop: _onWillPop,
-      child: Scaffold(
+  child: Scaffold(
         appBar: AppBar(
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -258,25 +268,25 @@ class _BookingInventoryPageState extends State<BookingInventoryPage> {
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
                                     SizedBox(
-                                height: 120,
-                                width: double.infinity,
-                                child: ClipRRect(
-                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
-                                  child: item.imagePath != null && item.imagePath!.isNotEmpty
-                                      ? Image.file(
-                                          File(item.imagePath!),
-                                          fit: BoxFit.cover,
-                                        )
-                                      : Container(
-                                          color: Colors.grey.shade200,
-                                          child: const Icon(
-                                            Icons.image_not_supported,
-                                            size: 60,
-                                            color: Colors.grey,
-                                          ),
-                                        ),
-                                ),
-                              ),
+                                    height: 120,
+                                    width: double.infinity,
+                                    child: ClipRRect(
+                                      borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+                                      child: item.imagePath != null && item.imagePath!.isNotEmpty
+                                          ? Image.file(
+                                              File(item.imagePath!),
+                                              fit: BoxFit.cover,
+                                            )
+                                          : Container(
+                                              color: Colors.grey.shade200,
+                                              child: const Icon(
+                                                Icons.image_not_supported,
+                                                size: 60,
+                                                color: Colors.grey,
+                                              ),
+                                            ),
+                                    ),
+                                  ),
                                     Padding(
                                       padding: const EdgeInsets.all(8.0),
                                       child: Column(
@@ -290,7 +300,7 @@ class _BookingInventoryPageState extends State<BookingInventoryPage> {
                                             textAlign: TextAlign.center,
                                           ),
                                           Text(
-                                            item.category ?? 'No category',
+                                            item.category,
                                             style: const TextStyle(
                                               fontSize: 13,
                                               color: Colors.black54,
@@ -323,7 +333,23 @@ class _BookingInventoryPageState extends State<BookingInventoryPage> {
                     ),
             ),
           ],
-        ),
+          ),
+          floatingActionButton: FloatingActionButton(
+            onPressed: () async {
+              // Open the full Inventory page with the Add dialog shown, then
+              // refresh local data when returning so newly added items are
+              // available to attach to this booking.
+              final nav = Navigator.of(context);
+              await nav.push<bool>(MaterialPageRoute(
+                builder: (_) => const InventoryPage(embedded: false, openAddOnLoad: true),
+              ));
+              if (!mounted) return;
+              await _loadData();
+            },
+            backgroundColor: const Color(0xFF2E7D32),
+            tooltip: 'Add inventory item',
+            child: const Icon(Icons.add),
+          ),
       ),
     );
   }

@@ -150,92 +150,105 @@ class _CreateBookingPageState extends State<CreateBookingPage> {
           );
           return;
         }
+        // Capture navigator & messenger early
+        final nav = Navigator.of(context);
+        final messenger = ScaffoldMessenger.of(context);
 
         setState(() => _saving = true);
-        final nav = Navigator.of(context);
 
-        // Check for potential double booking in the same hour.
-        final dt = _selectedDateTime!;
-        int? excludeIdForEdit = widget.existing?.bookingId;
-        final conflicts = await BookingTable().findHourConflicts(dt, excludeBookingId: excludeIdForEdit);
-        if (conflicts.isNotEmpty) {
-          // Ask user whether to proceed or go back to edit.
-          final proceed = await showDialog<bool>(
-                context: context,
-                builder: (ctx) {
-                  final theme = Theme.of(ctx);
-                  String whenStr = _formatDateTime(dt);
-                  return AlertDialog(
-                    title: const Text('Possible double booking'),
-                    content: Text(
-                      'There is already ${conflicts.length} booking(s) in this time slot (hour) on $whenStr.\n\nYou can edit the time or proceed and allow a double booking.',
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.of(ctx).pop(false),
-                        child: const Text('Edit time'),
+        try {
+          // Check for potential double booking in the same hour.
+          final dt = _selectedDateTime!;
+          int? excludeIdForEdit = widget.existing?.bookingId;
+          final conflicts = await BookingTable().findHourConflicts(dt, excludeBookingId: excludeIdForEdit);
+          if (conflicts.isNotEmpty) {
+            // Ask user whether to proceed or go back to edit.
+            final proceed = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) {
+                    final theme = Theme.of(ctx);
+                    String whenStr = _formatDateTime(dt);
+                    return AlertDialog(
+                      title: const Text('Possible double booking'),
+                      content: Text(
+                        'There is already ${conflicts.length} booking(s) in this time slot (hour) on $whenStr.\n\nYou can edit the time or proceed and allow a double booking.',
                       ),
-                      TextButton(
-                        onPressed: () => Navigator.of(ctx).pop(true),
-                        child: Text('Proceed', style: TextStyle(color: theme.colorScheme.primary)),
-                      ),
-                    ],
-                  );
-                },
-              ) ??
-              false;
-          if (!proceed) {
-            if (mounted) setState(() => _saving = false);
-            return;
-          }
-        }
-
-        if (widget.existing != null) {
-          // Update existing booking
-          final existing = widget.existing!;
-          final updated = Booking(
-            bookingId: existing.bookingId,
-            clientId: existing.clientId,
-            quoteId: existing.quoteId,
-            bookingDate: _selectedDateTime!,
-            status: _statusController.text.trim().isEmpty ? 'Scheduled' : _statusController.text.trim(),
-            createdAt: existing.createdAt,
-          );
-          await BookingTable().updateBooking(updated);
-          DataCache.instance.clearBookings();
-        } else {
-          // Create booking: support creating from provided quote or free-form selection
-          int? clientId;
-          int? quoteId;
-          if (widget.quote != null) {
-            clientId = widget.quote!.clientId;
-            quoteId = widget.quote!.id;
-          } else {
-            // require user to pick client and quote in free-form mode
-            clientId = _selectedClient?.id;
-            quoteId = _selectedQuoteId;
-            if (clientId == null) {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a client')));
-              setState(() => _saving = false);
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(ctx).pop(false),
+                          child: const Text('Edit time'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.of(ctx).pop(true),
+                          child: Text('Proceed', style: TextStyle(color: theme.colorScheme.primary)),
+                        ),
+                      ],
+                    );
+                  },
+                ) ??
+                false;
+            if (!proceed) {
+              if (mounted) setState(() => _saving = false);
               return;
             }
           }
 
-          final booking = Booking(
-            clientId: clientId,
-            quoteId: quoteId,
-            bookingDate: _selectedDateTime!,
-            status: _statusController.text.trim().isEmpty ? 'Scheduled' : _statusController.text.trim(),
-          );
-          await BookingTable().insertBooking(booking);
-          DataCache.instance.clearBookings();
+          if (widget.existing != null) {
+            // Update existing booking
+            final existing = widget.existing!;
+            final updated = Booking(
+              bookingId: existing.bookingId,
+              clientId: existing.clientId,
+              quoteId: existing.quoteId,
+              bookingDate: _selectedDateTime!,
+              status: _statusController.text.trim().isEmpty ? 'Scheduled' : _statusController.text.trim(),
+              createdAt: existing.createdAt,
+            );
+            await BookingTable().updateBooking(updated);
+            DataCache.instance.clearBookings();
+          } else {
+            // Create booking: support creating from provided quote or free-form selection
+            int? clientId;
+            int? quoteId;
+            if (widget.quote != null) {
+              clientId = widget.quote!.clientId;
+              quoteId = widget.quote!.id;
+            } else {
+              // require user to pick client and quote in free-form mode
+              clientId = _selectedClient?.id;
+              quoteId = _selectedQuoteId;
+              if (clientId == null) {
+                messenger.showSnackBar(const SnackBar(content: Text('Please select a client')));
+                if (mounted) setState(() => _saving = false);
+                return;
+              }
+              if (quoteId == null) {
+                messenger.showSnackBar(const SnackBar(content: Text('Please select a quote for this client before adding a booking')));
+                if (mounted) setState(() => _saving = false);
+                return;
+              }
+            }
+
+            final booking = Booking(
+              clientId: clientId,
+              quoteId: quoteId,
+              bookingDate: _selectedDateTime!,
+              status: _statusController.text.trim().isEmpty ? 'Scheduled' : _statusController.text.trim(),
+            );
+            await BookingTable().insertBooking(booking);
+            DataCache.instance.clearBookings();
+          }
+
+          if (!mounted) return;
+          setState(() => _saving = false);
+
+          // Return to dashboard and indicate a booking was created
+          if (nav.mounted) nav.pop(true);
+        } catch (e) {
+          // Ensure spinner cleared and surface error
+          if (mounted) setState(() => _saving = false);
+          messenger.showSnackBar(SnackBar(content: Text('Failed to save booking: $e')));
         }
-
-        if (!mounted) return;
-        setState(() => _saving = false);
-
-        // Return to dashboard and indicate a booking was created
-        if (nav.mounted) nav.pop(true);
       }
 
       String _computeClientDisplay() {
@@ -322,7 +335,9 @@ class _CreateBookingPageState extends State<CreateBookingPage> {
                                     ),
                                   ),
                                   const SizedBox(height: 8),
-                                  if (_clientQuotes.isNotEmpty)
+                                  if (_selectedClient == null)
+                                    const SizedBox.shrink()
+                                  else if (_clientQuotes.isNotEmpty)
                                     DropdownButtonFormField<int>(
                                       items: _clientQuotes.map((q) => DropdownMenuItem(value: q.id, child: Text('Quote #${q.id} — ${q.description}'))).toList(),
                                       initialValue: _selectedQuoteId,
@@ -330,8 +345,16 @@ class _CreateBookingPageState extends State<CreateBookingPage> {
                                         setState(() => _selectedQuoteId = v);
                                         _quoteDisplayController.text = _computeQuoteDisplay();
                                       },
-                                      decoration: const InputDecoration(labelText: 'Quote (optional)', border: OutlineInputBorder()),
+                                      decoration: const InputDecoration(labelText: 'Quote (required)', border: OutlineInputBorder()),
                                       isExpanded: true,
+                                    )
+                                  else
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 8.0),
+                                      child: Text(
+                                        'Selected client has no quotes. Please create a quote for this client before adding a booking.',
+                                        style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 13),
+                                      ),
                                     ),
                                 ],
                               ))
@@ -373,7 +396,7 @@ class _CreateBookingPageState extends State<CreateBookingPage> {
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
-                        value: () {
+                        initialValue: () {
                           final s = _statusController.text.toLowerCase();
                           if (s == 'finished' || s == 'completed') return 'Completed';
                           if (s == 'cancelled') return 'Cancelled';

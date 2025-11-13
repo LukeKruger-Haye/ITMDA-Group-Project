@@ -96,7 +96,8 @@ class _ManageQuotePageState extends State<ManageQuotePage> {
       
       if (client == null) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
+        final messenger = ScaffoldMessenger.of(context);
+        messenger.showSnackBar(
           const SnackBar(content: Text('Client not found')),
         );
         return;
@@ -104,7 +105,8 @@ class _ManageQuotePageState extends State<ManageQuotePage> {
 
       // Show loading indicator
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.showSnackBar(
         const SnackBar(content: Text('Generating PDF...')),
       );
 
@@ -115,8 +117,8 @@ class _ManageQuotePageState extends State<ManageQuotePage> {
       await OpenFile.open(file.path);
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).clearSnackBars();
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.clearSnackBars();
+      messenger.showSnackBar(
         SnackBar(
           content: Text('PDF opened: ${file.path}'),
           duration: const Duration(seconds: 3),
@@ -124,7 +126,8 @@ class _ManageQuotePageState extends State<ManageQuotePage> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.showSnackBar(
         SnackBar(content: Text('Failed to generate PDF: $e')),
       );
     }
@@ -155,7 +158,8 @@ class _ManageQuotePageState extends State<ManageQuotePage> {
       _quote = updated;
       _editing = false;
     });
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Quote saved')));
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(const SnackBar(content: Text('Quote saved')));
   }
 
   @override
