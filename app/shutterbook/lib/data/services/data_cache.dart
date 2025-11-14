@@ -69,6 +69,8 @@ class DataCache {
 
   void clearClients() {
     _clients = null;
+    _clientsFuture = null;
+    unawaited(_purgePersistedClients());
   }
 
   // --- Bookings (in-memory only) ---
@@ -120,5 +122,13 @@ class DataCache {
     clearClients();
     clearBookings();
     clearInventory();
+  }
+
+  Future<void> _purgePersistedClients() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_kClientsPrefsKey);
+      await prefs.remove(_kClientsTsKey);
+    } catch (_) {}
   }
 }
