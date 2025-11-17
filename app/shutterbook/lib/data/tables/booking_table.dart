@@ -118,12 +118,7 @@ class BookingTable {
     return rows.map((r) => BookingWithClient.fromMap(r)).toList();
   }
 
-  /// Finds bookings that would conflict with the given [when].
-  ///
-  /// Because the app schedules at hour granularity in the calendar,
-  /// we consider any booking within the same hour a potential conflict.
-  /// If [excludeBookingId] is provided, that row will be ignored (useful
-  /// when editing an existing booking).
+
   Future<List<Booking>> findHourConflicts(DateTime when, {int? excludeBookingId}) async {
     final db = await dbHelper.database;
     // Define the hour range: [hourStart, hourStart + 1h)
@@ -143,5 +138,37 @@ class BookingTable {
       orderBy: 'booking_date ASC',
     );
     return maps.map((m) => Booking.fromMap(m)).toList();
+  }
+   Future<List<Booking>> findTimeRangeConflicts(
+    DateTime start,
+    DateTime end, {
+    int? excludeBookingId,
+  }) async {
+    final db = await dbHelper.database;
+    // Query all bookings on the same day
+    final dayStart = DateTime(start.year, start.month, start.day);
+    final dayEnd = dayStart.add(const Duration(days: 1));
+    
+    final where = excludeBookingId == null
+        ? 'booking_date >= ? AND booking_date < ?'
+        : 'booking_date >= ? AND booking_date < ? AND booking_id <> ?';
+    final whereArgs = excludeBookingId == null
+        ? [dayStart.toString(), dayEnd.toString()]
+        : [dayStart.toString(), dayEnd.toString(), excludeBookingId];
+
+    final maps = await db.query(
+      'Bookings',
+      where: where,
+      whereArgs: whereArgs,
+      orderBy: 'booking_date ASC',
+    );
+    
+    final allBookings = maps.map((m) => Booking.fromMap(m)).toList();
+    
+    // Filter to only those that overlap with [start, end)
+    // Two time ranges overlap if: bookingDate < end AND bookingDate >= start
+    return allBookings.where((b) {
+      return b.bookingDate.isBefore(end) && !b.bookingDate.isBefore(start);
+    }).toList();
   }
 }
