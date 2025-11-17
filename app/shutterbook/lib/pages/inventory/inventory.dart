@@ -166,11 +166,11 @@ class _InventoryPageState extends State<InventoryPage> {
                   backgroundColor: const Color(0xFF2E7D32),
                 ));
               },
-              child: const Text('Add'),
               style: ElevatedButton.styleFrom(
                           backgroundColor: Color(0xFF2E7D32), // button background color
                           foregroundColor: Colors.white, // text/icon color
                         ),
+              child: const Text('Add'),
             ),
           ],
         );

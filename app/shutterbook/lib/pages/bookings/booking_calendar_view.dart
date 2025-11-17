@@ -48,6 +48,8 @@ class _BookingCalendarViewState extends State<BookingCalendarView> {
     weekStart = now.subtract(Duration(days: now.weekday - 1));
     _loadBookings();
     _loadClients();
+    // Reload bookings when the shared DataCache indicates bookings were cleared/updated.
+    DataCache.instance.bookingsVersion.addListener(_onBookingsChanged);
   }
 
 final _verticalScrollController = ScrollController();
@@ -55,8 +57,14 @@ final _verticalScrollController = ScrollController();
 @override
 void dispose() {
   _verticalScrollController.dispose();
+  DataCache.instance.bookingsVersion.removeListener(_onBookingsChanged);
   super.dispose();
 }
+
+  void _onBookingsChanged() {
+    if (!mounted) return;
+    _loadBookings();
+  }
 
 
   String _twoDigits(int n) => n.toString().padLeft(2, '0');

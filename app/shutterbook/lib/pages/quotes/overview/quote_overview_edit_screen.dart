@@ -4,6 +4,7 @@ import 'package:shutterbook/data/tables/quote_table.dart';
 
 import 'package:shutterbook/data/models/package.dart';
 import 'package:shutterbook/theme/ui_styles.dart';
+import 'package:shutterbook/utils/formatters.dart';
 
 
 
@@ -58,10 +59,10 @@ final Map<Package, int> packages;
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('Quote #$quoteNum\n$clientName\nTotal: R${total.toStringAsFixed(2)}'),            
+            Text('Quote #$quoteNum\n$clientName\nTotal: ${formatRand(total)}'),            
             const SizedBox(height: 20),
             const Text('Selected Packages:'),
-            ...packages.entries.map((entry) => Text('${entry.key.name} x${entry.value} - R${(entry.key.price * entry.value).toStringAsFixed(2)}')),
+            ...packages.entries.map((entry) => Text('${entry.key.name} x${entry.value} - ${formatRand(entry.key.price * entry.value)}')),
            const SizedBox(height: 30,),
           ElevatedButton(
               style: UIStyles.primaryButton(context),
@@ -74,7 +75,8 @@ final Map<Package, int> packages;
                   
                   if (nav.mounted) {
                     messenger.showSnackBar(const SnackBar(content: Text('Quote updated')));
-                    nav.pushNamedAndRemoveUntil( '/home', (route) => false);
+                    // Return to caller without a boolean (restore original behavior)
+                    nav.pop();
                   }
                 } catch (e) {
                   if (context.mounted) {
@@ -91,7 +93,7 @@ final Map<Package, int> packages;
              onPressed: () async {
                final nav = Navigator.of(context);
                if (nav.mounted) {
-                 nav.pushNamedAndRemoveUntil('/home', (route) => false); // Pop with true to indicate success
+                 nav.pop();
                }
              },
              style: UIStyles.destructiveButton(context),
