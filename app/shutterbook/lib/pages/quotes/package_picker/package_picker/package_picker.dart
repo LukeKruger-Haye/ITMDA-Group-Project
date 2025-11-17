@@ -3,6 +3,7 @@ import 'package:shutterbook/data/models/client.dart';
 import 'package:shutterbook/data/tables/package_table.dart';
 import 'package:shutterbook/data/models/package.dart';
 import 'package:shutterbook/theme/ui_styles.dart';
+import 'package:shutterbook/utils/formatters.dart';
 import '../package_add/package_add.dart';
 
 
@@ -129,7 +130,7 @@ for(Package p in packages)
                final quantity = _selectedPackages[package] ?? 1;
                return Card(
                  child: ListTile(
-                   title: Text('${package.name} (R${package.price})'),
+                   title: Text('${package.name} (${formatRand(package.price)})'),
                    trailing: isSelected
                        ? Row(
                            mainAxisSize: MainAxisSize.min,
@@ -167,7 +168,7 @@ for(Package p in packages)
            ),
          ),
          const SizedBox(height: 10),
-         Text('Selected: $totalItems items, Total: R${totalPrice.toStringAsFixed(2)}'),
+         Text('Selected: $totalItems items, Total: ${formatRand(totalPrice)}'),
          const SizedBox(height: 10),
 
         

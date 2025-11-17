@@ -4,6 +4,7 @@ import 'package:shutterbook/data/models/package.dart';
 import 'package:shutterbook/data/tables/package_table.dart';
 import 'package:shutterbook/theme/ui_styles.dart';
 import 'package:shutterbook/theme/app_colors.dart';
+import 'package:shutterbook/utils/formatters.dart';
 
 // ignore_for_file: use_build_context_synchronously
 
@@ -163,7 +164,7 @@ class PackageAddState extends State<PackageAdd> {
               itemBuilder: (context, index) {
                 final package = allPackages[index];
                 return ListTile(
-                  title: Text('${package.name} R${package.price}'),
+                  title: Text('${package.name} ${formatRand(package.price)}'),
                   subtitle: Text(package.details),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
