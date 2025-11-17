@@ -63,8 +63,8 @@ final Map<Package, int> packages;
                 await _insertQuote();
                 if (nav.mounted) {
                   ScaffoldMessenger.of(nav.context).showSnackBar(const SnackBar(content: Text('Quote saved')));
-                    // Return to caller without a boolean (keep original navigation behavior)
-                    nav.pop();
+                    //no touch
+                    nav.pushNamedAndRemoveUntil( '/home', (route) => false); 
                 }
               },
               style: UIStyles.primaryButton(context),
@@ -74,8 +74,8 @@ final Map<Package, int> packages;
                onPressed: () async {
                  final nav = Navigator.of(context);
                  if (nav.mounted) {
-                   // Cancel — return without saving
-                   nav.pop();
+                  //no touch
+                   nav.pushNamedAndRemoveUntil( '/home', (route) => false); 
                  }
                },
                style: UIStyles.destructiveButton(context),
