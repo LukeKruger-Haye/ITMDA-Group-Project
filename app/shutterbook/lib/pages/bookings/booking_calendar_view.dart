@@ -792,20 +792,17 @@ ScaffoldMessenger.of(context).showSnackBar(
                     }
 
 if (existing != null) {
-  // Delete old booking
-  await bookingTable.deleteBooking(existing.bookingId!);
-
-  // Store a single booking with the exact start time
- 
-  final newBooking = Booking(
+  // Updating old booking
+    final updatedBooking = Booking(
+    bookingId: existing.bookingId,   // KEEP SAME ID
     quoteId: selectedQuoteId!,
     clientId: selectedClient!.id!,
-    bookingDate: start, 
-    status: status.isEmpty ? 'Scheduled' : status,
+    bookingDate: start,
+    status: status,
     createdAt: existing.createdAt,
-  );
+);
 
-  await bookingTable.insertBooking(newBooking);
+await bookingTable.updateBooking(updatedBooking);
   DataCache.instance.clearBookings();
 } 
  else {
