@@ -127,12 +127,16 @@ with WidgetsBindingObserver{
 
   Booking? getBookingForSlot(DateTime slot) {
     try {
+      // Check if the slot falls within any booking's time range
+      // Since bookings now support minute-level granularity,
+      // we need to find any booking that contains this time slot
       return bookings.firstWhere(
-        (b) =>
-            b.bookingDate.year == slot.year &&
-            b.bookingDate.month == slot.month &&
-            b.bookingDate.day == slot.day &&
-            b.bookingDate.hour == slot.hour,
+        (b) {
+          return b.bookingDate.year == slot.year &&
+              b.bookingDate.month == slot.month &&
+              b.bookingDate.day == slot.day &&
+              b.bookingDate.hour == slot.hour;
+        },
       );
     } catch (_) {
       return null;
@@ -754,11 +758,29 @@ ScaffoldMessenger.of(context).showSnackBar(
                       return;
                     }
 
-                    // Check for double bookings (overlapping times)
-                    final conflicts = await bookingTable.findHourConflicts(
-                      bookingDate,
+                    // Build full start and end timestamps for multi-hour booking validation
+                    final start = DateTime(
+                      bookingDate.year,
+                      bookingDate.month,
+                      bookingDate.day,
+                      _selectedStartTime!.hour,
+                      _selectedStartTime!.minute,
+                    );
+                    final end = DateTime(
+                      bookingDate.year,
+                      bookingDate.month,
+                      bookingDate.day,
+                      _selectedEndTime!.hour,
+                      _selectedEndTime!.minute,
+                    );
+
+                    // Check for minute-level conflicts across the entire time range
+                    final conflicts = await bookingTable.findTimeRangeConflicts(
+                      start,
+                      end,
                       excludeBookingId: existing?.bookingId,
                     );
+
                     if (conflicts.isNotEmpty) {
                       dialogMessenger.showSnackBar(
                         SnackBar(
@@ -770,49 +792,33 @@ ScaffoldMessenger.of(context).showSnackBar(
                     }
 
 if (existing != null) {
-  // Delete old booking
-  await bookingTable.deleteBooking(existing.bookingId!);
+  // Updating old booking
+    final updatedBooking = Booking(
+    bookingId: existing.bookingId,   // KEEP SAME ID
+    quoteId: selectedQuoteId!,
+    clientId: selectedClient!.id!,
+    bookingDate: start,
+    status: status,
+    createdAt: existing.createdAt,
+);
 
-  // Build full start and end timestamps
-  final start = DateTime(
-    bookingDate.year,
-    bookingDate.month,
-    bookingDate.day,
-    _selectedStartTime!.hour,
-    _selectedStartTime!.minute,
-  );
-  final end = DateTime(
-    bookingDate.year,
-    bookingDate.month,
-    bookingDate.day,
-    _selectedEndTime!.hour,
-    _selectedEndTime!.minute,
-  );
-
-  // Split into hour blocks
-  DateTime cursor = start;
-  while (cursor.isBefore(end)) {
-    final next = cursor.add(const Duration(hours: 1));
-
-    final newBooking = Booking(
-      quoteId: selectedQuoteId!,
-      clientId: selectedClient!.id!,
-      bookingDate: cursor,
-      status: status.isEmpty ? 'Scheduled' : status,
-      createdAt: existing.createdAt,
-    );
-
-    await bookingTable.insertBooking(newBooking);
-    cursor = next;
-  }
-
+await bookingTable.updateBooking(updatedBooking);
   DataCache.instance.clearBookings();
 } 
  else {
+                      // For new bookings, use exact start time with minute precision
+                      final bookingStart = DateTime(
+                        bookingDate.year,
+                        bookingDate.month,
+                        bookingDate.day,
+                        _selectedStartTime!.hour,
+                        _selectedStartTime!.minute,
+                      );
+                      
                       final newBooking = Booking(
                         quoteId: selectedQuoteId!,
                         clientId: selectedClient!.id!,
-                        bookingDate: bookingDate,
+                        bookingDate: bookingStart,
                         status: status.isEmpty ? 'Scheduled' : status,
                       );
                       await bookingTable.insertBooking(newBooking);
@@ -857,12 +863,10 @@ if (existing != null) {
 
   @override
   Widget build(BuildContext context) {
-    // Use addPostFrameCallback with a one-time flag per build cycle to refresh
-    // This ensures we load fresh bookings when the view is switched to this calendar
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Check if we need to refresh by looking at the widget tree visibility
+      // Check if refresh by looking at the widget tree visibility
       if (mounted && context.mounted) {
-        // Only refresh if this widget is currently rendered and visible
+        
         _loadBookings();
       }
     });

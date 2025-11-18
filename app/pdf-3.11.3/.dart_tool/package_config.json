@@ -3,13 +3,13 @@
   "packages": [
     {
       "name": "_fe_analyzer_shared",
-      "rootUri": "file:///C:/Users/gcdev/AppData/Local/Pub/Cache/hosted/pub.dev/_fe_analyzer_shared-91.0.0",
+      "rootUri": "file:///C:/Users/gcdev/AppData/Local/Pub/Cache/hosted/pub.dev/_fe_analyzer_shared-92.0.0",
       "packageUri": "lib/",
       "languageVersion": "3.9"
     },
     {
       "name": "analyzer",
-      "rootUri": "file:///C:/Users/gcdev/AppData/Local/Pub/Cache/hosted/pub.dev/analyzer-8.4.1",
+      "rootUri": "file:///C:/Users/gcdev/AppData/Local/Pub/Cache/hosted/pub.dev/analyzer-9.0.0",
       "packageUri": "lib/",
       "languageVersion": "3.9"
     },
@@ -75,7 +75,7 @@
     },
     {
       "name": "crypto",
-      "rootUri": "file:///C:/Users/gcdev/AppData/Local/Pub/Cache/hosted/pub.dev/crypto-3.0.6",
+      "rootUri": "file:///C:/Users/gcdev/AppData/Local/Pub/Cache/hosted/pub.dev/crypto-3.0.7",
       "packageUri": "lib/",
       "languageVersion": "3.4"
     },
@@ -291,21 +291,21 @@
     },
     {
       "name": "test",
-      "rootUri": "file:///C:/Users/gcdev/AppData/Local/Pub/Cache/hosted/pub.dev/test-1.26.3",
+      "rootUri": "file:///C:/Users/gcdev/AppData/Local/Pub/Cache/hosted/pub.dev/test-1.27.0",
       "packageUri": "lib/",
-      "languageVersion": "3.5"
+      "languageVersion": "3.7"
     },
     {
       "name": "test_api",
-      "rootUri": "file:///C:/Users/gcdev/AppData/Local/Pub/Cache/hosted/pub.dev/test_api-0.7.7",
+      "rootUri": "file:///C:/Users/gcdev/AppData/Local/Pub/Cache/hosted/pub.dev/test_api-0.7.8",
       "packageUri": "lib/",
-      "languageVersion": "3.5"
+      "languageVersion": "3.7"
     },
     {
       "name": "test_core",
-      "rootUri": "file:///C:/Users/gcdev/AppData/Local/Pub/Cache/hosted/pub.dev/test_core-0.6.12",
+      "rootUri": "file:///C:/Users/gcdev/AppData/Local/Pub/Cache/hosted/pub.dev/test_core-0.6.13",
       "packageUri": "lib/",
-      "languageVersion": "3.5"
+      "languageVersion": "3.7"
     },
     {
       "name": "typed_data",

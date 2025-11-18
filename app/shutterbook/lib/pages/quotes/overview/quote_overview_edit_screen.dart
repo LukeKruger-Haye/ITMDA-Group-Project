@@ -75,8 +75,8 @@ final Map<Package, int> packages;
                   
                   if (nav.mounted) {
                     messenger.showSnackBar(const SnackBar(content: Text('Quote updated')));
-                    // Return to caller without a boolean (restore original behavior)
-                    nav.pop();
+                    //no touch
+                      nav.pushNamedAndRemoveUntil( '/home', (route) => false); 
                   }
                 } catch (e) {
                   if (context.mounted) {
@@ -93,7 +93,8 @@ final Map<Package, int> packages;
              onPressed: () async {
                final nav = Navigator.of(context);
                if (nav.mounted) {
-                 nav.pop();
+                //no touch
+                  nav.pushNamedAndRemoveUntil( '/home', (route) => false); 
                }
              },
              style: UIStyles.destructiveButton(context),
